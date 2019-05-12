@@ -1,0 +1,25 @@
+[package]
+name = "stromd"
+version = "0.1.0"
+authors = ["max"]
+edition = "2018"
+
+[workspace]
+members = ["lib/sma", "lib/dachs"]
+
+[dependencies]
+dachs = { version = "*", path = "lib/dachs/" }
+sma = { version = "*", path = "lib/sma/" }
+
+bytes = "*"
+config = { version = "*", features = ["hjson"] }
+daemonize = "*"
+influx_db_client = "*"
+lazy_static = "*"
+regex = "*"
+reqwest = "*"
+serde = { version = "*", features = ["derive"] }
+signal-hook = "*"
+
+#csv = "*"
+#chrono = "*"
