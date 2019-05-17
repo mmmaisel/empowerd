@@ -1,3 +1,4 @@
+extern crate chrono;
 extern crate slog;
 extern crate signal_hook;
 
@@ -76,8 +77,10 @@ impl Drain for DaemonDrain
         -> Result<(), String>
     {
         let mut logger = self.logger.lock().expect("💩️ poisoned mutex");
-        // TODO: improve formatting, add timestamp
-        logger.log(format!("{} {:?} {:?}\n", info.level(), info.msg(), logger_values));
+        // TODO: improve formatting
+        logger.log(format!("[{}] {} {:?} {:?}\n",
+            chrono::Local::now().format("%H:%M:%S %d %b %Y"),
+            info.level(), info.msg(), logger_values));
         return Ok(());
     }
 }

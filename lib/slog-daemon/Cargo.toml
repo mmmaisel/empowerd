@@ -8,5 +8,6 @@ edition = "2018"
 path = "lib.rs"
 
 [dependencies]
+chrono = "*"
 signal-hook = "*"
 slog = "*"
