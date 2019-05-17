@@ -1270,6 +1270,14 @@ version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "slog-daemon"
+version = "0.1.0"
+dependencies = [
+ "signal-hook 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "slog 2.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "slog-term"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1319,6 +1327,7 @@ dependencies = [
  "serde 1.0.91 (registry+https://github.com/rust-lang/crates.io-index)",
  "signal-hook 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "slog 2.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "slog-daemon 0.1.0",
  "slog-term 2.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sma 0.1.0",
 ]

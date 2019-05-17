@@ -8,6 +8,9 @@ use config::{Config, File, FileFormat};
 pub struct Settings
 {
     pub daemonize: bool,
+    pub one_shot: bool,
+    pub log_filename: String,
+    pub log_level: u8,
     pub dachs_addr: String,
     pub dachs_pw: String,
     pub sma_addr: String,
@@ -26,6 +29,9 @@ impl Settings
         let mut config = Config::new();
 
         config.set_default("daemonize", true);
+        config.set_default("one_shot", false);
+        config.set_default("log_filename", "/tmp/stromd.log"); // TODO
+        config.set_default("log_level", 5);
         config.set_default("dachs_poll_interval", 300);
         config.set_default("sma_poll_interval", 3600);
 

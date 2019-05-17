@@ -2,6 +2,8 @@ use std::cmp;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
+// TODO: use logger here
+
 struct ScheduledTask
 {
     pending: bool,

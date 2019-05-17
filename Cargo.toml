@@ -5,11 +5,12 @@ authors = ["max"]
 edition = "2018"
 
 [workspace]
-members = ["lib/sma", "lib/dachs"]
+members = ["lib/sma", "lib/dachs", "lib/slog-daemon"]
 
 [dependencies]
 dachs = { version = "*", path = "lib/dachs/" }
 sma = { version = "*", path = "lib/sma/" }
+slog-daemon = { version = "*", path = "lib/slog-daemon" }
 
 bytes = "*"
 config = { version = "*", features = ["hjson"] }
