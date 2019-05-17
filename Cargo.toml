@@ -20,6 +20,9 @@ regex = "*"
 reqwest = "*"
 serde = { version = "*", features = ["derive"] }
 signal-hook = "*"
+slog = "*"
+slog-term = "*"
+#slog-async = "*"
 
 #csv = "*"
 #chrono = "*"
