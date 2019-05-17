@@ -1,3 +1,4 @@
+use std::env;
 use std::io::Read;
 use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Condvar, Mutex};
@@ -44,9 +45,24 @@ fn setup_logging(settings: &Settings) -> slog::Logger
     return slog::Logger::root(slog::Fuse(duplication), o!());
 }
 
-fn main()
+fn load_settings() -> Result<Settings, ()>
 {
-    // TODO: config file from args!
+    let mut cfg_path = "/tmp/test.conf".to_string();
+    let mut found_cfg: bool = false;
+    for arg in env::args()
+    {
+        if found_cfg
+        {
+            cfg_path = arg;
+            break;
+        }
+
+        if arg == "-c"
+        {
+            found_cfg = true;
+        }
+    }
+
     let settings = match Settings::load_config(
         "/tmp/test.conf".to_string())
     {
@@ -54,13 +70,23 @@ fn main()
         Err(e) =>
         {
             println!("💩️ Could not load config, {}", e);
-            return;
+            return Err(());
         }
     };
     if cfg!(debug_assertions)
     {
         println!("{:?}", settings);
     }
+    return Ok(settings);
+}
+
+fn main()
+{
+    let settings = match load_settings()
+    {
+        Ok(x) => x,
+        Err(_) => return
+    };
 
     let root_logger = setup_logging(&settings);
     info!(root_logger, "⚡️ Starting stromd");
