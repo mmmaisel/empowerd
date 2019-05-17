@@ -2,7 +2,7 @@ use std::cmp;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
-// TODO: use logger here
+use slog::Logger;
 
 struct ScheduledTask
 {
@@ -69,11 +69,12 @@ impl Scheduler
         }
     }
 
-    pub fn run<F>(&mut self, condition: Arc<(Mutex<bool>, Condvar)>, mut callback: F)
+    pub fn run<F>(&mut self, condition: Arc<(Mutex<bool>, Condvar)>,
+        logger: &Logger, mut callback: F)
         -> Result<(), String>
         where F: FnMut(u32, i64) -> ()
     {
-        println!("starting scheduler");
+        debug!(logger, "starting scheduler");
         let &(ref mutex, ref cvar) = &*condition;
         let mut running = mutex.lock().unwrap();
 
@@ -95,12 +96,12 @@ impl Scheduler
                 duration_since(time::UNIX_EPOCH).
                 expect("💩️ Time outside of epoch").as_secs() as i64;
             let delay = (self.next_wake - self.now) as u64;
-            println!("Sleep {} sec", delay);
+            debug!(logger, "Sleep {} sec", delay);
             let result = cvar.wait_timeout(running,
                 time::Duration::new(delay, 0)).expect("💩️ poisened mutex");
             running = result.0;
         }
-        println!("stopping scheduler");
+        debug!(logger, "stopping scheduler");
         return Ok(());
     }
 }

@@ -1,7 +1,7 @@
 use std::env;
 
 extern crate config;
-use config::{Config, File, FileFormat};
+use config::{Config, ConfigError, File, FileFormat};
 
 // https://github.com/mehcode/config-rs/blob/master/examples/hierarchical-env/src/settings.rs
 #[derive(Debug, Deserialize)]
@@ -24,21 +24,22 @@ pub struct Settings
 
 impl Settings
 {
-    pub fn load_config(filename: String) -> Settings
+    pub fn load_config(filename: String)
+        -> Result<Settings, ConfigError>
     {
         let mut config = Config::new();
 
-        config.set_default("daemonize", true);
-        config.set_default("one_shot", false);
-        config.set_default("log_filename", "/tmp/stromd.log"); // TODO
-        config.set_default("log_level", 5);
-        config.set_default("dachs_poll_interval", 300);
-        config.set_default("sma_poll_interval", 3600);
+        config.set_default("daemonize", true)?;
+        config.set_default("one_shot", false)?;
+        config.set_default("log_filename", "/tmp/stromd.log")?; // TODO
+        config.set_default("log_level", 5)?;
+        config.set_default("dachs_poll_interval", 300)?;
+        config.set_default("sma_poll_interval", 3600)?;
 
         config.merge(File::with_name(&filename).
-            format(FileFormat::Hjson)).expect("🧠️");
+            format(FileFormat::Hjson))?;
 
-        let mut settings: Settings = config.try_into().expect("🧠️");
+        let mut settings: Settings = config.try_into()?;
 
         for arg in env::args()
         {
@@ -48,7 +49,6 @@ impl Settings
                 settings.daemonize = true;
             }
         }
-
-        return settings;
+        return Ok(settings);
     }
 }

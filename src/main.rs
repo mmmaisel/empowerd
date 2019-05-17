@@ -1,8 +1,6 @@
-use std::fs::File;
-use std::io::{Error, Read, Write};
+use std::io::Read;
 use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Condvar, Mutex};
-use std::time;
 use std::thread;
 
 extern crate config;
@@ -48,11 +46,21 @@ fn setup_logging(settings: &Settings) -> slog::Logger
 
 fn main()
 {
-    let mut daemonize = false;
-
     // TODO: config file from args!
-    let settings = Settings::load_config("/tmp/test.conf".to_string());
-    println!("{:?}", settings);
+    let settings = match Settings::load_config(
+        "/tmp/test.conf".to_string())
+    {
+        Ok(x) => x,
+        Err(e) =>
+        {
+            println!("💩️ Could not load config, {}", e);
+            return;
+        }
+    };
+    if cfg!(debug_assertions)
+    {
+        println!("{:?}", settings);
+    }
 
     let root_logger = setup_logging(&settings);
     info!(root_logger, "⚡️ Starting stromd");
@@ -67,13 +75,13 @@ fn main()
 
         match daemon.start()
         {
-            Ok(_) => info!(logger, "  Daemonized"),
-            Err(e) => info!(logger, "💩️ Error {}", e)
+            Ok(_) => debug!(logger, "Daemonized"),
+            Err(e) => error!(logger, "💩️ Error {}", e)
         }
     }
     // TODO: oneshot, csv mode
     daemon_main(settings, root_logger.new(o!()));
-    info!(logger, "  terminated");
+    info!(logger, "terminated");
 }
 
 fn daemon_main(settings: Settings, logger: Logger)
@@ -81,15 +89,25 @@ fn daemon_main(settings: Settings, logger: Logger)
     const DACHS_TASK_ID: u32 = 1;
     const SMA_TASK_ID: u32 = 2;
 
-    // TODO: remove expect everywhere
-    // TODO: use logger instead of expect
-    let (mut read, write) = UnixStream::pair().expect("💩️");
-    signal_hook::pipe::register(signal_hook::SIGINT, write).
-        expect("💩️ Unable to register SIGINT");
+    let (mut read, write) = match UnixStream::pair()
+    {
+        Ok((read, write)) => (read, write),
+        Err(e) =>
+        {
+            error!(logger, "💩️ Open signal pipe failed, {}", e);
+            return;
+        }
+    };
+    if let Err(e) = signal_hook::pipe::register(
+        signal_hook::SIGINT, write)
+    {
+        error!(logger, "💩️ Unable to register SIGINT, {}", e);
+    }
     let mut dummy = [0];
 
     let condition_parent = Arc::new((Mutex::new(false), Condvar::new()));
     let condition_child = condition_parent.clone();
+    let child_logger = logger.new(o!());
 
     info!(logger, "🚀️ Starting main");
     let child = thread::spawn(move ||
@@ -100,7 +118,7 @@ fn daemon_main(settings: Settings, logger: Logger)
         let mut scheduler = Scheduler::new();
         scheduler.add_task(DACHS_TASK_ID, settings.dachs_poll_interval);
         scheduler.add_task(SMA_TASK_ID, settings.sma_poll_interval);
-        scheduler.run(condition_child, |id, now|
+        let result = scheduler.run(condition_child, &child_logger, |id, now|
         {
             match id
             {
@@ -117,16 +135,26 @@ fn daemon_main(settings: Settings, logger: Logger)
                 _ => panic!("unexpected id found")
             }
         });
+        if let Err(e) = result
+        {
+            error!(child_logger, "💩️ Scheduler failed, {}", e);
+        }
     });
 
-    read.read_exact(&mut dummy).expect("💩️");
-    info!(logger, "🚦️ received {}, stopping main", dummy[0]);
+    if let Err(e) = read.read_exact(&mut dummy)
+    {
+        error!(logger, "💩️ could not read signal pipe, {}", e);
+    }
+    debug!(logger, "received {}, stopping main", dummy[0]);
     {
         let mut guarded = condition_parent.0.lock().unwrap();
         *guarded = true;
     }
     condition_parent.1.notify_all();
 
-    info!(logger, "  terminating");
-    let thread_result = child.join();
+    info!(logger, "🚦️ terminating");
+    if let Err(e) = child.join()
+    {
+        error!(logger, "💩️ Miner thread returned an error, {:?}", e);
+    }
 }
