@@ -18,6 +18,7 @@ pub struct SmaClient
     dst_addr: net::SocketAddr,
     dst_susy_id: u16,
     dst_serial: u32
+    // TODO: use feature to add slog logging here
 }
 
 impl SmaClient

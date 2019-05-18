@@ -21,6 +21,7 @@ libc = "*"
 regex = "*"
 reqwest = "*"
 serde = { version = "*", features = ["derive"] }
+serde_json = "*"
 signal-hook = "*"
 slog = "*"
 slog-term = "*"

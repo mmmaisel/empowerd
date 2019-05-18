@@ -9,6 +9,7 @@ pub struct DachsClient
     client: reqwest::Client,
     url: String,
     password: String
+    // TODO: use feature to add slog logging here
 }
 
 lazy_static!
@@ -18,8 +19,6 @@ lazy_static!
   static ref EXTR_RUNTIME: regex::Regex = Regex::new(
       r"Hka_Bd\.ulBetriebssekunden=([0-9]+\.[0-9]+)\s").unwrap();
 }
-
-// TODO: dont panic or unwrap or expect
 
 impl DachsClient
 {

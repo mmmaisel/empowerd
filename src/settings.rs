@@ -16,6 +16,7 @@ pub struct Settings
     pub sma_addr: String,
     pub sma_pw: String,
     pub db_url: String,
+    pub db_name: String,
     pub db_pw: String,
     // TODO: polling should be 300s aligned
     pub dachs_poll_interval: i64,

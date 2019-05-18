@@ -155,6 +155,7 @@ fn daemon_main(settings: Settings, logger: Logger)
             unsafe { libc::kill(libc::getpid(), signal_hook::SIGINT) };
         }));
         let mut miner = StromMiner::new(
+            settings.db_url, settings.db_name,
             settings.dachs_addr, settings.dachs_pw,
             settings.sma_addr, settings.sma_pw);
 
@@ -167,13 +168,11 @@ fn daemon_main(settings: Settings, logger: Logger)
             {
                 DACHS_TASK_ID =>
                 {
-                    miner.get_dachs_data();
-                    // TODO: do sth with data
+                    miner.mine_dachs_data();
                 }
                 SMA_TASK_ID =>
                 {
-                    miner.get_sma_data();
-                    // TODO: do sth with data
+                    miner.mine_sma_data();
                 }
                 _ => panic!("unexpected id found")
             }

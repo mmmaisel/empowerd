@@ -1,13 +1,19 @@
 use std::net;
 use std::time;
+use influx_db_client::{Client, Point, Points, Value, Precision};
+
 extern crate dachs;
 extern crate sma;
 
 use dachs::*;
 use sma::*;
 
+use super::models::dachs as dachs_model;
+use super::models::solar as solar_model;
+
 pub struct StromMiner
 {
+    influx_conn: Client,
     dachs_client: DachsClient,
     sma_client: SmaClient,
     sma_pw: String,
@@ -16,11 +22,14 @@ pub struct StromMiner
 
 impl StromMiner
 {
-    pub fn new(dachs_addr: String, dachs_pw: String, sma_addr: String,
-        sma_pw: String) -> StromMiner
+    pub fn new(db_url: String, db_name: String,
+        dachs_addr: String, dachs_pw: String,
+        sma_addr: String, sma_pw: String) -> StromMiner
     {
         return StromMiner
         {
+            // TODO: add DB password
+            influx_conn: Client::new(format!("http://{}", db_url), db_name),
             dachs_client: DachsClient::new(dachs_addr, dachs_pw),
             sma_client: SmaClient::new(),
             sma_pw: sma_pw,
@@ -28,7 +37,7 @@ impl StromMiner
         };
     }
 
-    pub fn get_dachs_data(&mut self)
+    pub fn mine_dachs_data(&mut self)
     {
         let dachs_runtime = self.dachs_client.get_runtime();
         let dachs_energy = self.dachs_client.get_total_energy();
@@ -45,6 +54,8 @@ impl StromMiner
             Err(err) => println!("{}", err)
         }
 
+        let last_record = dachs_model::DachsData::last(&self.influx_conn);
+
 //        let start_value = influx.get_lastest
         let last_value: u32 = 0;
 
@@ -52,7 +63,7 @@ impl StromMiner
         // TODO: write data into DB
     }
 
-    pub fn get_sma_data(&mut self)
+    pub fn mine_sma_data(&mut self)
     {
         let result = self.sma_client.identify(self.sma_addr);
         let identity = match result
@@ -103,6 +114,8 @@ impl StromMiner
             Err(e) => println!("Logout failed: {}", e),
             Ok(_) => ()
         }
+
+        let last_record = solar_model::SolarData::last(&self.influx_conn);
 
         // TODO: convert to current_power
         // TODO: write data into DB
