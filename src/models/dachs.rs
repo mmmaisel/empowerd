@@ -47,16 +47,18 @@ impl DachsData
 
     pub fn save(&self, conn: &Client) -> Result<(), String>
     {
-        // TODO: unify dachs and sma data, timespamps everywhere
         // TODO: write multiple points in one call
 
-/*        let mut measurement = Point::new("solar");
-        measurement.add_timestamp(timestamp);
-        measurement.add_field("total", Value::Float(total));
-        measurement.add_field("power", Value::Float(power));
-        client.write_point(measurement, Some(Precision::Seconds), None).
-            expect("💩️ influx");*/
-        return Err("not implemented".to_string());
+        // TODO: correct error handling
+        let mut measurement = Point::new(DachsData::SERIES_NAME);
+        measurement.add_timestamp(self.timestamp);
+        measurement.add_field("total", Value::Float(self.total_energy));
+        measurement.add_field("runtime", Value::Float(self.runtime));
+        conn.write_point(measurement, Some(Precision::Seconds), None).
+            expect("💩️ influx");
+        println!("wrote {:?} to influx", self);
+
+        return Ok(());
     }
 
     fn load(conn: &Client, query: String)

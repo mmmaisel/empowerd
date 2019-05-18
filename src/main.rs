@@ -150,6 +150,8 @@ fn daemon_main(settings: Settings, logger: Logger)
             }
             else
             {
+                // TODO: panics sometimes on SIGNIT
+                //  after dachs data was written!!!
                 println!("panic occurred");
             }
             unsafe { libc::kill(libc::getpid(), signal_hook::SIGINT) };
@@ -168,7 +170,7 @@ fn daemon_main(settings: Settings, logger: Logger)
             {
                 DACHS_TASK_ID =>
                 {
-                    miner.mine_dachs_data();
+                    miner.mine_dachs_data(now);
                 }
                 SMA_TASK_ID =>
                 {

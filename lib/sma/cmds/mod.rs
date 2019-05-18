@@ -29,8 +29,8 @@ pub trait SmaCmd
 #[derive(Debug)]
 pub struct TimestampedInt
 {
-    timestamp: u32,
-    value: u32
+    pub timestamp: u32,
+    pub value: u32
 }
 
 #[derive(Debug)]

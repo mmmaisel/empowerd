@@ -37,30 +37,46 @@ impl StromMiner
         };
     }
 
-    pub fn mine_dachs_data(&mut self)
+    pub fn mine_dachs_data(&mut self, now: i64)
     {
-        let dachs_runtime = self.dachs_client.get_runtime();
-        let dachs_energy = self.dachs_client.get_total_energy();
-
-        match dachs_runtime
+        let dachs_runtime = match self.dachs_client.get_runtime()
         {
-            Ok(runtime) => println!("Runtime: {} s", runtime),
-            Err(err) => println!("{}", err)
-        }
-
-        match dachs_energy
+            // TODO: use slog everywhere
+            Ok(runtime) =>
+            {
+                println!("Runtime: {} s", runtime);
+                runtime
+            }
+            Err(err) =>
+            {
+                println!("{}", err);
+                return;
+            }
+        };
+        let dachs_energy = match self.dachs_client.get_total_energy()
         {
-            Ok(energy) => println!("Energy: {} kWh", energy),
-            Err(err) => println!("{}", err)
-        }
+            Ok(energy) =>
+            {
+                println!("Energy: {} kWh", energy);
+                energy
+            }
+            Err(err) =>
+            {
+                println!("{}", err);
+                return;
+            }
+        };
 
-        let last_record = dachs_model::DachsData::last(&self.influx_conn);
+//        let last_record = dachs_model::DachsData::last(&self.influx_conn);
 
 //        let start_value = influx.get_lastest
         let last_value: u32 = 0;
 
         // TODO: convert runtime to current_power
-        // TODO: write data into DB
+        // TODO: everywhere: only use f64 where necessary
+        let model = dachs_model::DachsData::new(
+            now, dachs_runtime as f64, dachs_energy as f64);
+        model.save(&self.influx_conn);
     }
 
     pub fn mine_sma_data(&mut self)
@@ -95,14 +111,19 @@ impl StromMiner
 
         println!("GetDayData from {} to {}", now-86400, now);
 
-        match self.sma_client.get_day_data(now-86400, now)
+        let data = match self.sma_client.get_day_data(now-86400, now)
         {
-            Err(e) => println!("Get Day Data failed: {}", e),
+            Err(e) =>
+            {
+                println!("Get Day Data failed: {}", e);
+                return;
+            }
             Ok(x) =>
             {
                 println!("Get Day data returned {:?}", x);
+                x
             }
-        }
+        };
 
         // TODO: handle double data (identical timestamps)
         //   (handled in database?) and missing ones (delta_t > 300)
@@ -115,9 +136,17 @@ impl StromMiner
             Ok(_) => ()
         }
 
-        let last_record = solar_model::SolarData::last(&self.influx_conn);
+        //let last_record = solar_model::SolarData::last(&self.influx_conn);
+
+        for record in data.into_iter()
+        {
+            let model = solar_model::SolarData::new(
+                record.timestamp as i64,
+                0.0,
+                record.value as f64);
+            model.save(&self.influx_conn);
+        }
 
         // TODO: convert to current_power
-        // TODO: write data into DB
     }
 }
