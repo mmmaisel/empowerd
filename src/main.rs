@@ -1,11 +1,13 @@
 use std::env;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
+use std::panic;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
 extern crate config;
 extern crate daemonize;
+extern crate libc;
 #[macro_use] extern crate serde;
 extern crate signal_hook;
 #[macro_use] extern crate slog;
@@ -18,13 +20,14 @@ use slog::Logger;
 
 // TODO: csvimport later
 //mod csvimport;
-mod influx;
+//mod influx;
 mod miner;
+mod models;
 mod scheduler;
 mod settings;
 
 //use csvimport::*;
-use influx::*;
+//use influx::*;
 use miner::*;
 use scheduler::*;
 use settings::*;
@@ -115,7 +118,7 @@ fn daemon_main(settings: Settings, logger: Logger)
     const DACHS_TASK_ID: u32 = 1;
     const SMA_TASK_ID: u32 = 2;
 
-    let (mut read, write) = match UnixStream::pair()
+    let (mut intpipe_r, mut intpipe_w) = match UnixStream::pair()
     {
         Ok((read, write)) => (read, write),
         Err(e) =>
@@ -125,9 +128,10 @@ fn daemon_main(settings: Settings, logger: Logger)
         }
     };
     if let Err(e) = signal_hook::pipe::register(
-        signal_hook::SIGINT, write)
+        signal_hook::SIGINT, intpipe_w.try_clone().unwrap()) // TODO: dont unwrap
     {
         error!(logger, "💩️ Unable to register SIGINT, {}", e);
+        return;
     }
     let mut dummy = [0];
 
@@ -138,8 +142,21 @@ fn daemon_main(settings: Settings, logger: Logger)
     info!(logger, "🚀️ Starting main");
     let child = thread::spawn(move ||
     {
-        let mut miner = StromMiner::new(settings.dachs_addr,
-            settings.dachs_pw, settings.sma_addr, settings.sma_pw);
+        panic::set_hook(Box::new(|panic_info|
+        {
+            if let Some(s) = panic_info.payload().downcast_ref::<&str>()
+            {
+                println!("panic occurred: {:?}", s);
+            }
+            else
+            {
+                println!("panic occurred");
+            }
+            unsafe { libc::kill(libc::getpid(), signal_hook::SIGINT) };
+        }));
+        let mut miner = StromMiner::new(
+            settings.dachs_addr, settings.dachs_pw,
+            settings.sma_addr, settings.sma_pw);
 
         let mut scheduler = Scheduler::new();
         scheduler.add_task(DACHS_TASK_ID, settings.dachs_poll_interval);
@@ -165,9 +182,10 @@ fn daemon_main(settings: Settings, logger: Logger)
         {
             error!(child_logger, "💩️ Scheduler failed, {}", e);
         }
+        intpipe_w.write(&[55]);
     });
 
-    if let Err(e) = read.read_exact(&mut dummy)
+    if let Err(e) = intpipe_r.read_exact(&mut dummy)
     {
         error!(logger, "💩️ could not read signal pipe, {}", e);
     }
@@ -178,7 +196,7 @@ fn daemon_main(settings: Settings, logger: Logger)
     }
     condition_parent.1.notify_all();
 
-    info!(logger, "🚦️ terminating");
+    info!(logger, "terminating");
     if let Err(e) = child.join()
     {
         error!(logger, "💩️ Miner thread returned an error, {:?}", e);

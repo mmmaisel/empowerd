@@ -17,6 +17,7 @@ config = { version = "*", features = ["hjson"] }
 daemonize = "*"
 influx_db_client = "*"
 lazy_static = "*"
+libc = "*"
 regex = "*"
 reqwest = "*"
 serde = { version = "*", features = ["derive"] }
