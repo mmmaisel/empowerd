@@ -28,8 +28,7 @@ pub fn import_solar(db_url: String, db_name: String)
         has_headers(false).
         from_reader(std::io::stdin());
 
-    // TODO: write in one save_all call
-    for record in reader.deserialize()
+    let data = reader.deserialize().into_iter().map(|record|
     {
         let csvrecord: CsvSolarRecord = record.expect("💩️ cant parse");
         let timestamp: i64 =
@@ -39,9 +38,9 @@ pub fn import_solar(db_url: String, db_name: String)
         let total: f64 = csvrecord.total.replace(",", ".").parse().expect("💩️");
         let power: f64 = csvrecord.power.replace(",", ".").parse().expect("💩️");
 
-        let dbrecord = solar_model::SolarData::new(timestamp, power, total);
-        dbrecord.save(&influx_conn);
-    }
+        return solar_model::SolarData::new(timestamp, power, total);
+    }).collect();
+    solar_model::SolarData::save_all(&influx_conn, data);
 }
 
 #[derive(Debug, Deserialize)]
@@ -62,8 +61,7 @@ pub fn import_dachs(db_url: String, db_name: String)
         has_headers(false).
         from_reader(std::io::stdin());
 
-    // TODO: write in one save_all call
-    for record in reader.deserialize()
+    let data = reader.deserialize().into_iter().map(|record|
     {
         let csvrecord: CsvDachsRecord = record.expect("💩️ cant parse");
         let timestamp: i64 =
@@ -73,7 +71,7 @@ pub fn import_dachs(db_url: String, db_name: String)
         let runtime: f64 = csvrecord.runtime.replace(",", ".").parse().expect("💩️");
         let total: f64 = csvrecord.total.replace(",", ".").parse().expect("💩️");
 
-        let dbrecord = dachs_model::DachsData::new(timestamp, runtime, total);
-        dbrecord.save(&influx_conn);
-    }
+        return dachs_model::DachsData::new(timestamp, runtime, total);
+    }).collect();
+    dachs_model::DachsData::save_all(&influx_conn, data);
 }

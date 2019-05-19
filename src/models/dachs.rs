@@ -45,18 +45,38 @@ impl DachsData
         return Ok(queried.pop().unwrap());
     }
 
+    // TODO: deduplicate all below
+    fn to_point(&self) -> Point
+    {
+        let mut point = Point::new(DachsData::SERIES_NAME);
+        point.add_timestamp(self.timestamp);
+        point.add_field("total", Value::Float(self.total_energy));
+        point.add_field("runtime", Value::Float(self.runtime));
+        return point;
+    }
+
     pub fn save(&self, conn: &Client) -> Result<(), String>
     {
-        // TODO: write multiple points in one call
-
         // TODO: correct error handling
-        let mut measurement = Point::new(DachsData::SERIES_NAME);
-        measurement.add_timestamp(self.timestamp);
-        measurement.add_field("total", Value::Float(self.total_energy));
-        measurement.add_field("runtime", Value::Float(self.runtime));
-        conn.write_point(measurement, Some(Precision::Seconds), None).
+        conn.write_point(self.to_point(), Some(Precision::Seconds), None).
             expect("💩️ influx");
         println!("wrote {:?} to influx", self);
+
+        return Ok(());
+    }
+
+    pub fn save_all(conn: &Client, data: Vec<DachsData>)
+        -> Result<(), String>
+    {
+        let points: Points = data.into_iter().map(|x|
+        {
+            return x.to_point();
+        }).collect();
+
+        // TODO: correct error handling
+        conn.write_points(points, Some(Precision::Seconds), None).
+            expect("💩️ influx");
+        println!("wrote points to influx");
 
         return Ok(());
     }
