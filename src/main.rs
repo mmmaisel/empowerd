@@ -171,7 +171,8 @@ fn daemon_main(settings: Settings, logger: Logger)
         let mut scheduler = Scheduler::new();
         scheduler.add_task(DACHS_TASK_ID, settings.dachs_poll_interval);
         scheduler.add_task(SMA_TASK_ID, settings.sma_poll_interval);
-        let result = scheduler.run(condition_child, &child_logger, |id, now|
+        let result = scheduler.run(condition_child, &child_logger,
+            |id, now, interval|
         {
             match id
             {
@@ -181,7 +182,7 @@ fn daemon_main(settings: Settings, logger: Logger)
                 }
                 SMA_TASK_ID =>
                 {
-                    miner.mine_sma_data();
+                    miner.mine_solar_data(interval);
                 }
                 _ => panic!("unexpected id found")
             }

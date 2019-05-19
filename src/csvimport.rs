@@ -47,6 +47,7 @@ pub fn import_solar(db_url: String, db_name: String)
 struct CsvDachsRecord
 {
     date_time: String,
+    power: String,
     runtime: String,
     total: String
 }
@@ -68,10 +69,11 @@ pub fn import_dachs(db_url: String, db_name: String)
             Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S").
             expect("💩️ cant parse datetime").
             timestamp() as i64;
+        let power: f64 = csvrecord.power.replace(",", ".").parse().expect("💩️");
         let runtime: f64 = csvrecord.runtime.replace(",", ".").parse().expect("💩️");
         let total: f64 = csvrecord.total.replace(",", ".").parse().expect("💩️");
 
-        return dachs_model::DachsData::new(timestamp, runtime, total);
+        return dachs_model::DachsData::new(timestamp, power, runtime, total);
     }).collect();
     dachs_model::DachsData::save_all(&influx_conn, data);
 }

@@ -8,9 +8,10 @@ use serde_json::Value::Number;
 #[derive(Debug)]
 pub struct SolarData
 {
-    timestamp: i64,
-    power: f64,
-    total_energy: f64,
+    // TODO: better, db consistent field names
+    pub timestamp: i64,
+    pub power: f64,
+    pub total_energy: f64
 }
 
 impl SolarData

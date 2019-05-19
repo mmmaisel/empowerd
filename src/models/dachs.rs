@@ -8,20 +8,24 @@ use serde_json::Value::Number;
 #[derive(Debug)]
 pub struct DachsData
 {
-    timestamp: i64,
-    runtime: f64,
-    total_energy: f64,
+    // TODO: better, db consistent field names
+    pub timestamp: i64,
+    pub power: f64,
+    pub runtime: f64,
+    pub total_energy: f64
 }
 
 impl DachsData
 {
     const SERIES_NAME: &'static str = "dachs";
 
-    pub fn new(timestamp: i64, runtime: f64, energy: f64) -> DachsData
+    pub fn new(timestamp: i64, power: f64, runtime: f64, energy: f64)
+        -> DachsData
     {
         return DachsData
         {
             timestamp: timestamp,
+            power: power,
             runtime: runtime,
             total_energy: energy
         };
@@ -50,8 +54,9 @@ impl DachsData
     {
         let mut point = Point::new(DachsData::SERIES_NAME);
         point.add_timestamp(self.timestamp);
-        point.add_field("total", Value::Float(self.total_energy));
+        point.add_field("power", Value::Float(self.power));
         point.add_field("runtime", Value::Float(self.runtime));
+        point.add_field("total", Value::Float(self.total_energy));
         return point;
     }
 
@@ -105,15 +110,16 @@ impl DachsData
         // TODO: use logger for this
         println!("Got series {}", series.name);
         // TODO: how to tag unused
-        let mut mapping = (1, 1, 1);
+        let mut mapping = (1, 1, 1, 1);
         for (i, col_name) in series.columns.iter().enumerate()
         {
             println!("column {} is {}", i, col_name);
             match col_name.as_ref()
             {
                 "time" => mapping.0 = i,
-                "runtime" => mapping.1 = i,
-                "total" => mapping.2 = i,
+                "power" => mapping.1 = i,
+                "runtime" => mapping.2 = i,
+                "total" => mapping.3 = i,
                 _ => panic!("error")
             };
         }
@@ -129,12 +135,17 @@ impl DachsData
                 Number(x) => x.as_i64().unwrap(),
                 _ => panic!("serde")
             };
-            let runtime: f64 = match &val[mapping.1]
+            let power: f64 = match &val[mapping.1]
             {
                 Number(x) => x.as_f64().unwrap(),
                 _ => panic!("serde")
             };
-            let total_energy: f64 = match &val[mapping.2]
+            let runtime: f64 = match &val[mapping.2]
+            {
+                Number(x) => x.as_f64().unwrap(),
+                _ => panic!("serde")
+            };
+            let total_energy: f64 = match &val[mapping.3]
             {
                 Number(x) => x.as_f64().unwrap(),
                 _ => panic!("serde")
@@ -142,6 +153,7 @@ impl DachsData
             return DachsData
             {
                 timestamp: timestamp,
+                power : power,
                 runtime: runtime,
                 total_energy: total_energy
             };

@@ -72,7 +72,7 @@ impl Scheduler
     pub fn run<F>(&mut self, condition: Arc<(Mutex<bool>, Condvar)>,
         logger: &Logger, mut callback: F)
         -> Result<(), String>
-        where F: FnMut(u32, i64) -> ()
+        where F: FnMut(u32, i64, i64) -> ()
     {
         debug!(logger, "starting scheduler");
         let &(ref mutex, ref cvar) = &*condition;
@@ -87,7 +87,7 @@ impl Scheduler
                 if task.pending
                 {
                     // TODO: add error handling for tasks?!
-                    callback(task.id, self.now);
+                    callback(task.id, self.now, task.interval);
                     task.pending = false;
                 }
             }

@@ -68,19 +68,25 @@ impl StromMiner
             }
         };
 
-//        let last_record = dachs_model::DachsData::last(&self.influx_conn);
+        let last_record = dachs_model::DachsData::last(&self.influx_conn).unwrap();
+        // TODO: derive nonlinear power from delta timestamp and delta runtime
+        let power: f64 = if last_record.runtime != dachs_runtime as f64
+        {
+            800.0
+        }
+        else
+        {
+            0.0
+        };
 
-//        let start_value = influx.get_lastest
-        let last_value: u32 = 0;
-
-        // TODO: convert runtime to current_power
         // TODO: everywhere: only use f64 where necessary
+
         let model = dachs_model::DachsData::new(
-            now, dachs_runtime as f64, dachs_energy as f64);
+            now, power, dachs_runtime as f64, dachs_energy as f64);
         model.save(&self.influx_conn);
     }
 
-    pub fn mine_sma_data(&mut self)
+    pub fn mine_solar_data(&mut self, interval: i64)
     {
         let result = self.sma_client.identify(self.sma_addr);
         let identity = match result
@@ -110,9 +116,11 @@ impl StromMiner
             duration_since(time::UNIX_EPOCH).
             unwrap().as_secs() as u32;
 
-        println!("GetDayData from {} to {}", now-86400, now);
+        // TODO: derive interval from last influx timestamp
+        println!("GetDayData from {} to {}", now-(interval as u32), now);
 
-        let data = match self.sma_client.get_day_data(now-86400, now)
+        // TODO: this command is not accepted by SMA
+        let data = match self.sma_client.get_day_data(now-(interval as u32), now)
         {
             Err(e) =>
             {
@@ -137,17 +145,22 @@ impl StromMiner
             Ok(_) => ()
         }
 
-        //let last_record = solar_model::SolarData::last(&self.influx_conn);
+        let last_record = solar_model::SolarData::last(&self.influx_conn).unwrap();
+        let mut last_energy = last_record.total_energy as f64;
+        let mut last_timestamp = last_record.timestamp as i64;
 
-        for record in data.into_iter()
+        let records: Vec<solar_model::SolarData> = data.into_iter().map(|record|
         {
-            let model = solar_model::SolarData::new(
+            // TODO: this is an ugly mess
+            let power = ((record.value as f64) - last_energy) /
+                (((record.timestamp as i64) - last_timestamp) as f64);
+            last_energy = record.value as f64;
+            last_timestamp = record.timestamp as i64;
+            return solar_model::SolarData::new(
                 record.timestamp as i64,
-                0.0,
+                power,
                 record.value as f64);
-            model.save(&self.influx_conn);
-        }
-
-        // TODO: convert to current_power
+        }).collect();
+        solar_model::SolarData::save_all(&self.influx_conn, records);
     }
 }
