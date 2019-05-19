@@ -31,7 +31,7 @@ impl SolarData
     pub fn first(conn: &Client) -> Result<SolarData, String>
     {
         let mut queried = SolarData::load(conn, format!(
-            "SELECT * FROM \"{}\" GROUP BY * ORDER BY ASC LIMIT 1",
+            "SELECT * FROM \"{}\" GROUP BY * ORDER BY \"time\" ASC LIMIT 1",
             SolarData::SERIES_NAME))?;
         // TODO: validate only 1 received
         return Ok(queried.pop().unwrap());
@@ -40,7 +40,7 @@ impl SolarData
     pub fn last(conn: &Client) -> Result<SolarData, String>
     {
         let mut queried = SolarData::load(conn, format!(
-            "SELECT * FROM \"{}\" GROUP BY * ORDER BY DESC LIMIT 1",
+            "SELECT * FROM \"{}\" GROUP BY * ORDER BY \"time\" DESC LIMIT 1",
             SolarData::SERIES_NAME))?;
         // TODO: validate only 1 received
         return Ok(queried.pop().unwrap());
