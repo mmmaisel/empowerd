@@ -13,7 +13,9 @@ sma = { version = "*", path = "lib/sma/" }
 slog-daemon = { version = "*", path = "lib/slog-daemon" }
 
 bytes = "*"
+chrono = "*"
 config = { version = "*", features = ["hjson"] }
+csv = "*"
 daemonize = "*"
 influx_db_client = "*"
 lazy_static = "*"
@@ -25,7 +27,5 @@ serde_json = "*"
 signal-hook = "*"
 slog = "*"
 slog-term = "*"
-#slog-async = "*"
 
-#csv = "*"
-#chrono = "*"
+#slog-async = "*"

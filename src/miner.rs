@@ -1,6 +1,6 @@
 use std::net;
 use std::time;
-use influx_db_client::{Client, Point, Points, Value, Precision};
+use influx_db_client::Client;
 
 extern crate dachs;
 extern crate sma;
@@ -8,6 +8,7 @@ extern crate sma;
 use dachs::*;
 use sma::*;
 
+// TODO: fix those names
 use super::models::dachs as dachs_model;
 use super::models::solar as solar_model;
 

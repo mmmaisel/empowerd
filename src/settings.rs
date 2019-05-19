@@ -20,7 +20,10 @@ pub struct Settings
     pub db_pw: String,
     // TODO: polling should be 300s aligned
     pub dachs_poll_interval: i64,
-    pub sma_poll_interval: i64
+    pub sma_poll_interval: i64,
+    pub import_solar: bool,
+    pub import_dachs: bool
+    // TODO: only one import option must be set
 }
 
 impl Settings
@@ -36,6 +39,8 @@ impl Settings
         config.set_default("log_level", 5)?;
         config.set_default("dachs_poll_interval", 300)?;
         config.set_default("sma_poll_interval", 3600)?;
+        config.set_default("import_solar", false)?;
+        config.set_default("import_dachs", false)?;
 
         config.merge(File::with_name(&filename).
             format(FileFormat::Hjson))?;
@@ -48,6 +53,14 @@ impl Settings
             if arg == "-d"
             {
                 settings.daemonize = true;
+            }
+            if arg == "--import-solar"
+            {
+                settings.import_solar = true;
+            }
+            if arg == "--import-dachs"
+            {
+                settings.import_dachs = true;
             }
         }
         return Ok(settings);

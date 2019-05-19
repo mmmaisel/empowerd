@@ -18,16 +18,13 @@ extern crate slog_daemon;
 use daemonize::Daemonize;
 use slog::Logger;
 
-// TODO: csvimport later
-//mod csvimport;
-//mod influx;
+mod csvimport;
 mod miner;
 mod models;
 mod scheduler;
 mod settings;
 
-//use csvimport::*;
-//use influx::*;
+use csvimport::{import_dachs, import_solar};
 use miner::*;
 use scheduler::*;
 use settings::*;
@@ -95,6 +92,16 @@ fn main()
     info!(root_logger, "⚡️ Starting stromd");
     let logger = root_logger.new(o!());
 
+    if settings.import_solar
+    {
+        import_solar(settings.db_url, settings.db_name);
+        return;
+    }
+    if settings.import_dachs
+    {
+        import_dachs(settings.db_url, settings.db_name);
+        return;
+    }
     if settings.daemonize
     {
         let daemon = Daemonize::new().
