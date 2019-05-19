@@ -38,6 +38,7 @@ impl StromMiner
         };
     }
 
+    // TODO: add INFO logs
     pub fn mine_dachs_data(&mut self, now: i64)
     {
         let dachs_runtime = match self.dachs_client.get_runtime()
@@ -69,6 +70,7 @@ impl StromMiner
         };
 
         let last_record = dachs_model::DachsData::last(&self.influx_conn).unwrap();
+        // TODO: handle NULL values
         // TODO: derive nonlinear power from delta timestamp and delta runtime
         let power: f64 = if last_record.runtime != dachs_runtime as f64
         {
@@ -86,6 +88,7 @@ impl StromMiner
         model.save(&self.influx_conn);
     }
 
+    // TODO: add INFO logs
     pub fn mine_solar_data(&mut self, interval: i64)
     {
         let result = self.sma_client.identify(self.sma_addr);
@@ -117,10 +120,11 @@ impl StromMiner
             unwrap().as_secs() as u32;
 
         // TODO: derive interval from last influx timestamp
-        println!("GetDayData from {} to {}", now-(interval as u32), now);
+        println!("GetDayData from {} to {}", now-86400, now);
 
-        // TODO: this command is not accepted by SMA
-        let data = match self.sma_client.get_day_data(now-(interval as u32), now)
+        // TODO: this command is not accepted by SMA, needs -86400 ?
+        //   this data is delayed by about one hour?
+        let data = match self.sma_client.get_day_data(now-86400, now)
         {
             Err(e) =>
             {
@@ -146,13 +150,14 @@ impl StromMiner
         }
 
         let last_record = solar_model::SolarData::last(&self.influx_conn).unwrap();
+        // TODO: handle NULL values
         let mut last_energy = last_record.total_energy as f64;
         let mut last_timestamp = last_record.timestamp as i64;
 
         let records: Vec<solar_model::SolarData> = data.into_iter().map(|record|
         {
             // TODO: this is an ugly mess
-            let power = ((record.value as f64) - last_energy) /
+            let power = 3600.0 * ((record.value as f64) - last_energy) /
                 (((record.timestamp as i64) - last_timestamp) as f64);
             last_energy = record.value as f64;
             last_timestamp = record.timestamp as i64;

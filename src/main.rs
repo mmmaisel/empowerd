@@ -63,8 +63,7 @@ fn load_settings() -> Result<Settings, ()>
         }
     }
 
-    let settings = match Settings::load_config(
-        "/tmp/test.conf".to_string())
+    let settings = match Settings::load_config(cfg_path)
     {
         Ok(x) => x,
         Err(e) =>
@@ -94,11 +93,13 @@ fn main()
 
     if settings.import_solar
     {
+        info!(root_logger, "🔧️ Importing solar data");
         import_solar(settings.db_url, settings.db_name);
         return;
     }
     if settings.import_dachs
     {
+        info!(root_logger, "🔧️ Importing Dachs data");
         import_dachs(settings.db_url, settings.db_name);
         return;
     }
@@ -115,7 +116,7 @@ fn main()
             Err(e) => error!(logger, "💩️ Error {}", e)
         }
     }
-    // TODO: oneshot, csv mode
+    // TODO: oneshot mode
     daemon_main(settings, root_logger.new(o!()));
     info!(logger, "terminated");
 }
@@ -134,15 +135,25 @@ fn daemon_main(settings: Settings, logger: Logger)
             return;
         }
     };
+
+    let intpipe_w2 = match intpipe_w.try_clone()
+    {
+        Ok(pipe) => pipe,
+        Err(e) =>
+        {
+            error!(logger, "💩️ Unable to clone signal pipe, {}", e);
+            return;
+        }
+    };
     if let Err(e) = signal_hook::pipe::register(
-        signal_hook::SIGINT, intpipe_w.try_clone().unwrap()) // TODO: dont unwrap
+        signal_hook::SIGINT, intpipe_w2)
     {
         error!(logger, "💩️ Unable to register SIGINT, {}", e);
         return;
     }
     let mut dummy = [0];
 
-    let condition_parent = Arc::new((Mutex::new(false), Condvar::new()));
+    let condition_parent = Arc::new((Mutex::new(true), Condvar::new()));
     let condition_child = condition_parent.clone();
     let child_logger = logger.new(o!());
 
@@ -158,7 +169,7 @@ fn daemon_main(settings: Settings, logger: Logger)
             else
             {
                 // TODO: panics sometimes on SIGNIT
-                //  after dachs data was written!!!
+                //  after dachs data was written???
                 println!("panic occurred");
             }
             unsafe { libc::kill(libc::getpid(), signal_hook::SIGINT) };
@@ -184,14 +195,19 @@ fn daemon_main(settings: Settings, logger: Logger)
                 {
                     miner.mine_solar_data(interval);
                 }
-                _ => panic!("unexpected id found")
+                _ =>
+                {
+                    error!(child_logger, "unexpected id {} found", id);
+                    return false;
+                }
             }
+            return true;
         });
         if let Err(e) = result
         {
             error!(child_logger, "💩️ Scheduler failed, {}", e);
         }
-        intpipe_w.write(&[55]);
+        intpipe_w.write(&[55]).unwrap();
     });
 
     if let Err(e) = intpipe_r.read_exact(&mut dummy)
@@ -200,8 +216,8 @@ fn daemon_main(settings: Settings, logger: Logger)
     }
     debug!(logger, "received {}, stopping main", dummy[0]);
     {
-        let mut guarded = condition_parent.0.lock().unwrap();
-        *guarded = true;
+        let mut running = condition_parent.0.lock().unwrap();
+        *running = false;
     }
     condition_parent.1.notify_all();
 

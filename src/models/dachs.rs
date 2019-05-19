@@ -101,7 +101,7 @@ impl DachsData
         };
 
         // TODO: dont unwrap, expect or panic
-        let mut series = match queried.pop().unwrap().series
+        let series = match queried.pop().unwrap().series
         {
             None => panic!("no series"),
             Some(mut x) => x.pop().unwrap()
