@@ -7,6 +7,7 @@ use std::thread;
 
 extern crate config;
 extern crate daemonize;
+extern crate influx_derive;
 extern crate libc;
 #[macro_use] extern crate serde;
 extern crate signal_hook;

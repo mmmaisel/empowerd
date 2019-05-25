@@ -69,7 +69,16 @@ impl StromMiner
             }
         };
 
-        let last_record = dachs_model::DachsData::last(&self.influx_conn).unwrap();
+        let last_record = match dachs_model::DachsData::last(&self.influx_conn)
+        {
+            Ok(x) => x,
+            Err(e) =>
+            {
+                println!("Query error {}", e);
+                // TODO: distinguish error and no data, handle first record correctly
+                dachs_model::DachsData::new(0, 0.0, 0.0, 0.0)
+            }
+        };
         // TODO: handle NULL values
         // TODO: derive nonlinear power from delta timestamp and delta runtime
         let power: f64 = if last_record.runtime != dachs_runtime as f64
@@ -149,9 +158,17 @@ impl StromMiner
             Ok(_) => ()
         }
 
-        let last_record = solar_model::SolarData::last(&self.influx_conn).unwrap();
-        // TODO: handle NULL values
-        let mut last_energy = last_record.total_energy as f64;
+        let last_record = match solar_model::SolarData::last(&self.influx_conn)
+        {
+            Ok(x) => x,
+            Err(e) =>
+            {
+                println!("Query error {}", e);
+                // TODO: distinguish error and no data, handle first record correctly
+                solar_model::SolarData::new(0, 0.0, 0.0)
+            }
+        };
+        let mut last_energy = last_record.energy as f64;
         let mut last_timestamp = last_record.timestamp as i64;
 
         let records: Vec<solar_model::SolarData> = data.into_iter().map(|record|

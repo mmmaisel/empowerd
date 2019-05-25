@@ -5,12 +5,13 @@ authors = ["max"]
 edition = "2018"
 
 [workspace]
-members = ["lib/sma", "lib/dachs", "lib/slog-daemon"]
+members = ["lib/sma", "lib/dachs", "lib/slog-daemon", "lib/influx-derive"]
 
 [dependencies]
 dachs = { version = "*", path = "lib/dachs/" }
 sma = { version = "*", path = "lib/sma/" }
 slog-daemon = { version = "*", path = "lib/slog-daemon" }
+influx-derive = { version = "*", path = "lib/influx-derive" }
 
 bytes = "*"
 chrono = "*"

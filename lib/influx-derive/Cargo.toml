@@ -1,0 +1,15 @@
+[package]
+name = "influx-derive"
+version = "0.1.0"
+authors = ["max"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+path = "lib.rs"
+
+[dependencies]
+proc-macro2 = "*"
+quote = "*"
+#syn = { version = "*", features = ["full"] }
+syn = "*"
