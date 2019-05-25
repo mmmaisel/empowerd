@@ -4,7 +4,7 @@ extern crate serde_json;
 //use futures::future::Future;
 use influx_db_client::Points;
 
-use super:: load_series;
+use super::*;
 use influx_derive::{InfluxLoad, InfluxPoint};
 
 #[derive(Debug, InfluxLoad, InfluxPoint)]
@@ -34,7 +34,7 @@ impl DachsData
     }
 
     // TODO: generic this
-    pub fn first(conn: &Client) -> Result<DachsData, String>
+    pub fn first(conn: &Client) -> Result<DachsData, LoadError>
     {
         let mut queried = DachsData::load(conn, format!(
             "SELECT * FROM \"{}\" GROUP BY * ORDER BY \"time\" ASC LIMIT 1",
@@ -44,7 +44,7 @@ impl DachsData
     }
 
     // TODO: generic this
-    pub fn last(conn: &Client) -> Result<DachsData, String>
+    pub fn last(conn: &Client) -> Result<DachsData, LoadError>
     {
         let mut queried = DachsData::load(conn, format!(
             "SELECT * FROM \"{}\" GROUP BY * ORDER BY \"time\" DESC LIMIT 1",

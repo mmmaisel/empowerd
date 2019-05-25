@@ -117,7 +117,7 @@ pub fn derive_influx_load(input: TokenStream) -> TokenStream
                 ),*,
                 _ =>
                 {
-                    return Err("mapping error".to_string())
+                    return Err(LoadError::new("mapping error".to_string()))
                 }
             }
         }
@@ -126,10 +126,10 @@ pub fn derive_influx_load(input: TokenStream) -> TokenStream
         #(mapping.#indices1 = match raw_mapping.#indices2
         {
             Some(x) => x,
-            None => return Err("unmapped index".to_string())
+            None => return Err(LoadError::new("unmapped index".to_string()))
         };)*
 
-        let data: Result<Vec<#struct_name>, String> =
+        let data: Result<Vec<#struct_name>, LoadError> =
             series.values.into_iter().map(|val|
         {
             #(let #fields: #types = match &val[mapping.#indices3]
@@ -137,10 +137,10 @@ pub fn derive_influx_load(input: TokenStream) -> TokenStream
                 Number(x) => match x.#as_types()
                 {
                     Some(x) => x,
-                    None => return Err(format!(
-                        "cannot convert to {}", #type_names))
+                    None => return Err(LoadError::new(format!(
+                        "cannot convert to {}", #type_names)))
                 }
-                _ => return Err("expected number".to_string())
+                _ => return Err(LoadError::new("expected number".to_string()))
             };)*
 
             return Ok(#struct_name
@@ -156,7 +156,7 @@ pub fn derive_influx_load(input: TokenStream) -> TokenStream
         impl #struct_name
         {
             pub fn load(conn: &influx_db_client::Client, query: String)
-                -> Result<Vec<#struct_name>, String>
+                -> Result<Vec<#struct_name>, LoadError>
             {
                 use serde_json::Value::Number;
                 let series = load_series(conn, query)?;

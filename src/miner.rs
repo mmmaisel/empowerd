@@ -74,12 +74,19 @@ impl StromMiner
             Ok(x) => x,
             Err(e) =>
             {
-                println!("Query error {}", e);
-                // TODO: distinguish error and no data, handle first record correctly
-                dachs_model::DachsData::new(0, 0.0, 0.0, 0.0)
+                if e.series_exists()
+                {
+                    println!("Query error {}", e);
+                }
+                else
+                {
+                    let model = dachs_model::DachsData::new(
+                        now, 0.0, dachs_runtime as f64, dachs_energy as f64);
+                    model.save(&self.influx_conn);
+                }
+                return;
             }
         };
-        // TODO: handle NULL values
         // TODO: derive nonlinear power from delta timestamp and delta runtime
         let power: f64 = if last_record.runtime != dachs_runtime as f64
         {
@@ -91,7 +98,6 @@ impl StromMiner
         };
 
         // TODO: everywhere: only use f64 where necessary
-
         let model = dachs_model::DachsData::new(
             now, power, dachs_runtime as f64, dachs_energy as f64);
         model.save(&self.influx_conn);
@@ -163,9 +169,16 @@ impl StromMiner
             Ok(x) => x,
             Err(e) =>
             {
-                println!("Query error {}", e);
-                // TODO: distinguish error and no data, handle first record correctly
-                solar_model::SolarData::new(0, 0.0, 0.0)
+                if e.series_exists()
+                {
+                    println!("Query error {}", e);
+                }
+                else
+                {
+                    // TODO: handle first record correctly
+                    solar_model::SolarData::new(0, 0.0, 0.0);
+                }
+                return;
             }
         };
         let mut last_energy = last_record.energy as f64;
