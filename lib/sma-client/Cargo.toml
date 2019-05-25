@@ -1,5 +1,5 @@
 [package]
-name = "sma"
+name = "sma-client"
 version = "0.1.0"
 authors = ["max"]
 edition = "2018"

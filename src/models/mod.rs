@@ -7,6 +7,9 @@ use influx_db_client::{Client, Point, Points, Precision, Series, Value};
 pub mod dachs;
 pub mod solar;
 
+pub use dachs::*;
+pub use solar::*;
+
 pub struct LoadError
 {
     series_exists: bool,

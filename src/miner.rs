@@ -2,15 +2,13 @@ use std::net;
 use std::time;
 use influx_db_client::Client;
 
-extern crate dachs;
-extern crate sma;
+extern crate dachs_client;
+extern crate sma_client;
 
-use dachs::*;
-use sma::*;
+use dachs_client::*;
+use sma_client::*;
 
-// TODO: fix those names
-use super::models::dachs as dachs_model;
-use super::models::solar as solar_model;
+use crate::models::*;
 
 pub struct StromMiner
 {
@@ -69,7 +67,7 @@ impl StromMiner
             }
         };
 
-        let last_record = match dachs_model::DachsData::last(&self.influx_conn)
+        let last_record = match DachsData::last(&self.influx_conn)
         {
             Ok(x) => x,
             Err(e) =>
@@ -80,7 +78,7 @@ impl StromMiner
                 }
                 else
                 {
-                    let model = dachs_model::DachsData::new(
+                    let model = DachsData::new(
                         now, 0.0, dachs_runtime as f64, dachs_energy as f64);
                     model.save(&self.influx_conn);
                 }
@@ -98,7 +96,7 @@ impl StromMiner
         };
 
         // TODO: everywhere: only use f64 where necessary
-        let model = dachs_model::DachsData::new(
+        let model = DachsData::new(
             now, power, dachs_runtime as f64, dachs_energy as f64);
         model.save(&self.influx_conn);
     }
@@ -164,7 +162,7 @@ impl StromMiner
             Ok(_) => ()
         }
 
-        let last_record = match solar_model::SolarData::last(&self.influx_conn)
+        let last_record = match SolarData::last(&self.influx_conn)
         {
             Ok(x) => x,
             Err(e) =>
@@ -176,7 +174,7 @@ impl StromMiner
                 else
                 {
                     // TODO: handle first record correctly
-                    solar_model::SolarData::new(0, 0.0, 0.0);
+                    SolarData::new(0, 0.0, 0.0);
                 }
                 return;
             }
@@ -184,18 +182,18 @@ impl StromMiner
         let mut last_energy = last_record.energy as f64;
         let mut last_timestamp = last_record.timestamp as i64;
 
-        let records: Vec<solar_model::SolarData> = data.into_iter().map(|record|
+        let records: Vec<SolarData> = data.into_iter().map(|record|
         {
             // TODO: this is an ugly mess
             let power = 3600.0 * ((record.value as f64) - last_energy) /
                 (((record.timestamp as i64) - last_timestamp) as f64);
             last_energy = record.value as f64;
             last_timestamp = record.timestamp as i64;
-            return solar_model::SolarData::new(
+            return SolarData::new(
                 record.timestamp as i64,
                 power,
                 record.value as f64);
         }).collect();
-        solar_model::SolarData::save_all(&self.influx_conn, records);
+        SolarData::save_all(&self.influx_conn, records);
     }
 }
