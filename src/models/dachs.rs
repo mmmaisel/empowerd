@@ -2,13 +2,12 @@ extern crate influx_db_client;
 extern crate serde_json;
 
 //use futures::future::Future;
-use influx_db_client::{Client, Point, Points, Value, Precision};
-use serde_json::Value::Number;
+use influx_db_client::Points;
 
-use super::load_raw;
-use influx_derive::InfluxLoad;
+use super:: load_series;
+use influx_derive::{InfluxLoad, InfluxPoint};
 
-#[derive(Debug, InfluxLoad)]
+#[derive(Debug, InfluxLoad, InfluxPoint)]
 pub struct DachsData
 {
     // TODO: better, db consistent field names
@@ -34,7 +33,7 @@ impl DachsData
         };
     }
 
-    // TODO: derive this
+    // TODO: generic this
     pub fn first(conn: &Client) -> Result<DachsData, String>
     {
         let mut queried = DachsData::load(conn, format!(
@@ -44,7 +43,7 @@ impl DachsData
         return Ok(queried.pop().unwrap());
     }
 
-    // TODO: derive this
+    // TODO: generic this
     pub fn last(conn: &Client) -> Result<DachsData, String>
     {
         let mut queried = DachsData::load(conn, format!(
@@ -54,18 +53,7 @@ impl DachsData
         return Ok(queried.pop().unwrap());
     }
 
-    // TODO: derive this
-    fn to_point(&self) -> Point
-    {
-        let mut point = Point::new(DachsData::SERIES_NAME);
-        point.add_timestamp(self.timestamp);
-        point.add_field("power", Value::Float(self.power));
-        point.add_field("runtime", Value::Float(self.runtime));
-        point.add_field("energy", Value::Float(self.energy));
-        return point;
-    }
-
-    // TODO: derive this
+    // TODO: generic this
     pub fn save(&self, conn: &Client) -> Result<(), String>
     {
         // TODO: correct error handling
@@ -76,7 +64,7 @@ impl DachsData
         return Ok(());
     }
 
-    // TODO: derive this
+    // TODO: generic this
     pub fn save_all(conn: &Client, data: Vec<DachsData>)
         -> Result<(), String>
     {

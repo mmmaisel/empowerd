@@ -2,12 +2,11 @@ extern crate influx_db_client;
 extern crate serde_json;
 
 use influx_db_client::{Client, Point, Points, Precision, Series, Value};
-
 pub mod dachs;
 pub mod solar;
 
 // TODO: this shall return series for derive
-fn load_raw(conn: &Client, query: String) -> Result<Series, String>
+fn load_series(conn: &Client, query: String) -> Result<Series, String>
 {
     let mut queried = match conn.query(&query,
         Some(Precision::Seconds))

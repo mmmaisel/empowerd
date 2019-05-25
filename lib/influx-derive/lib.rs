@@ -5,21 +5,24 @@ extern crate proc_macro2;
 extern crate quote;
 extern crate syn;
 
+extern crate influx_db_client;
+extern crate serde_json;
+
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, LitInt};
+use syn::{parse_macro_input, DeriveInput, LitInt, Path, Type};
 
-#[proc_macro_derive(InfluxLoad)]
-pub fn derive_influx_load(input: TokenStream) -> TokenStream
+use influx_db_client::{Client, Precision, Series};
+
+fn record_info(data: syn::Data, suppress_time: bool)
+    -> (Vec<LitInt>, Vec<String>, Vec<Type>)
 {
-    let ast = parse_macro_input!(input as DeriveInput);
-    let struct_name = ast.ident;
     let mut indices: Vec<LitInt> = Vec::new();
     let mut names: Vec<String> = Vec::new();
-    let mut types: Vec<syn::Type> = Vec::new();
+    let mut types: Vec<Type> = Vec::new();
 
-    let struct_data = match ast.data
+    let struct_data = match data
     {
         syn::Data::Struct(data) => data,
         _ => panic!("not a struct")
@@ -32,14 +35,27 @@ pub fn derive_influx_load(input: TokenStream) -> TokenStream
             for (i, field) in fields.named.into_iter().enumerate()
             {
                 let name = field.ident.expect("missing field name");
-                indices.push(LitInt::new(i as u64,
-                    syn::IntSuffix::None, Span::call_site()));
-                names.push(name.to_string());
-                types.push(field.ty);
+                if !suppress_time || name != "timestamp"
+                {
+                    indices.push(LitInt::new(i as u64,
+                        syn::IntSuffix::None, Span::call_site()));
+                    names.push(name.to_string());
+                    types.push(field.ty);
+                }
             }
         }
         _ => panic!("not a normal struct")
     }
+    return (indices, names, types);
+}
+
+#[proc_macro_derive(InfluxLoad)]
+pub fn derive_influx_load(input: TokenStream) -> TokenStream
+{
+    let ast = parse_macro_input!(input as DeriveInput);
+    let struct_name = ast.ident;
+
+    let (indices, mut names, types) = record_info(ast.data, false);
 
     let raw_mapping_types = vec!
     [
@@ -142,8 +158,55 @@ pub fn derive_influx_load(input: TokenStream) -> TokenStream
             pub fn load(conn: &influx_db_client::Client, query: String)
                 -> Result<Vec<#struct_name>, String>
             {
-                let series = load_raw(conn, query)?;
+                use serde_json::Value::Number;
+                let series = load_series(conn, query)?;
                 #load_fn_body
+            }
+        }
+    };
+
+    return TokenStream::from(result);
+}
+
+#[proc_macro_derive(InfluxPoint)]
+pub fn derive_influx_point(input: TokenStream) -> TokenStream
+{
+    let ast = parse_macro_input!(input as DeriveInput);
+    let struct_name = ast.ident;
+
+    let (_, names, types) = record_info(ast.data, true);
+
+    let fields: Vec<Ident> = names.iter().map(|name|
+    {
+        return Ident::new(name, Span::call_site());
+    }).collect();
+
+    let value_types: Vec<Path> = types.iter().map(|ty|
+    {
+        let typename = quote!(#ty).to_string();
+        match typename.as_ref()
+        {
+            "f64" => syn::parse_str::<syn::Path>("Value::Float").unwrap(),
+            _ => panic!("Unsupported type {}", typename)
+        }
+    }).collect();
+
+    let to_point_fn_body = quote!
+    {
+        let mut point = Point::new(#struct_name::SERIES_NAME);
+        point.add_timestamp(self.timestamp);
+        #(point.add_field(#names, #value_types(self.#fields));)*
+        return point;
+    };
+
+    let result = quote!
+    {
+        use influx_db_client::{Client, Point, Precision, Series, Value};
+        impl #struct_name
+        {
+            pub fn to_point(&self) -> Point
+            {
+                #to_point_fn_body
             }
         }
     };

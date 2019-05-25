@@ -4,13 +4,12 @@ extern crate serde_json;
 // TODO: write tests
 
 //use futures::future::Future;
-use influx_db_client::{Client, Point, Points, Value, Precision};
-use serde_json::Value::Number;
+use influx_db_client::Points;
 
-use super::load_raw;
-use influx_derive::InfluxLoad;
+use super::load_series;
+use influx_derive::{InfluxLoad, InfluxPoint};
 
-#[derive(Debug, InfluxLoad)]
+#[derive(Debug, InfluxLoad, InfluxPoint)]
 pub struct SolarData
 {
     pub timestamp: i64,
@@ -32,7 +31,7 @@ impl SolarData
         };
     }
 
-    // TODO: derive this
+    // TODO: generic this
     pub fn first(conn: &Client) -> Result<SolarData, String>
     {
         let mut queried = SolarData::load(conn, format!(
@@ -42,7 +41,7 @@ impl SolarData
         return Ok(queried.pop().unwrap());
     }
 
-    // TODO: derive this
+    // TODO: generic this
     pub fn last(conn: &Client) -> Result<SolarData, String>
     {
         let mut queried = SolarData::load(conn, format!(
@@ -52,17 +51,7 @@ impl SolarData
         return Ok(queried.pop().unwrap());
     }
 
-    // TODO: derive this
-    fn to_point(&self) -> Point
-    {
-        let mut point = Point::new(SolarData::SERIES_NAME);
-        point.add_timestamp(self.timestamp);
-        point.add_field("energy", Value::Float(self.energy));
-        point.add_field("power", Value::Float(self.power));
-        return point;
-    }
-
-    // TODO: derive this
+    // TODO: generic this
     pub fn save(&self, conn: &Client) -> Result<(), String>
     {
         // TODO: correct error handling
@@ -73,7 +62,7 @@ impl SolarData
         return Ok(());
     }
 
-    // TODO: derive this
+    // TODO: generic this
     pub fn save_all(conn: &Client, data: Vec<SolarData>)
         -> Result<(), String>
     {

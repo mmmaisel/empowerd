@@ -11,5 +11,7 @@ path = "lib.rs"
 [dependencies]
 proc-macro2 = "*"
 quote = "*"
-#syn = { version = "*", features = ["full"] }
 syn = "*"
+
+influx_db_client = "*"
+serde_json = "*"
