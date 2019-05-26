@@ -85,10 +85,15 @@ impl StromMiner
                     {
                         error!(self.logger, "Save DachsData failed, {}", e);
                     }
+                    else
+                    {
+                        trace!(self.logger, "Wrote {:?} to database", model);
+                    }
                 }
                 return;
             }
         };
+        trace!(self.logger, "Read {:?} from database", last_record);
         // TODO: derive nonlinear power from delta timestamp and delta runtime
         let power: f64 = if last_record.runtime != dachs_runtime as f64
         {
@@ -105,6 +110,10 @@ impl StromMiner
         if let Err(e) = model.save(&self.influx_conn)
         {
             error!(self.logger, "Save DachsData failed, {}", e);
+        }
+        else
+        {
+            trace!(self.logger, "Wrote {:?} to database", model);
         }
     }
 
@@ -163,7 +172,7 @@ impl StromMiner
 
         // TODO: handle double data (identical timestamps)
         //   (handled in database?) and missing ones (delta_t > 300)
-        // TODO: handle NaN (0xFFFFFFFF, 0xFFFF) values
+        // TODO: handle NaN (0xFFFFFFFF, 0xFFFF) values(in SMA client validators)
         // TODO: always UTC, handle DST transition
 
         if let Err(e) = self.sma_client.logout()
@@ -189,6 +198,8 @@ impl StromMiner
                 return;
             }
         };
+        trace!(self.logger, "Read {:?} from database", last_record);
+
         let mut last_energy = last_record.energy as f64;
         let mut last_timestamp = last_record.timestamp as i64;
 
@@ -207,6 +218,10 @@ impl StromMiner
         if let Err(e) = SolarData::save_all(&self.influx_conn, records)
         {
             error!(self.logger, "Save SolarData failed, {}", e);
+        }
+        else
+        {
+            trace!(self.logger, "Wrote {:?} to database", records);
         }
     }
 }

@@ -347,12 +347,7 @@ fn impl_save_fn()
         return match conn.write_point(self.to_point(),
             Some(Precision::Seconds), None)
         {
-            Ok(x) =>
-            {
-                // TODO: use logger
-                //println!("wrote {:?} to influx", self);
-                Ok(x)
-            }
+            Ok(x) => Ok(x),
             Err(e) => Err(format!("Writing point to influx failed, {}", e))
         };
     };
@@ -379,12 +374,7 @@ fn impl_save_all_fn(struct_name: &Ident)
 
         return match conn.write_points(points, Some(Precision::Seconds), None)
         {
-            Ok(x) =>
-            {
-                // TODO: use logger
-                //println!("wrote points to influx");
-                Ok(x)
-            }
+            Ok(x) => Ok(x),
             Err(e) => Err(format!("Writing points to influx failed, {}", e))
         };
     };
