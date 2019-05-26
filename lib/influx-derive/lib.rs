@@ -13,7 +13,105 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, LitInt, Path, Type};
 
-use influx_db_client::{Client, Precision, Series};
+struct InfluxAttrs
+{
+    pub series_name: String,
+    // TODO: this impl method stuff is unnecessary, remove it
+    pub impl_first: bool,
+    pub impl_last: bool,
+    pub impl_save: bool,
+    pub impl_save_all: bool,
+    pub impl_to_point: bool,
+    pub impl_load: bool
+}
+
+impl InfluxAttrs
+{
+    pub fn from_attributes(attrs: Vec<syn::Attribute>) -> InfluxAttrs
+    {
+        let mut parsed_attrs = InfluxAttrs
+        {
+            series_name: String::new(),
+            impl_first: true,
+            impl_last: true,
+            impl_save: true,
+            impl_save_all: true,
+            impl_to_point: true,
+            impl_load: true
+        };
+
+        for attr in attrs.iter()
+        {
+            let meta = attr.interpret_meta().unwrap();
+            let meta_list = match meta
+            {
+                syn::Meta::List(x) => x,
+                _ => panic!("unexpected attribute type")
+            };
+
+            let name = meta_list.ident.to_string();
+            if name != "influx"
+            {
+                panic!("unexpected attribute {}", name);
+            }
+
+            for nested_meta in meta_list.nested
+            {
+                let denested_meta = match nested_meta
+                {
+                    syn::NestedMeta::Meta(x) => x,
+                    _ => panic!("unexpected attribute layout")
+                };
+                let name_value = match denested_meta
+                {
+                    syn::Meta::NameValue(x) => x,
+                    _ => panic!("unexpected attribute argument")
+                };
+                let key = name_value.ident.to_string();
+                let value = match name_value.lit
+                {
+                    syn::Lit::Str(x) => x.value(),
+                    _ => panic!("unexpected attribute value type")
+                };
+
+                // TODO: extract some methods, remove this jigsaw
+                match key.as_ref()
+                {
+                    "measurement_name" => parsed_attrs.series_name = value,
+                    "methods" =>
+                    {
+                        if value != "all"
+                        {
+                            parsed_attrs.impl_first = false;
+                            parsed_attrs.impl_last = false;
+                            parsed_attrs.impl_save = false;
+                            parsed_attrs.impl_save_all = false;
+                            parsed_attrs.impl_to_point = false;
+                            parsed_attrs.impl_load = false;
+
+                            for method in value.split(",")
+                            {
+                                match method.as_ref()
+                                {
+                                    // TODO: handle dependent methods
+                                    "first" => parsed_attrs.impl_first = true,
+                                    "last" => parsed_attrs.impl_last = true,
+                                    "save" => parsed_attrs.impl_save = true,
+                                    "save_all" => parsed_attrs.impl_save_all = true,
+                                    "to_point" => parsed_attrs.impl_to_point = true,
+                                    "load" => parsed_attrs.impl_load = true,
+                                    _ => panic!("unexpected method name")
+                                }
+                            }
+                        }
+                    }
+                    _ => panic!("unexpected attribute key")
+                }
+            }
+        }
+        return parsed_attrs;
+    }
+}
 
 fn record_info(data: syn::Data, suppress_time: bool)
     -> (Vec<LitInt>, Vec<String>, Vec<Type>)
@@ -49,13 +147,52 @@ fn record_info(data: syn::Data, suppress_time: bool)
     return (indices, names, types);
 }
 
-#[proc_macro_derive(InfluxLoad)]
-pub fn derive_influx_load(input: TokenStream) -> TokenStream
+#[proc_macro_derive(InfluxData, attributes(influx))]
+pub fn derive_influx_data(input: TokenStream) -> TokenStream
 {
     let ast = parse_macro_input!(input as DeriveInput);
+    let parsed_attrs = InfluxAttrs::from_attributes(ast.attrs);
     let struct_name = ast.ident;
 
-    let (indices, mut names, types) = record_info(ast.data, false);
+    let load_fn = impl_load_fn(ast.data.clone(), &struct_name,
+        &parsed_attrs.series_name, parsed_attrs.impl_load);
+    let to_point_fn = impl_to_point_fn(ast.data.clone(),
+        &parsed_attrs.series_name, parsed_attrs.impl_to_point);
+    let first_fn = impl_first_fn(&struct_name, &parsed_attrs.series_name,
+        parsed_attrs.impl_first);
+    let last_fn = impl_last_fn(&struct_name, &parsed_attrs.series_name,
+        parsed_attrs.impl_last);
+    let save_fn = impl_save_fn(parsed_attrs.impl_save);
+    let save_all_fn = impl_save_all_fn(&struct_name,
+        parsed_attrs.impl_save_all);
+
+    let result = quote!
+    {
+        use influx_db_client::{Client, Point, Precision, Series, Value};
+        // TODO: use some traits for this
+        impl #struct_name
+        {
+            #load_fn
+            #to_point_fn
+            #first_fn
+            #last_fn
+            #save_fn
+            #save_all_fn
+        }
+    };
+    return TokenStream::from(result);
+}
+
+fn impl_load_fn(ast_data: syn::Data, struct_name: &Ident,
+    series_name: &String, implement: bool)
+    -> proc_macro2::TokenStream
+{
+    if !implement
+    {
+        return quote!{};
+    }
+
+    let (indices, mut names, types) = record_info(ast_data, false);
 
     let raw_mapping_types = vec!
     [
@@ -103,6 +240,12 @@ pub fn derive_influx_load(input: TokenStream) -> TokenStream
 
     let load_fn_body = quote!
     {
+        if series.name != #series_name
+        {
+            return Err(LoadError::new(
+                "invalid series name received".to_string()));
+        }
+
         let mut raw_mapping: (#(#raw_mapping_types),*) =
             (#(#raw_mapping_values),*);
 
@@ -153,28 +296,26 @@ pub fn derive_influx_load(input: TokenStream) -> TokenStream
 
     let result = quote!
     {
-        impl #struct_name
+        pub fn load(conn: &influx_db_client::Client, query: String)
+            -> Result<Vec<#struct_name>, LoadError>
         {
-            pub fn load(conn: &influx_db_client::Client, query: String)
-                -> Result<Vec<#struct_name>, LoadError>
-            {
-                use serde_json::Value::Number;
-                let series = load_series(conn, query)?;
-                #load_fn_body
-            }
+            use serde_json::Value::Number;
+            let series = load_series(conn, query)?;
+            #load_fn_body
         }
     };
-
-    return TokenStream::from(result);
+    return result;
 }
 
-#[proc_macro_derive(InfluxPoint)]
-pub fn derive_influx_point(input: TokenStream) -> TokenStream
+fn impl_to_point_fn(ast_data: syn::Data, series_name: &String, implement: bool)
+    -> proc_macro2::TokenStream
 {
-    let ast = parse_macro_input!(input as DeriveInput);
-    let struct_name = ast.ident;
+    if !implement
+    {
+        return quote!{};
+    }
 
-    let (_, names, types) = record_info(ast.data, true);
+    let (_, names, types) = record_info(ast_data, true);
 
     let fields: Vec<Ident> = names.iter().map(|name|
     {
@@ -193,7 +334,7 @@ pub fn derive_influx_point(input: TokenStream) -> TokenStream
 
     let to_point_fn_body = quote!
     {
-        let mut point = Point::new(#struct_name::SERIES_NAME);
+        let mut point = Point::new(#series_name);
         point.add_timestamp(self.timestamp);
         #(point.add_field(#names, #value_types(self.#fields));)*
         return point;
@@ -201,15 +342,126 @@ pub fn derive_influx_point(input: TokenStream) -> TokenStream
 
     let result = quote!
     {
-        use influx_db_client::{Client, Point, Precision, Series, Value};
-        impl #struct_name
+        pub fn to_point(&self) -> Point
         {
-            pub fn to_point(&self) -> Point
-            {
-                #to_point_fn_body
-            }
+            #to_point_fn_body
         }
     };
+    return result;
+}
 
-    return TokenStream::from(result);
+fn impl_first_fn(struct_name: &Ident, series_name: &String, implement: bool)
+    -> proc_macro2::TokenStream
+{
+    if !implement
+    {
+        return quote!{};
+    }
+
+    let first_fn_body = quote!
+    {
+        let mut queried = #struct_name::load(conn, format!(
+            "SELECT * FROM \"{}\" GROUP BY * ORDER BY \"time\" ASC LIMIT 1",
+            #series_name))?;
+        // TODO: validate only 1 received
+        return Ok(queried.pop().unwrap());
+    };
+
+    let result = quote!
+    {
+        pub fn first(conn: &Client) -> Result<#struct_name, LoadError>
+        {
+            #first_fn_body
+        }
+    };
+    return result;
+}
+
+fn impl_last_fn(struct_name: &Ident, series_name: &String, implement: bool)
+    -> proc_macro2::TokenStream
+{
+    if !implement
+    {
+        return quote!{};
+    }
+
+    let last_fn_body = quote!
+    {
+        let mut queried = #struct_name::load(conn, format!(
+            "SELECT * FROM \"{}\" GROUP BY * ORDER BY \"time\" DESC LIMIT 1",
+            #series_name))?;
+        // TODO: validate only 1 received
+        return Ok(queried.pop().unwrap());
+    };
+
+    let result = quote!
+    {
+        pub fn last(conn: &Client) -> Result<#struct_name, LoadError>
+        {
+            #last_fn_body
+        }
+    };
+    return result;
+}
+
+fn impl_save_fn(implement: bool)
+    -> proc_macro2::TokenStream
+{
+    if !implement
+    {
+        return quote!{};
+    }
+
+    let save_fn_body = quote!
+    {
+        // TODO: correct error handling
+        conn.write_point(self.to_point(), Some(Precision::Seconds), None).
+            expect("💩️ influx");
+        // TODO: use logger
+        println!("wrote {:?} to influx", self);
+        return Ok(());
+    };
+
+    let result = quote!
+    {
+        pub fn save(&self, conn: &Client) -> Result<(), String>
+        {
+            #save_fn_body
+        }
+    };
+    return result;
+}
+
+fn impl_save_all_fn(struct_name: &Ident, implement: bool)
+    -> proc_macro2::TokenStream
+{
+    if !implement
+    {
+        return quote!{};
+    }
+
+    let save_all_fn_body = quote!
+    {
+        let points: Points = data.into_iter().map(|x|
+        {
+            return x.to_point();
+        }).collect();
+
+        // TODO: correct error handling
+        conn.write_points(points, Some(Precision::Seconds), None).
+            expect("💩️ influx");
+        println!("wrote points to influx");
+
+        return Ok(());
+    };
+
+    let result = quote!
+    {
+        pub fn save_all(conn: &Client, data: Vec<#struct_name>)
+            -> Result<(), String>
+        {
+            #save_all_fn_body
+        }
+    };
+    return result;
 }

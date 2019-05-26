@@ -3,7 +3,7 @@ extern crate serde_json;
 
 use std::fmt;
 
-use influx_db_client::{Client, Point, Points, Precision, Series, Value};
+use influx_db_client::{Client, Precision, Series};
 pub mod dachs;
 pub mod solar;
 
@@ -50,7 +50,6 @@ impl fmt::Display for LoadError
     }
 }
 
-// TODO: this shall return series for derive
 fn load_series(conn: &Client, query: String) -> Result<Series, LoadError>
 {
     let mut queried = match conn.query(&query,
