@@ -1,7 +1,6 @@
 extern crate influx_db_client;
 extern crate serde_json;
 
-//use futures::future::Future;
 use influx_db_client::Points;
 
 use super::*;

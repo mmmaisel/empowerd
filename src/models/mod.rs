@@ -60,13 +60,13 @@ fn load_series(conn: &Client, query: String) -> Result<Series, LoadError>
             None => return Err(LoadError::new("nothing received".to_string())),
             Some(x) => x
         },
-        Err(e) => return Err(LoadError::new(format!("query error {}", e)))
+        Err(e) => return Err(LoadError::new(format!("{}", e)))
     };
 
     // TODO: this is ugly, use and_then?
     let series = match queried.pop()
     {
-        None => return Err(LoadError::new("no query results".to_string())),
+        None => return Err(LoadError::new("no results".to_string())),
         Some(x) => match x.series
         {
             None => return Err(LoadError::no_series()),
@@ -77,6 +77,5 @@ fn load_series(conn: &Client, query: String) -> Result<Series, LoadError>
             }
         }
     };
-    println!("{:?}", series);
     return Ok(series);
 }

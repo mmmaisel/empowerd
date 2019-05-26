@@ -39,20 +39,18 @@ impl StromMiner
         };
     }
 
-    // TODO: add INFO logs
     pub fn mine_dachs_data(&mut self, now: i64)
     {
         let dachs_runtime = match self.dachs_client.get_runtime()
         {
-            // TODO: use slog everywhere
             Ok(runtime) =>
             {
-                println!("Runtime: {} s", runtime);
+                trace!(self.logger, "Runtime: {} s", runtime);
                 runtime
             }
             Err(err) =>
             {
-                println!("{}", err);
+                error!(self.logger, "{}", err);
                 return;
             }
         };
@@ -60,12 +58,12 @@ impl StromMiner
         {
             Ok(energy) =>
             {
-                println!("Energy: {} kWh", energy);
+                trace!(self.logger, "Energy: {} kWh", energy);
                 energy
             }
             Err(err) =>
             {
-                println!("{}", err);
+                error!(self.logger, "{}", err);
                 return;
             }
         };
@@ -77,7 +75,7 @@ impl StromMiner
             {
                 if e.series_exists()
                 {
-                    println!("Query error {}", e);
+                    error!(self.logger, "Query error {}", e);
                 }
                 else
                 {
@@ -110,31 +108,34 @@ impl StromMiner
         }
     }
 
-    // TODO: add INFO logs
     pub fn mine_solar_data(&mut self, _interval: i64)
     {
         let result = self.sma_client.identify(self.sma_addr);
         let identity = match result
         {
-            Err(e) => panic!(e),
+            Err(e) =>
+            {
+                error!(self.logger, "Could not identify SMA device, {}", e);
+                return;
+            }
             Ok(x) => x
         };
 
-        println!("{} is {:X}, {:X}", self.sma_addr, identity.susy_id,
-            identity.serial);
+        trace!(self.logger, "{} is {:X}, {:X}", self.sma_addr,
+            identity.susy_id, identity.serial);
 
         self.sma_client.set_dst(self.sma_addr, identity.susy_id,
             identity.serial);
 
-        match self.sma_client.logout()
+        if let Err(e) = self.sma_client.logout()
         {
-            Err(e) => println!("Logout failed: {}", e),
-            Ok(_) => ()
+            error!(self.logger, "Logout failed: {}", e);
+            return;
         }
-        match self.sma_client.login(&self.sma_pw)
+        if let Err(e) = self.sma_client.login(&self.sma_pw)
         {
-            Err(e) => println!("Login failed: {}", e),
-            Ok(_) => ()
+            error!(self.logger, "Login failed: {}", e);
+            return;
         }
 
         let now = time::SystemTime::now().
@@ -142,7 +143,7 @@ impl StromMiner
             unwrap().as_secs() as u32;
 
         // TODO: derive interval from last influx timestamp
-        println!("GetDayData from {} to {}", now-86400, now);
+        trace!(self.logger, "GetDayData from {} to {}", now-86400, now);
 
         // TODO: this command is not accepted by SMA, needs -86400 ?
         //   this data is delayed by about one hour?
@@ -150,12 +151,12 @@ impl StromMiner
         {
             Err(e) =>
             {
-                println!("Get Day Data failed: {}", e);
+                error!(self.logger, "Get Day Data failed: {}", e);
                 return;
             }
             Ok(x) =>
             {
-                println!("Get Day data returned {:?}", x);
+                trace!(self.logger, "Get Day data returned {:?}", x);
                 x
             }
         };
@@ -165,10 +166,10 @@ impl StromMiner
         // TODO: handle NaN (0xFFFFFFFF, 0xFFFF) values
         // TODO: always UTC, handle DST transition
 
-        match self.sma_client.logout()
+        if let Err(e) = self.sma_client.logout()
         {
-            Err(e) => println!("Logout failed: {}", e),
-            Ok(_) => ()
+            error!(self.logger, "Logout failed: {}", e);
+            return;
         }
 
         let last_record = match SolarData::last(&self.influx_conn)
@@ -178,7 +179,7 @@ impl StromMiner
             {
                 if e.series_exists()
                 {
-                    println!("Query error {}", e);
+                    error!(self.logger, "Query error {}", e);
                 }
                 else
                 {
