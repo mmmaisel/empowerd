@@ -13,104 +13,52 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, LitInt, Path, Type};
 
-struct InfluxAttrs
+fn get_series_name(attrs: Vec<syn::Attribute>) -> String
 {
-    pub series_name: String,
-    // TODO: this impl method stuff is unnecessary, remove it
-    pub impl_first: bool,
-    pub impl_last: bool,
-    pub impl_save: bool,
-    pub impl_save_all: bool,
-    pub impl_to_point: bool,
-    pub impl_load: bool
-}
+    let mut series_name = String::new();
 
-impl InfluxAttrs
-{
-    pub fn from_attributes(attrs: Vec<syn::Attribute>) -> InfluxAttrs
+    for attr in attrs.iter()
     {
-        let mut parsed_attrs = InfluxAttrs
+        let meta = attr.interpret_meta().unwrap();
+        let meta_list = match meta
         {
-            series_name: String::new(),
-            impl_first: true,
-            impl_last: true,
-            impl_save: true,
-            impl_save_all: true,
-            impl_to_point: true,
-            impl_load: true
+            syn::Meta::List(x) => x,
+            _ => panic!("unexpected attribute type")
         };
 
-        for attr in attrs.iter()
+        let name = meta_list.ident.to_string();
+        if name != "influx"
         {
-            let meta = attr.interpret_meta().unwrap();
-            let meta_list = match meta
+            panic!("unexpected attribute {}", name);
+        }
+
+        for nested_meta in meta_list.nested
+        {
+            let denested_meta = match nested_meta
             {
-                syn::Meta::List(x) => x,
-                _ => panic!("unexpected attribute type")
+                syn::NestedMeta::Meta(x) => x,
+                _ => panic!("unexpected attribute layout")
+            };
+            let name_value = match denested_meta
+            {
+                syn::Meta::NameValue(x) => x,
+                _ => panic!("unexpected attribute argument")
+            };
+            let key = name_value.ident.to_string();
+            let value = match name_value.lit
+            {
+                syn::Lit::Str(x) => x.value(),
+                _ => panic!("unexpected attribute value type")
             };
 
-            let name = meta_list.ident.to_string();
-            if name != "influx"
+            match key.as_ref()
             {
-                panic!("unexpected attribute {}", name);
-            }
-
-            for nested_meta in meta_list.nested
-            {
-                let denested_meta = match nested_meta
-                {
-                    syn::NestedMeta::Meta(x) => x,
-                    _ => panic!("unexpected attribute layout")
-                };
-                let name_value = match denested_meta
-                {
-                    syn::Meta::NameValue(x) => x,
-                    _ => panic!("unexpected attribute argument")
-                };
-                let key = name_value.ident.to_string();
-                let value = match name_value.lit
-                {
-                    syn::Lit::Str(x) => x.value(),
-                    _ => panic!("unexpected attribute value type")
-                };
-
-                // TODO: extract some methods, remove this jigsaw
-                match key.as_ref()
-                {
-                    "measurement_name" => parsed_attrs.series_name = value,
-                    "methods" =>
-                    {
-                        if value != "all"
-                        {
-                            parsed_attrs.impl_first = false;
-                            parsed_attrs.impl_last = false;
-                            parsed_attrs.impl_save = false;
-                            parsed_attrs.impl_save_all = false;
-                            parsed_attrs.impl_to_point = false;
-                            parsed_attrs.impl_load = false;
-
-                            for method in value.split(",")
-                            {
-                                match method.as_ref()
-                                {
-                                    // TODO: handle dependent methods
-                                    "first" => parsed_attrs.impl_first = true,
-                                    "last" => parsed_attrs.impl_last = true,
-                                    "save" => parsed_attrs.impl_save = true,
-                                    "save_all" => parsed_attrs.impl_save_all = true,
-                                    "to_point" => parsed_attrs.impl_to_point = true,
-                                    "load" => parsed_attrs.impl_load = true,
-                                    _ => panic!("unexpected method name")
-                                }
-                            }
-                        }
-                    }
-                    _ => panic!("unexpected attribute key")
-                }
+                "measurement_name" => series_name = value,
+                _ => panic!("unexpected attribute key")
             }
         }
-        return parsed_attrs;
     }
+    return series_name;
 }
 
 fn record_info(data: syn::Data, suppress_time: bool)
@@ -151,20 +99,20 @@ fn record_info(data: syn::Data, suppress_time: bool)
 pub fn derive_influx_data(input: TokenStream) -> TokenStream
 {
     let ast = parse_macro_input!(input as DeriveInput);
-    let parsed_attrs = InfluxAttrs::from_attributes(ast.attrs);
+    let mut series_name = get_series_name(ast.attrs);
     let struct_name = ast.ident;
 
-    let load_fn = impl_load_fn(ast.data.clone(), &struct_name,
-        &parsed_attrs.series_name, parsed_attrs.impl_load);
-    let to_point_fn = impl_to_point_fn(ast.data.clone(),
-        &parsed_attrs.series_name, parsed_attrs.impl_to_point);
-    let first_fn = impl_first_fn(&struct_name, &parsed_attrs.series_name,
-        parsed_attrs.impl_first);
-    let last_fn = impl_last_fn(&struct_name, &parsed_attrs.series_name,
-        parsed_attrs.impl_last);
-    let save_fn = impl_save_fn(parsed_attrs.impl_save);
-    let save_all_fn = impl_save_all_fn(&struct_name,
-        parsed_attrs.impl_save_all);
+    if series_name.is_empty()
+    {
+        series_name = struct_name.to_string().to_lowercase();
+    }
+
+    let load_fn = impl_load_fn(ast.data.clone(), &struct_name, &series_name);
+    let to_point_fn = impl_to_point_fn(ast.data.clone(), &series_name);
+    let first_fn = impl_first_fn(&struct_name, &series_name);
+    let last_fn = impl_last_fn(&struct_name, &series_name);
+    let save_fn = impl_save_fn();
+    let save_all_fn = impl_save_all_fn(&struct_name);
 
     let result = quote!
     {
@@ -183,15 +131,9 @@ pub fn derive_influx_data(input: TokenStream) -> TokenStream
     return TokenStream::from(result);
 }
 
-fn impl_load_fn(ast_data: syn::Data, struct_name: &Ident,
-    series_name: &String, implement: bool)
+fn impl_load_fn(ast_data: syn::Data, struct_name: &Ident, series_name: &String)
     -> proc_macro2::TokenStream
 {
-    if !implement
-    {
-        return quote!{};
-    }
-
     let (indices, mut names, types) = record_info(ast_data, false);
 
     let raw_mapping_types = vec!
@@ -307,14 +249,9 @@ fn impl_load_fn(ast_data: syn::Data, struct_name: &Ident,
     return result;
 }
 
-fn impl_to_point_fn(ast_data: syn::Data, series_name: &String, implement: bool)
+fn impl_to_point_fn(ast_data: syn::Data, series_name: &String)
     -> proc_macro2::TokenStream
 {
-    if !implement
-    {
-        return quote!{};
-    }
-
     let (_, names, types) = record_info(ast_data, true);
 
     let fields: Vec<Ident> = names.iter().map(|name|
@@ -350,14 +287,9 @@ fn impl_to_point_fn(ast_data: syn::Data, series_name: &String, implement: bool)
     return result;
 }
 
-fn impl_first_fn(struct_name: &Ident, series_name: &String, implement: bool)
+fn impl_first_fn(struct_name: &Ident, series_name: &String)
     -> proc_macro2::TokenStream
 {
-    if !implement
-    {
-        return quote!{};
-    }
-
     let first_fn_body = quote!
     {
         let mut queried = #struct_name::load(conn, format!(
@@ -377,14 +309,9 @@ fn impl_first_fn(struct_name: &Ident, series_name: &String, implement: bool)
     return result;
 }
 
-fn impl_last_fn(struct_name: &Ident, series_name: &String, implement: bool)
+fn impl_last_fn(struct_name: &Ident, series_name: &String)
     -> proc_macro2::TokenStream
 {
-    if !implement
-    {
-        return quote!{};
-    }
-
     let last_fn_body = quote!
     {
         let mut queried = #struct_name::load(conn, format!(
@@ -404,14 +331,9 @@ fn impl_last_fn(struct_name: &Ident, series_name: &String, implement: bool)
     return result;
 }
 
-fn impl_save_fn(implement: bool)
+fn impl_save_fn()
     -> proc_macro2::TokenStream
 {
-    if !implement
-    {
-        return quote!{};
-    }
-
     let save_fn_body = quote!
     {
         // TODO: correct error handling
@@ -432,14 +354,9 @@ fn impl_save_fn(implement: bool)
     return result;
 }
 
-fn impl_save_all_fn(struct_name: &Ident, implement: bool)
+fn impl_save_all_fn(struct_name: &Ident)
     -> proc_macro2::TokenStream
 {
-    if !implement
-    {
-        return quote!{};
-    }
-
     let save_all_fn_body = quote!
     {
         let points: Points = data.into_iter().map(|x|

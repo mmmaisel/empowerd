@@ -11,7 +11,6 @@ use influx_derive::InfluxData;
 
 #[derive(Debug, InfluxData)]
 #[influx(measurement_name = "solar")]
-#[influx(methods = "all")]
 pub struct SolarData
 {
     pub timestamp: i64,

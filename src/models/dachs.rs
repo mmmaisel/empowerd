@@ -9,7 +9,6 @@ use influx_derive::InfluxData;
 
 #[derive(Debug, InfluxData)]
 #[influx(measurement_name = "dachs")]
-#[influx(methods = "all")]
 pub struct DachsData
 {
     pub timestamp: i64,
