@@ -295,7 +295,11 @@ fn impl_first_fn(struct_name: &Ident, series_name: &String)
         let mut queried = #struct_name::load(conn, format!(
             "SELECT * FROM \"{}\" GROUP BY * ORDER BY \"time\" ASC LIMIT 1",
             #series_name))?;
-        // TODO: validate only 1 received
+        if queried.len() != 1
+        {
+            return Err(LoadError::new(format!(
+                "Received {} series, expected 1", queried.len())));
+        }
         return Ok(queried.pop().unwrap());
     };
 
@@ -317,7 +321,11 @@ fn impl_last_fn(struct_name: &Ident, series_name: &String)
         let mut queried = #struct_name::load(conn, format!(
             "SELECT * FROM \"{}\" GROUP BY * ORDER BY \"time\" DESC LIMIT 1",
             #series_name))?;
-        // TODO: validate only 1 received
+        if queried.len() != 1
+        {
+            return Err(LoadError::new(format!(
+                "Received {} series, expected 1", queried.len())));
+        }
         return Ok(queried.pop().unwrap());
     };
 
@@ -336,12 +344,17 @@ fn impl_save_fn()
 {
     let save_fn_body = quote!
     {
-        // TODO: correct error handling
-        conn.write_point(self.to_point(), Some(Precision::Seconds), None).
-            expect("💩️ influx");
-        // TODO: use logger
-        println!("wrote {:?} to influx", self);
-        return Ok(());
+        return match conn.write_point(self.to_point(),
+            Some(Precision::Seconds), None)
+        {
+            Ok(x) =>
+            {
+                // TODO: use logger
+                //println!("wrote {:?} to influx", self);
+                Ok(x)
+            }
+            Err(e) => Err(format!("Writing point to influx failed, {}", e))
+        };
     };
 
     let result = quote!
@@ -364,12 +377,16 @@ fn impl_save_all_fn(struct_name: &Ident)
             return x.to_point();
         }).collect();
 
-        // TODO: correct error handling
-        conn.write_points(points, Some(Precision::Seconds), None).
-            expect("💩️ influx");
-        println!("wrote points to influx");
-
-        return Ok(());
+        return match conn.write_points(points, Some(Precision::Seconds), None)
+        {
+            Ok(x) =>
+            {
+                // TODO: use logger
+                //println!("wrote points to influx");
+                Ok(x)
+            }
+            Err(e) => Err(format!("Writing points to influx failed, {}", e))
+        };
     };
 
     let result = quote!
