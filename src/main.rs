@@ -178,7 +178,7 @@ fn daemon_main(settings: Settings, logger: Logger)
         let mut miner = StromMiner::new(
             settings.db_url, settings.db_name,
             settings.dachs_addr, settings.dachs_pw,
-            settings.sma_addr, settings.sma_pw);
+            settings.sma_addr, settings.sma_pw, child_logger.new(o!()));
 
         let mut scheduler = Scheduler::new();
         scheduler.add_task(DACHS_TASK_ID, settings.dachs_poll_interval);

@@ -1,5 +1,6 @@
 use std::net;
 use std::time;
+use slog::Logger;
 use influx_db_client::Client;
 
 extern crate dachs_client;
@@ -16,14 +17,15 @@ pub struct StromMiner
     dachs_client: DachsClient,
     sma_client: SmaClient,
     sma_pw: String,
-    sma_addr: net::SocketAddr
+    sma_addr: net::SocketAddr,
+    logger: Logger
 }
 
 impl StromMiner
 {
     pub fn new(db_url: String, db_name: String,
         dachs_addr: String, dachs_pw: String,
-        sma_addr: String, sma_pw: String) -> StromMiner
+        sma_addr: String, sma_pw: String, logger: Logger) -> StromMiner
     {
         return StromMiner
         {
@@ -32,7 +34,8 @@ impl StromMiner
             dachs_client: DachsClient::new(dachs_addr, dachs_pw),
             sma_client: SmaClient::new(),
             sma_pw: sma_pw,
-            sma_addr: SmaClient::sma_sock_addr(sma_addr).unwrap() // TODO: dont panic
+            sma_addr: SmaClient::sma_sock_addr(sma_addr).unwrap(), // TODO: dont panic
+            logger: logger
         };
     }
 
@@ -80,7 +83,10 @@ impl StromMiner
                 {
                     let model = DachsData::new(
                         now, 0.0, dachs_runtime as f64, dachs_energy as f64);
-                    model.save(&self.influx_conn);
+                    if let Err(e) = model.save(&self.influx_conn)
+                    {
+                        error!(self.logger, "Save DachsData failed, {}", e);
+                    }
                 }
                 return;
             }
@@ -98,11 +104,14 @@ impl StromMiner
         // TODO: everywhere: only use f64 where necessary
         let model = DachsData::new(
             now, power, dachs_runtime as f64, dachs_energy as f64);
-        model.save(&self.influx_conn);
+        if let Err(e) = model.save(&self.influx_conn)
+        {
+            error!(self.logger, "Save DachsData failed, {}", e);
+        }
     }
 
     // TODO: add INFO logs
-    pub fn mine_solar_data(&mut self, interval: i64)
+    pub fn mine_solar_data(&mut self, _interval: i64)
     {
         let result = self.sma_client.identify(self.sma_addr);
         let identity = match result
@@ -194,6 +203,9 @@ impl StromMiner
                 power,
                 record.value as f64);
         }).collect();
-        SolarData::save_all(&self.influx_conn, records);
+        if let Err(e) = SolarData::save_all(&self.influx_conn, records)
+        {
+            error!(self.logger, "Save SolarData failed, {}", e);
+        }
     }
 }
