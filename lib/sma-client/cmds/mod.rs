@@ -463,3 +463,6 @@ fn parse_command(buffer: &mut Buf) -> Result<Box<SmaResponse>, String>
     };
     return Ok(packet);
 }
+
+#[cfg(test)]
+mod tests;

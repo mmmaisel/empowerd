@@ -1,8 +1,5 @@
 mod cmds;
 
-#[cfg(test)]
-mod test;
-
 extern crate bytes;
 use bytes::{BytesMut, Buf};
 
