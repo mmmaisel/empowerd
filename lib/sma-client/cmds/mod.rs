@@ -26,7 +26,7 @@ pub trait SmaCmd
     fn opcode(&self) -> u32;
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TimestampedInt
 {
     pub timestamp: u32,
