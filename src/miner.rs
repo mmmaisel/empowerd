@@ -202,6 +202,7 @@ impl StromMiner
 
         let mut last_energy = last_record.energy as f64;
         let mut last_timestamp = last_record.timestamp as i64;
+        let record_count = data.len();
 
         let records: Vec<SolarData> = data.into_iter().map(|record|
         {
@@ -221,7 +222,8 @@ impl StromMiner
         }
         else
         {
-            trace!(self.logger, "Wrote {:?} to database", records);
+            trace!(self.logger, "Wrote {} solar records to database",
+                record_count);
         }
     }
 }
