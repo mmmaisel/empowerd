@@ -1,5 +1,7 @@
 use super::sml_types::*;
 
+use bytes::Buf;
+
 pub struct SmlListEntry
 {
     obj_name: Vec<u8>,
@@ -22,3 +24,20 @@ pub struct SmlGetListResponse
     act_gateway_time: Option<SmlTime>
 }
 
+impl SmlGetListResponse
+{
+    pub fn deserialize(buffer: &mut Buf) -> SmlGetListResponse
+    {
+        // TODO: implement
+        return SmlGetListResponse
+        {
+            client_id: None,
+            server_id: Vec::new(),
+            list_name: None,
+            act_sensor_time: None,
+            values: Vec::new(),
+            signature: None,
+            act_gateway_time: None
+        };
+    }
+}

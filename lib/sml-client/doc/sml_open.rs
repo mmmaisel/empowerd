@@ -1,5 +1,7 @@
 use super::sml_types::*;
 
+use bytes::Buf;
+
 pub struct SmlOpenResponse
 {
     codepage: Option<Vec<u8>>,
@@ -10,3 +12,19 @@ pub struct SmlOpenResponse
     version: Option<u8>
 }
 
+impl SmlOpenResponse
+{
+    pub fn deserialize(buffer: &mut Buf) -> SmlOpenResponse
+    {
+        // TODO: implement
+        return SmlOpenResponse
+        {
+            codepage: None,
+            client_id: None,
+            req_file_id: Vec::new(),
+            server_id: Vec::new(),
+            ref_time: None,
+            version: None
+        };
+    }
+}
