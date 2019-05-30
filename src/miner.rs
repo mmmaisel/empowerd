@@ -5,6 +5,7 @@ use influx_db_client::Client;
 
 extern crate dachs_client;
 extern crate sma_client;
+extern crate sml_client;
 
 use dachs_client::*;
 use sma_client::*;

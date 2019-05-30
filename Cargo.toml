@@ -6,16 +6,18 @@ edition = "2018"
 
 [workspace]
 members = [
-    "lib/sma-client",
     "lib/dachs-client",
+    "lib/influx-derive",
     "lib/slog-daemon",
-    "lib/influx-derive"]
+    "lib/sma-client",
+    "lib/sml-client" ]
 
 [dependencies]
 dachs-client = { version = "*", path = "lib/dachs-client/" }
-sma-client = { version = "*", path = "lib/sma-client/" }
-slog-daemon = { version = "*", path = "lib/slog-daemon" }
 influx-derive = { version = "*", path = "lib/influx-derive" }
+slog-daemon = { version = "*", path = "lib/slog-daemon" }
+sma-client = { version = "*", path = "lib/sma-client/" }
+sml-client = { version = "*", path = "lib/sml-client/" }
 
 bytes = "*"
 chrono = "*"

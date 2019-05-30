@@ -1,0 +1,11 @@
+[package]
+name = "sml-client"
+version = "0.1.0"
+authors = ["max"]
+edition = "2018"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+serialport = "*"
