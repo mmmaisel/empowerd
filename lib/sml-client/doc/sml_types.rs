@@ -1,9 +1,32 @@
+use super::sml_buffer::*;
+
+#[derive(Debug)]
 pub enum SmlTime
 {
     SecIndex(u32),
     Timestamp(u32)
 }
 
+impl SmlTime
+{
+    pub fn deserialize(mut buffer: &mut SmlBuf)
+        -> Result<Option<SmlTime>, String>
+    {
+        let tl = buffer.get_sml_tl(); // TODO: validate this
+        if tl == 0x01
+        {
+            return Ok(None);
+        }
+        return match buffer.get_sml_u8()?
+        {
+            1 => Ok(Some(SmlTime::SecIndex(buffer.get_sml_u32()?))),
+            2 => Ok(Some(SmlTime::Timestamp(buffer.get_sml_u32()?))),
+            _ => Err("Invalid SmlTime variant found".to_string())
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum SmlStatus
 {
     Status8(u8),
@@ -12,6 +35,7 @@ pub enum SmlStatus
     Status64(u64)
 }
 
+#[derive(Debug)]
 pub enum SmlValue
 {
     Boolean(bool),

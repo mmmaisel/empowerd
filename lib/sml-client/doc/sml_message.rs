@@ -3,6 +3,7 @@ use super::sml_open::*;
 use super::sml_close::*;
 use super::sml_get_list::*;
 
+#[derive(Debug)]
 pub enum SmlBody
 {
     OpenResponse(SmlOpenResponse),
@@ -35,6 +36,7 @@ impl SmlBody
     }
 }
 
+#[derive(Debug)]
 pub struct SmlMessage
 {
     type_len: u8, // TODO: remove this

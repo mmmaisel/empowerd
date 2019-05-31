@@ -2,6 +2,7 @@ use super::sml_types::*;
 use super::sml_buffer::*;
 use super::sml_message::*;
 
+#[derive(Debug)]
 pub struct SmlFile
 {
     version: u32,

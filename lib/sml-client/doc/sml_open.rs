@@ -1,6 +1,7 @@
 use super::sml_buffer::*;
 use super::sml_types::*;
 
+#[derive(Debug)]
 pub struct SmlOpenResponse
 {
     codepage: Option<Vec<u8>>,
@@ -13,18 +14,27 @@ pub struct SmlOpenResponse
 
 impl SmlOpenResponse
 {
-    pub fn deserialize(buffer: &mut SmlBuf) -> Result<SmlOpenResponse, String>
+    pub fn deserialize(mut buffer: &mut SmlBuf)
+        -> Result<SmlOpenResponse, String>
     {
-        return Err("not implemented yet".to_string());
-        // TODO: implement
-/*        return SmlOpenResponse
+        let tl = buffer.get_sml_tl();
+        // TODO: use None if TL == 0x01
+        let codepage = buffer.get_sml_octet_str()?;
+        let client_id = buffer.get_sml_octet_str()?;
+        let req_file_id = buffer.get_sml_octet_str()?;
+        let server_id = buffer.get_sml_octet_str()?;
+        let ref_time = SmlTime::deserialize(&mut buffer)?;
+//        let version = buffer.get_sml_u8()?; // TODO: handle none here
+let version = 1u8;
+
+        return Ok(SmlOpenResponse
         {
-            codepage: None,
-            client_id: None,
-            req_file_id: Vec::new(),
-            server_id: Vec::new(),
-            ref_time: None,
-            version: None
-        };*/
+            codepage: Some(codepage),
+            client_id: Some(client_id),
+            req_file_id: req_file_id,
+            server_id: server_id,
+            ref_time: ref_time,
+            version: Some(version)
+        });
     }
 }

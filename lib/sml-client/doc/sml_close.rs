@@ -1,5 +1,6 @@
 use super::sml_buffer::*;
 
+#[derive(Debug)]
 pub struct SmlCloseResponse
 {
     signature: Option<Vec<u8>>

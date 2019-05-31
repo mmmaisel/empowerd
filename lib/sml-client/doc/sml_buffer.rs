@@ -1,5 +1,6 @@
 use bytes::Buf;
 
+// TODO: add allow none parameter to all those functions
 pub trait SmlBuf: Buf
 {
     fn get_sml_u8(&mut self) -> Result<u8, String>
@@ -28,13 +29,13 @@ pub trait SmlBuf: Buf
     fn get_sml_uint(&mut self, len: usize) -> Result<u64, String>
     {
         let tl = self.get_sml_tl();
-        if tl == (0x61 + len as u8)
+        if tl == (0x61 + (len as u8))
         {
             return Ok(self.get_uint_be(len));
         }
         else
         {
-            return Err(format!("Invalid TL value {} for u{}", tl, len*8));
+            return Err(format!("Invalid TL value {:X} for u{}", tl, len*8));
         };
     }
 
@@ -64,13 +65,13 @@ pub trait SmlBuf: Buf
     fn get_sml_int(&mut self, len: usize) -> Result<i64, String>
     {
         let tl = self.get_sml_tl();
-        if tl == (0x51 + len as u8)
+        if tl == (0x51 + (len as u8))
         {
             return Ok(self.get_int_be(len));
         }
         else
         {
-            return Err(format!("Invalid TL value {} for i{}", tl, len*8));
+            return Err(format!("Invalid TL value {:X} for i{}", tl, len*8));
         };
     }
 
@@ -83,7 +84,7 @@ pub trait SmlBuf: Buf
         }
         else
         {
-            return Err(format!("Invalid TL value {} for bool", tl));
+            return Err(format!("Invalid TL value {:X} for bool", tl));
         };
     }
 
@@ -98,7 +99,7 @@ pub trait SmlBuf: Buf
         let tl = self.get_sml_tl();
         if tl < 1 || tl > 15
         {
-            return Err(format!("Invalid TL value {} for octet string", tl));
+            return Err(format!("Invalid TL value {:X} for octet string", tl));
         }
 
         let mut oct_str: Vec<u8> = Vec::new();
@@ -129,7 +130,7 @@ pub trait SmlBuf: Buf
         }
         else
         {
-            return Err(format!("Invalid TL value {} found for end", tl));
+            return Err(format!("Invalid TL value {:X} found for end", tl));
         }
     }
 }

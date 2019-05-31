@@ -1,6 +1,7 @@
 use super::sml_buffer::*;
 use super::sml_types::*;
 
+#[derive(Debug)]
 pub struct SmlListEntry
 {
     obj_name: Vec<u8>,
@@ -12,6 +13,7 @@ pub struct SmlListEntry
     signature: Option<Vec<u8>>
 }
 
+#[derive(Debug)]
 pub struct SmlGetListResponse
 {
     client_id: Option<Vec<u8>>,
