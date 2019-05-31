@@ -1,14 +1,11 @@
 use super::sml_types::*;
+use super::sml_buffer::*;
 use super::sml_message::*;
 
-use bytes::{Buf};
-
-struct SmlFile
+pub struct SmlFile
 {
-    header: u32,
     version: u32,
     messages: Vec<SmlMessage>,
-    footer: u32,
     end_crc: u32
 }
 
@@ -16,11 +13,10 @@ struct SmlFile
 
 impl SmlFile
 {
-    pub fn deserialize(mut buffer: &mut Buf) -> SmlFile
+    pub fn deserialize(mut buffer: &mut SmlBuf) -> Result<SmlFile, String>
     {
         // TODO: validate len here
-        let header = buffer.get_u32_le();
-        let version = buffer.get_u32_le();
+        let version = buffer.get_sml_escape()?;
 
         // TODO: handle 1b1b1b1b bitstuffing
         // TODO: deserialize messages
@@ -28,21 +24,18 @@ impl SmlFile
         let mut messages: Vec<SmlMessage> = Vec::new();
         while buffer.remaining() > 8
         {
-            messages.push(SmlMessage::deserialize(&mut buffer));
+            messages.push(SmlMessage::deserialize(&mut buffer)?);
         }
 
         // TODO: validate len here
-        let footer = buffer.get_u32_le();
-        let end_crc = buffer.get_u32_le();
+        let end_crc = buffer.get_sml_escape()?;
 
-        return SmlFile
+        return Ok(SmlFile
         {
-            header: header,
             version: version,
             messages: messages,
-            footer: footer,
             end_crc: end_crc
-        };
+        });
     }
 
     fn calc_crc(&self) -> u16

@@ -1,4 +1,4 @@
-use bytes::Buf;
+use super::sml_buffer::*;
 
 pub struct SmlCloseResponse
 {
@@ -7,11 +7,12 @@ pub struct SmlCloseResponse
 
 impl SmlCloseResponse
 {
-    pub fn deserialize(buffer: &mut Buf) -> SmlCloseResponse
+    pub fn deserialize(buffer: &mut SmlBuf) -> Result<SmlCloseResponse, String>
     {
-        return SmlCloseResponse
+        /*return SmlCloseResponse
         {
             signature: None // TODO: implement this
-        };
+        };*/
+        return Err("Not implemented yet".to_string());
     }
 }

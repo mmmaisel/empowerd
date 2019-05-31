@@ -1,6 +1,5 @@
+use super::sml_buffer::*;
 use super::sml_types::*;
-
-use bytes::Buf;
 
 pub struct SmlListEntry
 {
@@ -26,10 +25,11 @@ pub struct SmlGetListResponse
 
 impl SmlGetListResponse
 {
-    pub fn deserialize(buffer: &mut Buf) -> SmlGetListResponse
+    pub fn deserialize(buffer: &mut SmlBuf) -> Result<SmlGetListResponse, String>
     {
+        return Err("not implemented yet".to_string());
         // TODO: implement
-        return SmlGetListResponse
+/*        return SmlGetListResponse
         {
             client_id: None,
             server_id: Vec::new(),
@@ -38,6 +38,6 @@ impl SmlGetListResponse
             values: Vec::new(),
             signature: None,
             act_gateway_time: None
-        };
+        };*/
     }
 }
