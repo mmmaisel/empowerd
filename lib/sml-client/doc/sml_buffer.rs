@@ -130,6 +130,17 @@ pub trait SmlBuf: Buf
         return self.get_u8();
     }
 
+    fn get_vector(&mut self, len: usize) -> Vec<u8>
+    {
+        let mut oct_str: Vec<u8> = Vec::new();
+        for _ in 1..len
+        {
+            // TODO: try again with take, no loop
+            oct_str.push(self.get_u8());
+        }
+        return oct_str;
+    }
+
     fn get_sml_octet_str(&mut self) -> Result<Option<Vec<u8>>, String>
     {
         let tl = self.get_sml_tl();
@@ -141,15 +152,11 @@ pub trait SmlBuf: Buf
         {
             return Err(format!("Invalid TL value {:X} for octet string", tl));
         }
-
-        let mut oct_str: Vec<u8> = Vec::new();
-        for _ in 1..tl
-        {
-            // TODO: try again with take, no loop
-            oct_str.push(self.get_u8());
-        }
-        return Ok(Some(oct_str));
+        return Ok(Some(self.get_vector(tl as usize)));
     }
+
+    // TODO: add get implicit choice value here
+    // TODO: add get implicit choice status here
 
     fn get_sml_escape(&mut self) -> Result<u32, String>
     {

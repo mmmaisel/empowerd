@@ -14,6 +14,44 @@ pub struct SmlListEntry
     pub signature: Option<Vec<u8>>
 }
 
+impl SmlListEntry
+{
+    pub fn deserialize(mut buffer: &mut SmlBuf)
+        -> Result<SmlListEntry, String>
+    {
+        let tl = buffer.get_sml_tl();
+        if tl != 0x77
+        {
+            return Err(format!(
+                "Invalid TL value {:x} for SmlListEntry", tl));
+        }
+
+        let obj_name = match buffer.get_sml_octet_str()?
+        {
+            Some(x) => x,
+            None => return Err(
+                "SmlListEntry obj_name is required".to_string())
+        };
+        let status = SmlStatus::deserialize(&mut buffer)?;
+        let val_time = SmlTime::deserialize(&mut buffer)?;
+        let unit = buffer.get_sml_u8()?;
+        let scaler = buffer.get_sml_i8()?;
+        let value = SmlValue::deserialize(&mut buffer)?;
+        let signature = buffer.get_sml_octet_str()?;
+
+        return Ok(SmlListEntry
+        {
+            obj_name: obj_name,
+            status: status,
+            val_time: val_time,
+            unit: unit,
+            scaler: scaler,
+            value: value,
+            signature: signature
+        });
+    }
+}
+
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct SmlGetListResponse
@@ -29,19 +67,52 @@ pub struct SmlGetListResponse
 
 impl SmlGetListResponse
 {
-    pub fn deserialize(buffer: &mut SmlBuf) -> Result<SmlGetListResponse, String>
+    pub fn deserialize(mut buffer: &mut SmlBuf)
+        -> Result<SmlGetListResponse, String>
     {
-        return Err("not implemented yet".to_string());
-        // TODO: implement
-/*        return SmlGetListResponse
+        let tl = buffer.get_sml_tl();
+        if tl != 0x77
         {
-            client_id: None,
-            server_id: Vec::new(),
-            list_name: None,
-            act_sensor_time: None,
-            values: Vec::new(),
-            signature: None,
-            act_gateway_time: None
-        };*/
+            return Err(format!(
+                "Invalid TL value {:X} for SmlGetListResponse", tl));
+        }
+
+        let client_id = buffer.get_sml_octet_str()?;
+        let server_id = match buffer.get_sml_octet_str()?
+        {
+            Some(x) => x,
+            None => return Err(
+                "GetListResponse server_id is required".to_string())
+        };
+        let list_name = buffer.get_sml_octet_str()?;
+        let act_sensor_time = SmlTime::deserialize(&mut buffer)?;
+
+        let entry_count_tl = buffer.get_sml_tl();
+        if entry_count_tl < 0x71 || entry_count_tl > 0x7f
+        {
+            return Err(format!(
+                "GetListResponse entry count {:X} is out of range",
+                entry_count_tl));
+        }
+        let entry_count = (entry_count_tl - 0x70) as usize;
+        let mut values: Vec<SmlListEntry> = Vec::with_capacity(entry_count);
+        for _ in 0..entry_count
+        {
+            values.push(SmlListEntry::deserialize(&mut buffer)?);
+        }
+
+        let signature = buffer.get_sml_octet_str()?;
+        let act_gateway_time = SmlTime::deserialize(&mut buffer)?;
+
+        return Ok(SmlGetListResponse
+        {
+            client_id: client_id,
+            server_id: server_id,
+            list_name: list_name,
+            act_sensor_time: act_sensor_time,
+            values: values,
+            signature: signature,
+            act_gateway_time: act_gateway_time
+        });
     }
 }
