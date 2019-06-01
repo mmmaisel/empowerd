@@ -2,6 +2,10 @@ use super::sml_types::*;
 use super::sml_buffer::*;
 use super::sml_message::*;
 
+extern crate byteorder;
+use byteorder::{LittleEndian};
+use bytes::ByteOrder;
+
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct SmlFile
@@ -13,6 +17,25 @@ pub struct SmlFile
 
 impl SmlFile
 {
+    pub fn deserialize_stream(mut buffer: &mut SmlBuf)
+        -> Result<Vec<SmlFile>, String>
+    {
+        let mut files: Vec<SmlFile> = Vec::new();
+        while buffer.has_remaining()
+        {
+            let sync_pattern = LittleEndian::read_u32(&buffer.bytes()[0..4]);
+            if sync_pattern == 0x1b1b1b1b
+            {
+                files.push(SmlFile::deserialize(&mut buffer)?);
+            }
+            else
+            {
+                buffer.advance(1);
+            }
+        }
+        return Ok(files);
+    }
+
     pub fn deserialize(mut buffer: &mut SmlBuf)
         -> Result<SmlFile, String>
     {

@@ -144,3 +144,35 @@ fn decode_multi_byte_tl()
     assert_eq!(expected_result, result,
         "Incorrectly parsed multi-bytes TL octet string");
 }
+
+#[test]
+fn sync_to_file()
+{
+    let data = vec!
+    [
+        // TODO: add and check correct crc vales
+        0x11, 0x1b, 0x1b, 0x22, 0x37, 0x99,
+        0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01,
+        0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0x00, 0x00,
+        0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01,
+        0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0x00, 0x01
+    ];
+    let expected_result = Ok(vec!
+    [
+        SmlFile
+        {
+            version: 0x01010101,
+            messages: Vec::new(),
+            end_crc: 0x1a000000
+        },
+        SmlFile
+        {
+            version: 0x01010101,
+            messages: Vec::new(),
+            end_crc: 0x1a000001
+        }
+    ]);
+
+    let result = SmlFile::deserialize_stream(&mut Cursor::new(data));
+    assert_eq!(expected_result, result, "Incorrectly synced to data");
+}
