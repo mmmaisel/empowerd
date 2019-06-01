@@ -1,9 +1,10 @@
 use super::sml_buffer::*;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct SmlCloseResponse
 {
-    signature: Option<Vec<u8>>
+    pub signature: Option<Vec<u8>>
 }
 
 impl SmlCloseResponse

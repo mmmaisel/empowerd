@@ -2,27 +2,29 @@ use super::sml_buffer::*;
 use super::sml_types::*;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct SmlListEntry
 {
-    obj_name: Vec<u8>,
-    status: Option<SmlStatus>,
-    val_time: Option<SmlTime>,
-    unit: Option<u8>,
-    scaler: Option<i8>,
-    value: SmlValue,
-    signature: Option<Vec<u8>>
+    pub obj_name: Vec<u8>,
+    pub status: Option<SmlStatus>,
+    pub val_time: Option<SmlTime>,
+    pub unit: Option<u8>,
+    pub scaler: Option<i8>,
+    pub value: SmlValue,
+    pub signature: Option<Vec<u8>>
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct SmlGetListResponse
 {
-    client_id: Option<Vec<u8>>,
-    server_id: Vec<u8>,
-    list_name: Option<Vec<u8>>,
-    act_sensor_time: Option<SmlTime>,
-    values: Vec<SmlListEntry>,
-    signature: Option<Vec<u8>>,
-    act_gateway_time: Option<SmlTime>
+    pub client_id: Option<Vec<u8>>,
+    pub server_id: Vec<u8>,
+    pub list_name: Option<Vec<u8>>,
+    pub act_sensor_time: Option<SmlTime>,
+    pub values: Vec<SmlListEntry>,
+    pub signature: Option<Vec<u8>>,
+    pub act_gateway_time: Option<SmlTime>
 }
 
 impl SmlGetListResponse

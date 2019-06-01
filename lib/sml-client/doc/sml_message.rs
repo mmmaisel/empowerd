@@ -4,6 +4,7 @@ use super::sml_close::*;
 use super::sml_get_list::*;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum SmlBody
 {
     OpenResponse(SmlOpenResponse),
@@ -46,13 +47,14 @@ impl SmlBody
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct SmlMessage
 {
-    transaction_id: Vec<u8>,
-    group_no: u8,
-    abort_on_error: u8,
-    body: SmlBody,
-    crc: u16
+    pub transaction_id: Vec<u8>,
+    pub group_no: u8,
+    pub abort_on_error: u8,
+    pub body: SmlBody,
+    pub crc: u16
 }
 
 impl SmlMessage

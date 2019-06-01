@@ -2,14 +2,15 @@ use super::sml_buffer::*;
 use super::sml_types::*;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct SmlOpenResponse
 {
-    codepage: Option<Vec<u8>>,
-    client_id: Option<Vec<u8>>,
-    req_file_id: Vec<u8>,
-    server_id: Vec<u8>,
-    ref_time: Option<SmlTime>,
-    version: Option<u8>
+    pub codepage: Option<Vec<u8>>,
+    pub client_id: Option<Vec<u8>>,
+    pub req_file_id: Vec<u8>,
+    pub server_id: Vec<u8>,
+    pub ref_time: Option<SmlTime>,
+    pub version: Option<u8>
 }
 
 impl SmlOpenResponse

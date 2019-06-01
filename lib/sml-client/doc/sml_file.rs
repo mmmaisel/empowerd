@@ -3,18 +3,18 @@ use super::sml_buffer::*;
 use super::sml_message::*;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct SmlFile
 {
-    version: u32,
-    messages: Vec<SmlMessage>,
-    end_crc: u32
+    pub version: u32,
+    pub messages: Vec<SmlMessage>,
+    pub end_crc: u32
 }
-
-// TODO: use a subclassed Buf which handles tl validation and bitstuffing!
 
 impl SmlFile
 {
-    pub fn deserialize(mut buffer: &mut SmlBuf) -> Result<SmlFile, String>
+    pub fn deserialize(mut buffer: &mut SmlBuf)
+        -> Result<SmlFile, String>
     {
         // TODO: validate len here
         let version = buffer.get_sml_escape()?;
@@ -23,10 +23,13 @@ impl SmlFile
         // TODO: deserialize messages
 
         let mut messages: Vec<SmlMessage> = Vec::new();
+        // TODO: stop condition does not work
         while buffer.remaining() > 8
         {
             messages.push(SmlMessage::deserialize(&mut buffer)?);
         }
+
+        // TODO: skip padding
 
         // TODO: validate len here
         let end_crc = buffer.get_sml_escape()?;

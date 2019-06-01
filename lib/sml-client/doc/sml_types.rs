@@ -1,6 +1,7 @@
 use super::sml_buffer::*;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum SmlTime
 {
     SecIndex(u32),
@@ -56,6 +57,7 @@ impl SmlTime
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum SmlStatus
 {
     Status8(u8),
@@ -65,6 +67,7 @@ pub enum SmlStatus
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum SmlValue
 {
     Boolean(bool),
