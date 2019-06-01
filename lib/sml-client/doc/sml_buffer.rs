@@ -3,35 +3,51 @@ use bytes::Buf;
 // TODO: add allow none parameter to all those functions
 pub trait SmlBuf: Buf
 {
-    fn get_sml_u8(&mut self) -> Result<u8, String>
+    fn get_sml_u8(&mut self) -> Result<Option<u8>, String>
     {
         let result = self.get_sml_uint(1)?;
-        return Ok(result as u8);
+        return match result
+        {
+            Some(x) => Ok(Some(x as u8)),
+            None => Ok(None)
+        };
     }
 
-    fn get_sml_u16(&mut self) -> Result<u16, String>
+    fn get_sml_u16(&mut self) -> Result<Option<u16>, String>
     {
         let result = self.get_sml_uint(2)?;
-        return Ok(result as u16);
+        return match result
+        {
+            Some(x) => Ok(Some(x as u16)),
+            None => Ok(None)
+        };
     }
 
-    fn get_sml_u32(&mut self) -> Result<u32, String>
+    fn get_sml_u32(&mut self) -> Result<Option<u32>, String>
     {
         let result = self.get_sml_uint(4)?;
-        return Ok(result as u32);
+        return match result
+        {
+            Some(x) => Ok(Some(x as u32)),
+            None => Ok(None)
+        };
     }
 
-    fn get_sml_u64(&mut self) -> Result<u64, String>
+    fn get_sml_u64(&mut self) -> Result<Option<u64>, String>
     {
         return self.get_sml_uint(8);
     }
 
-    fn get_sml_uint(&mut self, len: usize) -> Result<u64, String>
+    fn get_sml_uint(&mut self, len: usize) -> Result<Option<u64>, String>
     {
         let tl = self.get_sml_tl();
-        if tl == (0x61 + (len as u8))
+        if tl == 0x01
         {
-            return Ok(self.get_uint_be(len));
+            return Ok(None);
+        }
+        else if tl == (0x61 + (len as u8))
+        {
+            return Ok(Some(self.get_uint_be(len)));
         }
         else
         {
@@ -39,35 +55,51 @@ pub trait SmlBuf: Buf
         };
     }
 
-    fn get_sml_i8(&mut self) -> Result<i8, String>
+    fn get_sml_i8(&mut self) -> Result<Option<i8>, String>
     {
         let result = self.get_sml_int(1)?;
-        return Ok(result as i8);
+        return match result
+        {
+            Some(x) => Ok(Some(x as i8)),
+            None => Ok(None)
+        };
     }
 
-    fn get_sml_i16(&mut self) -> Result<i16, String>
+    fn get_sml_i16(&mut self) -> Result<Option<i16>, String>
     {
         let result = self.get_sml_int(2)?;
-        return Ok(result as i16);
+        return match result
+        {
+            Some(x) => Ok(Some(x as i16)),
+            None => Ok(None)
+        };
     }
 
-    fn get_sml_i32(&mut self) -> Result<i32, String>
+    fn get_sml_i32(&mut self) -> Result<Option<i32>, String>
     {
         let result = self.get_sml_int(4)?;
-        return Ok(result as i32);
+        return match result
+        {
+            Some(x) => Ok(Some(x as i32)),
+            None => Ok(None)
+        };
     }
 
-    fn get_sml_i64(&mut self) -> Result<i64, String>
+    fn get_sml_i64(&mut self) -> Result<Option<i64>, String>
     {
         return self.get_sml_int(8);
     }
 
-    fn get_sml_int(&mut self, len: usize) -> Result<i64, String>
+    fn get_sml_int(&mut self, len: usize) -> Result<Option<i64>, String>
     {
         let tl = self.get_sml_tl();
+        if tl == 0x01
+        {
+            return Ok(None);
+        }
         if tl == (0x51 + (len as u8))
         {
-            return Ok(self.get_int_be(len));
+            return Ok(Some(self.get_int_be(len)));
         }
         else
         {
@@ -75,12 +107,16 @@ pub trait SmlBuf: Buf
         };
     }
 
-    fn get_sml_bool(&mut self) -> Result<bool, String>
+    fn get_sml_bool(&mut self) -> Result<Option<bool>, String>
     {
         let tl = self.get_sml_tl();
-        if tl == 0x42
+        if tl == 0x01
         {
-            return Ok(self.get_u8() != 0);
+            return Ok(None);
+        }
+        else if tl == 0x42
+        {
+            return Ok(Some(self.get_u8() != 0));
         }
         else
         {
@@ -94,10 +130,14 @@ pub trait SmlBuf: Buf
         return self.get_u8();
     }
 
-    fn get_sml_octet_str(&mut self) -> Result<Vec<u8>, String>
+    fn get_sml_octet_str(&mut self) -> Result<Option<Vec<u8>>, String>
     {
         let tl = self.get_sml_tl();
-        if tl < 1 || tl > 15
+        if tl == 0x01
+        {
+            return Ok(None);
+        }
+        else if tl < 1 || tl > 15
         {
             return Err(format!("Invalid TL value {:X} for octet string", tl));
         }
@@ -108,7 +148,7 @@ pub trait SmlBuf: Buf
             // TODO: try again with take, no loop
             oct_str.push(self.get_u8());
         }
-        return Ok(oct_str);
+        return Ok(Some(oct_str));
     }
 
     fn get_sml_escape(&mut self) -> Result<u32, String>

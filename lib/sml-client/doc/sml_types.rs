@@ -17,10 +17,39 @@ impl SmlTime
         {
             return Ok(None);
         }
-        return match buffer.get_sml_u8()?
+        else if tl != 0x72
         {
-            1 => Ok(Some(SmlTime::SecIndex(buffer.get_sml_u32()?))),
-            2 => Ok(Some(SmlTime::Timestamp(buffer.get_sml_u32()?))),
+            return Err(format!("Invalid TL value {:X} for SmlTime", tl));
+        }
+
+        let ty = match buffer.get_sml_u8()?
+        {
+            Some(x) => x,
+            None => return Err("SmlTime type is required".to_string())
+        };
+
+        return match ty
+        {
+            1 =>
+            {
+                let value = buffer.get_sml_u32()?;
+                return match value
+                {
+                    Some(x) => Ok(Some(SmlTime::SecIndex(x))),
+                    None => Err(
+                        "SmlTime secIndex is required".to_string())
+                };
+            }
+            2 =>
+            {
+                let value = buffer.get_sml_u32()?;
+                return match value
+                {
+                    Some(x) => Ok(Some(SmlTime::Timestamp(x))),
+                    None => Err(
+                        "SmlTime timestamp is required".to_string())
+                };
+            }
             _ => Err("Invalid SmlTime variant found".to_string())
         }
     }

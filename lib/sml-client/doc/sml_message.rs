@@ -18,10 +18,19 @@ impl SmlBody
     const CLOSE_RESPONSE_ID: u16 = 0x0201;
     const GET_LIST_RESPONSE_ID: u16 = 0x0701;
 
-    pub fn deserialize(mut buffer: &mut SmlBuf) -> Result<SmlBody, String>
+    pub fn deserialize(mut buffer: &mut SmlBuf)
+        -> Result<SmlBody, String>
     {
         let tl = buffer.get_sml_tl();
-        let id = buffer.get_sml_u16()?;
+        if tl != 0x72
+        {
+            return Err(format!("Invalid TL value {:X} for SmlBody", tl));
+        }
+        let id = match buffer.get_sml_u16()?
+        {
+            Some(x) => x,
+            None => return Err("SmlBody type is required".to_string())
+        };
 
         return match id
         {
@@ -39,7 +48,6 @@ impl SmlBody
 #[derive(Debug)]
 pub struct SmlMessage
 {
-    type_len: u8, // TODO: remove this
     transaction_id: Vec<u8>,
     group_no: u8,
     abort_on_error: u8,
@@ -49,33 +57,52 @@ pub struct SmlMessage
 
 impl SmlMessage
 {
-    // TODO: return Result<SmlMessage, String>
     // TODO: dont panic, validate all lengths, best already in SmlFile
-    pub fn deserialize(mut buffer: &mut SmlBuf) -> Result<SmlMessage, String>
+    pub fn deserialize(mut buffer: &mut SmlBuf)
+        -> Result<SmlMessage, String>
     {
         let tl = buffer.get_sml_tl();
-        let transaction_id = buffer.get_sml_octet_str()?;
-        let group_no = buffer.get_sml_u8()?;
-        let abort_on_error = buffer.get_sml_u8()?;
+        if tl != 0x76
+        {
+            return Err(format!("Invalid TL {:X} for SmlMessage", tl));
+        }
+
+        let transaction_id = match buffer.get_sml_octet_str()?
+        {
+            Some(x) => x,
+            None => return Err(
+                "SmlMessage transaction_id is required".to_string())
+        };
+        let group_no = match buffer.get_sml_u8()?
+        {
+            Some(x) => x,
+            None => return Err(
+                "SmlMessage group_id is required".to_string())
+        };
+        let abort_on_error = match buffer.get_sml_u8()?
+        {
+            Some(x) => x,
+            None => return Err(
+                "SmlMessage abort_on_error is required".to_string())
+        };
 
         let body = SmlBody::deserialize(&mut buffer)?;
 
-        let crc16 = buffer.get_sml_u16()?;
+        let crc16 = match buffer.get_sml_u16()?
+        {
+            Some(x) => x,
+            None => return Err(
+                "SmlMessage crc16 is required".to_string())
+        };
         buffer.get_sml_end()?;
 
         return Ok(SmlMessage
         {
-            type_len: tl,
             transaction_id: transaction_id,
             group_no: group_no,
             abort_on_error: abort_on_error,
             body: body,
             crc: crc16
         });
-    }
-
-    pub fn validate(&self) -> Result<(), String>
-    {
-        return Err("not implemented".to_string());
     }
 }
