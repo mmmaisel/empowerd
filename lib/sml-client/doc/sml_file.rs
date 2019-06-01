@@ -1,4 +1,3 @@
-use super::sml_types::*;
 use super::sml_buffer::*;
 use super::sml_message::*;
 
@@ -68,10 +67,5 @@ impl SmlFile
     fn calc_crc(&self) -> u16
     {
         return 0;
-    }
-
-    pub fn validate(&self) -> Result<(), String>
-    {
-        return Err("not implemented".to_string());
     }
 }

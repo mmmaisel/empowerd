@@ -10,7 +10,7 @@ pub enum SmlTime
 
 impl SmlTime
 {
-    pub fn deserialize(mut buffer: &mut SmlBuf)
+    pub fn deserialize(buffer: &mut SmlBuf)
         -> Result<Option<SmlTime>, String>
     {
         let tl = buffer.get_sml_tl();
@@ -68,7 +68,7 @@ pub enum SmlStatus
 
 impl SmlStatus
 {
-    pub fn deserialize(mut buffer: &mut SmlBuf)
+    pub fn deserialize(buffer: &mut SmlBuf)
         -> Result<Option<SmlStatus>, String>
     {
         let tl = buffer.get_sml_tl();
@@ -103,7 +103,7 @@ pub enum SmlValue
 
 impl SmlValue
 {
-    pub fn deserialize(mut buffer: &mut SmlBuf)
+    pub fn deserialize(buffer: &mut SmlBuf)
         -> Result<SmlValue, String>
     {
         let tl = buffer.get_sml_tl();
