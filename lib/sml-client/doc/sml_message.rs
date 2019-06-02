@@ -23,10 +23,20 @@ impl SmlBody
         -> Result<SmlBody, String>
     {
         let tl = buffer.get_sml_tl();
-        if tl != 0x72
+        match tl
         {
-            return Err(format!("Invalid TL value {:X} for SmlBody", tl));
+            SmlType::Struct(len) =>
+            {
+                if len != 2
+                {
+                    return Err(format!(
+                        "Invalid length {} for SmlBody", len));
+                }
+            }
+            _ => return Err(format!(
+                "Found {:X?}, expected struct", tl))
         }
+
         let id = match buffer.get_sml_u16()?
         {
             Some(x) => x,
@@ -64,9 +74,18 @@ impl SmlMessage
         -> Result<SmlMessage, String>
     {
         let tl = buffer.get_sml_tl();
-        if tl != 0x76
+        match tl
         {
-            return Err(format!("Invalid TL {:X} for SmlMessage", tl));
+            SmlType::Struct(len) =>
+            {
+                if len != 6
+                {
+                    return Err(format!(
+                        "Invalid length {} for SmlMessage", len));
+                }
+            }
+            _ => return Err(format!(
+                "Found {:X?}, expected struct", tl))
         }
 
         let transaction_id = match buffer.get_sml_octet_str()?

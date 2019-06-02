@@ -19,10 +19,18 @@ impl SmlOpenResponse
         -> Result<SmlOpenResponse, String>
     {
         let tl = buffer.get_sml_tl();
-        if tl != 0x76
+        match tl
         {
-            return Err(
-                format!("Invalid TL value {:X} for OpenResponse", tl));
+            SmlType::Struct(len) =>
+            {
+                if len != 6
+                {
+                    return Err(format!(
+                        "Invalid length {} for SmlOpenResponse", len));
+                }
+            }
+            _ => return Err(format!(
+                "Found {:X?}, expected struct", tl))
         }
 
         let codepage = buffer.get_sml_octet_str()?;

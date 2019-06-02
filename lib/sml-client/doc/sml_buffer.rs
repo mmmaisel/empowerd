@@ -1,5 +1,18 @@
 use bytes::Buf;
 
+#[derive(Debug)]
+pub enum SmlType
+{
+    End,
+    None,
+    OctetString(usize),
+    Boolean,
+    Int(usize),
+    UInt(usize),
+    Struct(usize),
+    Invalid(u8)
+}
+
 // TODO: add allow none parameter to all those functions
 pub trait SmlBuf: Buf
 {
@@ -41,17 +54,11 @@ pub trait SmlBuf: Buf
     fn get_sml_uint(&mut self, len: usize) -> Result<Option<u64>, String>
     {
         let tl = self.get_sml_tl();
-        if tl == 0x01
+        return match tl
         {
-            return Ok(None);
-        }
-        else if tl == (0x61 + (len as u8))
-        {
-            return Ok(Some(self.get_uint_be(len)));
-        }
-        else
-        {
-            return Err(format!("Invalid TL value {:X} for u{}", tl, len*8));
+            SmlType::None => Ok(None),
+            SmlType::UInt(len) => Ok(Some(self.get_uint_be(len))),
+            _ => Err(format!("Found {:X?}, expected u{}", tl, len*8))
         };
     }
 
@@ -93,47 +100,65 @@ pub trait SmlBuf: Buf
     fn get_sml_int(&mut self, len: usize) -> Result<Option<i64>, String>
     {
         let tl = self.get_sml_tl();
-        if tl == 0x01
+        return match tl
         {
-            return Ok(None);
-        }
-        if tl == (0x51 + (len as u8))
-        {
-            return Ok(Some(self.get_int_be(len)));
-        }
-        else
-        {
-            return Err(format!("Invalid TL value {:X} for i{}", tl, len*8));
+            SmlType::None => Ok(None),
+            SmlType::Int(len) => Ok(Some(self.get_int_be(len))),
+            _ => Err(format!("Found {:X?}, expected i{}", tl, len*8))
         };
     }
 
     fn get_sml_bool(&mut self) -> Result<Option<bool>, String>
     {
         let tl = self.get_sml_tl();
-        if tl == 0x01
+        return match tl
         {
-            return Ok(None);
-        }
-        else if tl == 0x42
-        {
-            return Ok(Some(self.get_u8() != 0));
-        }
-        else
-        {
-            return Err(format!("Invalid TL value {:X} for bool", tl));
+            SmlType::None => Ok(None),
+            SmlType::Boolean => Ok(Some(self.get_u8() != 0)),
+            _ => Err(format!("Found {:X?}, expected bool", tl))
         };
     }
 
-    fn get_sml_tl(&mut self) -> u8
+    fn get_sml_tl(&mut self) -> SmlType
     {
-        // TODO: handle multi-byte tl values, return (type, length)
-        return self.get_u8();
+        let mut tl = self.get_u8();
+        match tl
+        {
+            0x00 => return SmlType::End,
+            0x01 => return SmlType::None,
+            0x10|0x20|0x30 => return SmlType::Invalid(tl),
+            _ => ()
+        }
+
+        let mut len = (tl & 0x0F) as usize;
+        let mut tl2 = tl.clone();
+        let mut tl_bcount = 1;
+        while tl2 & 0x80 != 0
+        {
+            tl2 = self.get_u8();
+            if tl2 & 0x70 != 0
+            {
+                return SmlType::Invalid(tl2);
+            }
+            len = (len << 4) | ((tl2 & 0x0F) as usize);
+            tl_bcount += 1;
+        }
+
+        return match tl & 0x70
+        {
+            0x00 => SmlType::OctetString(len - tl_bcount),
+            0x40 => SmlType::Boolean,
+            0x50 => SmlType::Int(len - tl_bcount),
+            0x60 => SmlType::UInt(len - tl_bcount),
+            0x70 => SmlType::Struct(len),
+            _ => SmlType::Invalid(tl)
+        };
     }
 
     fn get_vector(&mut self, len: usize) -> Vec<u8>
     {
         let mut oct_str: Vec<u8> = Vec::new();
-        for _ in 1..len
+        for _ in 0..len
         {
             // TODO: try again with take, no loop
             oct_str.push(self.get_u8());
@@ -144,15 +169,12 @@ pub trait SmlBuf: Buf
     fn get_sml_octet_str(&mut self) -> Result<Option<Vec<u8>>, String>
     {
         let tl = self.get_sml_tl();
-        if tl == 0x01
+        return match tl
         {
-            return Ok(None);
-        }
-        else if tl < 1 || tl > 15
-        {
-            return Err(format!("Invalid TL value {:X} for octet string", tl));
-        }
-        return Ok(Some(self.get_vector(tl as usize)));
+            SmlType::None => Ok(None),
+            SmlType::OctetString(len) => Ok(Some(self.get_vector(len))),
+            _ => Err(format!("Found {:X?}, expected octet string", tl))
+        };
     }
 
     // TODO: add get implicit choice value here
@@ -171,14 +193,11 @@ pub trait SmlBuf: Buf
     fn get_sml_end(&mut self) -> Result<(), String>
     {
         let tl = self.get_sml_tl();
-        if tl == 0
+        return match tl
         {
-            return Ok(());
-        }
-        else
-        {
-            return Err(format!("Invalid TL value {:X} found for end", tl));
-        }
+            SmlType::End => Ok(()),
+            _ => Err(format!("Found {:X?}, expected end", tl))
+        };
     }
 }
 

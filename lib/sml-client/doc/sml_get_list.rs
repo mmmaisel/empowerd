@@ -20,10 +20,18 @@ impl SmlListEntry
         -> Result<SmlListEntry, String>
     {
         let tl = buffer.get_sml_tl();
-        if tl != 0x77
+        match tl
         {
-            return Err(format!(
-                "Invalid TL value {:x} for SmlListEntry", tl));
+            SmlType::Struct(len) =>
+            {
+                if len != 7
+                {
+                    return Err(format!(
+                        "Invalid length {} for SmlListEntry", len));
+                }
+            }
+            _ => return Err(format!(
+                "Found {:X?}, expected struct", tl))
         }
 
         let obj_name = match buffer.get_sml_octet_str()?
@@ -71,10 +79,18 @@ impl SmlGetListResponse
         -> Result<SmlGetListResponse, String>
     {
         let tl = buffer.get_sml_tl();
-        if tl != 0x77
+        match tl
         {
-            return Err(format!(
-                "Invalid TL value {:X} for SmlGetListResponse", tl));
+            SmlType::Struct(len) =>
+            {
+                if len != 7
+                {
+                    return Err(format!(
+                        "Invalid length {} for SmlGetListResponse", len));
+                }
+            }
+            _ => return Err(format!(
+                "Found {:X?}, expected struct", tl))
         }
 
         let client_id = buffer.get_sml_octet_str()?;
@@ -88,13 +104,13 @@ impl SmlGetListResponse
         let act_sensor_time = SmlTime::deserialize(&mut buffer)?;
 
         let entry_count_tl = buffer.get_sml_tl();
-        if entry_count_tl < 0x71 || entry_count_tl > 0x7f
+        let entry_count = match entry_count_tl
         {
-            return Err(format!(
-                "GetListResponse entry count {:X} is out of range",
-                entry_count_tl));
-        }
-        let entry_count = (entry_count_tl - 0x70) as usize;
+            SmlType::Struct(len) => len,
+            _ => return Err(format!(
+                "Found {:X?}, expected struct", entry_count_tl))
+        };
+
         let mut values: Vec<SmlListEntry> = Vec::with_capacity(entry_count);
         for _ in 0..entry_count
         {

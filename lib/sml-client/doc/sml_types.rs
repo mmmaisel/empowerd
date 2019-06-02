@@ -14,13 +14,19 @@ impl SmlTime
         -> Result<Option<SmlTime>, String>
     {
         let tl = buffer.get_sml_tl();
-        if tl == 0x01
+        match tl
         {
-            return Ok(None);
-        }
-        else if tl != 0x72
-        {
-            return Err(format!("Invalid TL value {:X} for SmlTime", tl));
+            SmlType::None => return Ok(None),
+            SmlType::Struct(len) =>
+            {
+                if len != 2
+                {
+                    return Err(format!(
+                        "Invalid length {} for SmlTime", len));
+                }
+            }
+            _ => return Err(format!(
+                "Found {:X?}, expected struct", tl))
         }
 
         let ty = match buffer.get_sml_u8()?
@@ -58,12 +64,9 @@ impl SmlTime
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub enum SmlStatus
+pub struct SmlStatus
 {
-    Status8(u8),
-    Status16(u16),
-    Status32(u32),
-    Status64(u64)
+    status: u64
 }
 
 impl SmlStatus
@@ -74,13 +77,10 @@ impl SmlStatus
         let tl = buffer.get_sml_tl();
         return match tl
         {
-            // TODO: this is ugly
-            0x01 => Ok(None),
-            0x62 => Ok(Some(SmlStatus::Status8(buffer.get_u8()))),
-            0x63 => Ok(Some(SmlStatus::Status16(buffer.get_u16_be()))),
-            0x64 => Ok(Some(SmlStatus::Status32(buffer.get_u32_be()))),
-            0x65 => Ok(Some(SmlStatus::Status64(buffer.get_u64_be()))),
-            _ => Err(format!("Invalid TL value {:X} for SmlStatus", tl))
+            SmlType::None => Ok(None),
+            SmlType::UInt(len) =>
+                Ok(Some(SmlStatus { status: buffer.get_uint_be(len) } )),
+            _ => Err(format!("Found {:X?} expected uint", tl))
         };
     }
 }
@@ -91,14 +91,8 @@ pub enum SmlValue
 {
     Boolean(bool),
     OctetString(Vec<u8>),
-    Int8(i8),
-    Int16(i16),
-    Int32(i32),
-    Int64(i64),
-    UInt8(u8),
-    UInt16(u16),
-    UInt32(u32),
-    UInt64(u64)
+    Int(i64),
+    UInt(u64)
 }
 
 impl SmlValue
@@ -107,25 +101,17 @@ impl SmlValue
         -> Result<SmlValue, String>
     {
         let tl = buffer.get_sml_tl();
-        if tl >= 2 && tl <= 15
-        {
-            return Ok(SmlValue::OctetString(buffer.
-                get_vector(tl as usize)));
-        }
-
         return match tl
         {
-            // TODO: this is ugly
-            0x42 => Ok(SmlValue::Boolean(buffer.get_u8() != 0)),
-            0x52 => Ok(SmlValue::Int8(buffer.get_i8())),
-            0x53 => Ok(SmlValue::Int16(buffer.get_i16_be())),
-            0x54 => Ok(SmlValue::Int32(buffer.get_i32_be())),
-            0x55 => Ok(SmlValue::Int64(buffer.get_i64_be())),
-            0x62 => Ok(SmlValue::UInt8(buffer.get_u8())),
-            0x63 => Ok(SmlValue::UInt16(buffer.get_u16_be())),
-            0x64 => Ok(SmlValue::UInt32(buffer.get_u32_be())),
-            0x65 => Ok(SmlValue::UInt64(buffer.get_u64_be())),
-            _ => Err(format!("Invalid TL value {:X} for SmlValue", tl))
+            SmlType::OctetString(len) =>
+                Ok(SmlValue::OctetString(buffer.get_vector(len))),
+            SmlType::Boolean =>
+                Ok(SmlValue::Boolean(buffer.get_u8() != 0)),
+            SmlType::Int(len) =>
+                Ok(SmlValue::Int(buffer.get_int_be(len))),
+            SmlType::UInt(len) =>
+                Ok(SmlValue::UInt(buffer.get_uint_be(len))),
+            _ => Err(format!("Found {:X?} which is not an SmlValue", tl))
         };
     }
 }

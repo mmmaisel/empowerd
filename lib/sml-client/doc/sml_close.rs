@@ -13,9 +13,18 @@ impl SmlCloseResponse
         -> Result<SmlCloseResponse, String>
     {
         let tl = buffer.get_sml_tl();
-        if tl != 0x71
+        match tl
         {
-            return Err(format!("Invalid TL value {:X} for CloseResponse", tl));
+            SmlType::Struct(len) =>
+            {
+                if len != 1
+                {
+                    return Err(format!(
+                        "Invalid length {} for SmlCloseResponse", len));
+                }
+            }
+            _ => return Err(format!(
+                "Found {:X?}, expected struct", tl))
         }
 
         let signature = buffer.get_sml_octet_str()?;
