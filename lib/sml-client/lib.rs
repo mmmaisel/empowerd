@@ -11,7 +11,7 @@ use serialport::{SerialPort, SerialPortSettings};
 
 mod doc;
 use doc::SmlFile;
-use doc::SmlBuf;
+use doc::SmlStream;
 
 pub struct SmlClient
 {
@@ -64,12 +64,14 @@ impl SmlClient
         };
         unsafe { self.buffer.set_len(num_recv); }
 
+        println!("data: {:?}", self.buffer);
+        println!("cap: {}", self.buffer.capacity());
         let mut cursor = Cursor::new(&mut self.buffer);
-        let mut files = SmlFile::deserialize_stream(&mut cursor)?;
+        let mut streams = SmlStream::deserialize(&mut cursor)?;
 
-        return match files.pop()
+        return match streams.pop()
         {
-            Some(x) => Ok(x),
+            Some(x) => SmlFile::deserialize(x),
             None => Err("No data received".to_string())
         };
     }

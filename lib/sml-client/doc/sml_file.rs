@@ -1,9 +1,8 @@
-use super::sml_buffer::*;
 use super::sml_message::*;
+use super::sml_stream::*;
 
-extern crate byteorder;
-use byteorder::{LittleEndian};
-use bytes::ByteOrder;
+// TODO: use byteorder, get rid of bytes, also in SMA
+use bytes::Buf;
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -16,51 +15,36 @@ pub struct SmlFile
 
 impl SmlFile
 {
-    pub fn deserialize_stream(mut buffer: &mut SmlBuf)
+    pub fn deserialize_streams(streams: Vec<SmlStream>)
         -> Result<Vec<SmlFile>, String>
     {
-        let mut files: Vec<SmlFile> = Vec::new();
-        while buffer.has_remaining()
+        let mut parsed_files: Vec<SmlFile> = Vec::new();
+        for stream in streams.into_iter()
         {
-            let sync_pattern = LittleEndian::read_u32(&buffer.bytes()[0..4]);
-            if sync_pattern == 0x1b1b1b1b
-            {
-                files.push(SmlFile::deserialize(&mut buffer)?);
-            }
-            else
-            {
-                buffer.advance(1);
-            }
+            parsed_files.push(SmlFile::deserialize(stream)?);
         }
-        return Ok(files);
+        return Ok(parsed_files);
     }
 
-    pub fn deserialize(mut buffer: &mut SmlBuf)
+    pub fn deserialize(stream: SmlStream)
         -> Result<SmlFile, String>
     {
         // TODO: validate len here
-        let version = buffer.get_sml_escape()?;
-
-        // TODO: handle 1b1b1b1b bitstuffing
-        // TODO: deserialize messages
+        let padding = ((stream.footer & 0x00FF0000) >> 16) as usize;
 
         let mut messages: Vec<SmlMessage> = Vec::new();
-        // TODO: stop condition does not work
-        while buffer.remaining() > 8
+        let mut buffer = std::io::Cursor::new(stream.data);
+        // TODO: calc crc first, before deserializing
+        while buffer.remaining() > padding
         {
             messages.push(SmlMessage::deserialize(&mut buffer)?);
         }
 
-        // TODO: skip padding
-
-        // TODO: validate len here
-        let end_crc = buffer.get_sml_escape()?;
-
         return Ok(SmlFile
         {
-            version: version,
+            version: stream.header,
             messages: messages,
-            end_crc: end_crc
+            end_crc: stream.footer
         });
     }
 

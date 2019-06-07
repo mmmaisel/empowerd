@@ -121,7 +121,7 @@ pub trait SmlBuf: Buf
 
     fn get_sml_tl(&mut self) -> SmlType
     {
-        let mut tl = self.get_u8();
+        let tl = self.get_u8();
         match tl
         {
             0x00 => return SmlType::End,
