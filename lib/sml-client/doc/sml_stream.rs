@@ -5,12 +5,14 @@ use byteorder::{NativeEndian};
 
 // TODO: use byteorder, get rid of bytes, also in SMA
 use bytes::{Buf, ByteOrder};
+use crc16::*;
 
 pub struct SmlStream
 {
-    pub header: u32,
+    pub version: u32,
     pub data: Vec<u8>,
-    pub footer: u32
+    pub padding: usize,
+    pub crc: u16
 }
 
 impl SmlStream
@@ -23,6 +25,7 @@ impl SmlStream
         while buffer.has_remaining()
         {
             let mut data: Vec<u8> = Vec::new();
+            let mut crc_state = State::<X_25>::new();
             let start_escape = buffer.bytes().windows(4).position(|x|
             {
                 NativeEndian::read_u32(&x) == 0x1b1b1b1b
@@ -34,6 +37,12 @@ impl SmlStream
             }
 
             let header = buffer.get_sml_escape()?;
+            // TODO: this code sucks
+            crc_state.update(&[0x1b, 0x1b, 0x1b, 0x1b]);
+            crc_state.update(&[((header & 0xFF000000) >> 24) as u8]);
+            crc_state.update(&[((header & 0x00FF0000) >> 16) as u8]);
+            crc_state.update(&[((header & 0x0000FF00) >> 8) as u8]);
+            crc_state.update(&[( header & 0x000000FF) as u8]);
             let footer: u32;
 
             loop
@@ -44,12 +53,21 @@ impl SmlStream
                 });
                 match next_escape
                 {
-                    Some(x) => data.append(&mut buffer.get_vector(x)),
+                    Some(x) =>
+                    {
+                        let mut data_to_append = buffer.get_vector(x);
+                        crc_state.update(&data_to_append);
+                        data.append(&mut data_to_append);
+                    }
                     None => return Err(
                         "Did not found next escape token".to_string())
                 }
 
                 let escape = buffer.get_sml_escape()?;
+                // TODO: this code sucks
+                crc_state.update(&[0x1b, 0x1b, 0x1b, 0x1b]);
+                crc_state.update(&[((escape & 0xFF000000) >> 24) as u8]);
+                crc_state.update(&[((escape & 0x00FF0000) >> 16) as u8]);
                 if escape & 0xFFF00000 == 0x1a000000
                 {
                     footer = escape;
@@ -65,15 +83,28 @@ impl SmlStream
                 else
                 {
                     return Err(format!(
-                        "Found unexpected escape value {}", escape));
+                        "Found unexpected escape value {:X?}", escape));
                 }
+                // TODO: this sucks
+                crc_state.update(&[((escape & 0x0000FF00) >> 8) as u8]);
+                crc_state.update(&[( escape & 0x000000FF) as u8]);
+            }
+
+            let footer_crc = (footer & 0x0000FFFF) as u16;
+            let calculated_crc = crc_state.get().swap_bytes();
+            if calculated_crc != footer_crc
+            {
+                return Err(format!(
+                    "Found invalid stream checksum {:X}, expected {:X}",
+                    footer_crc, calculated_crc));
             }
 
             streams.push(SmlStream
             {
-                header: header,
+                version: header,
                 data: data,
-                footer: footer
+                padding: ((footer & 0x00FF0000) >> 16) as usize,
+                crc: footer_crc
             });
         }
         return Ok(streams);

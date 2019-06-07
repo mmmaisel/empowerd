@@ -85,14 +85,15 @@ fn decode_sml_file()
 {
     let stream = SmlStream
     {
-        header: 0x01010101,
+        version: 0x01010101,
         data: vec!
         [
             0x76, 0x05, 0x10, 0x10, 0x1b, 0x1b, 0x62, 0x00,
             0x62, 0x00, 0x72, 0x63, 0x02, 0x01, 0x71, 0x01,
             0x63, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ],
-        footer: 0x1a030000
+        padding: 3,
+        crc: 0
     };
     let expected_result = Ok(SmlFile
     {
@@ -110,8 +111,7 @@ fn decode_sml_file()
                 }),
                 crc: 0x0000
             }
-        ],
-        end_crc: 0x1a030000
+        ]
     });
 
     let result = SmlFile::deserialize(stream);
@@ -158,9 +158,9 @@ fn sync_to_file()
         0x1b, 0x1b, 0x1c, 0x62, 0x00, 0x62, 0x00, 0x72,
         0x63, 0x02, 0x01, 0x71, 0x01, 0x63, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x1b, 0x1b, 0x1b, 0x1b,
-        0x1a, 0x03, 0x00, 0x00, 0x1b, 0x1b, 0x1b, 0x1b,
+        0x1a, 0x03, 0x92, 0x4a, 0x1b, 0x1b, 0x1b, 0x1b,
         0x01, 0x01, 0x01, 0x01, 0x1b, 0x1b, 0x1b, 0x1b,
-        0x1a, 0x00, 0x00, 0x01
+        0x1a, 0x00, 0xc6, 0xe5
     ];
     let expected_result = Ok(vec!
     [
@@ -180,14 +180,12 @@ fn sync_to_file()
                     }),
                     crc: 0x0000
                 }
-            ],
-            end_crc: 0x1a030000
+            ]
         },
         SmlFile
         {
             version: 0x01010101,
-            messages: Vec::new(),
-            end_crc: 0x1a000001
+            messages: Vec::new()
         }
     ]);
 
@@ -199,3 +197,5 @@ fn sync_to_file()
     let result = SmlFile::deserialize_streams(streams);
     assert_eq!(expected_result, result, "Incorrectly synced to data");
 }
+
+// TODO: test incorrectly sized streams/buffers and invalid crc

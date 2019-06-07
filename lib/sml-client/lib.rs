@@ -28,13 +28,15 @@ impl SmlClient
     {
         let mut settings = SerialPortSettings::default();
         settings.baud_rate = baudrate;
-        let mut port = match serialport::open_with_settings(&port_name, &settings)
+        let mut port = match serialport::open_with_settings(
+            &port_name, &settings)
         {
             Ok(port) => port,
             Err(e) => return Err(format!(
                 "Failed to open {}, error: {}", port_name, e))
         };
 
+        // TODO: remove this
         port.write_request_to_send(false);
 
         return Ok(SmlClient
@@ -64,8 +66,12 @@ impl SmlClient
         };
         unsafe { self.buffer.set_len(num_recv); }
 
-        println!("data: {:?}", self.buffer);
-        println!("cap: {}", self.buffer.capacity());
+        // TODO: log this if logger is given
+        if cfg!(debug_assertions)
+        {
+            println!("data: {:?}", self.buffer);
+            println!("cap: {}", self.buffer.capacity());
+        }
         let mut cursor = Cursor::new(&mut self.buffer);
         let mut streams = SmlStream::deserialize(&mut cursor)?;
 

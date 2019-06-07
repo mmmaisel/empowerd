@@ -9,8 +9,7 @@ use bytes::Buf;
 pub struct SmlFile
 {
     pub version: u32,
-    pub messages: Vec<SmlMessage>,
-    pub end_crc: u32
+    pub messages: Vec<SmlMessage>
 }
 
 impl SmlFile
@@ -30,26 +29,17 @@ impl SmlFile
         -> Result<SmlFile, String>
     {
         // TODO: validate len here
-        let padding = ((stream.footer & 0x00FF0000) >> 16) as usize;
-
         let mut messages: Vec<SmlMessage> = Vec::new();
         let mut buffer = std::io::Cursor::new(stream.data);
-        // TODO: calc crc first, before deserializing
-        while buffer.remaining() > padding
+        while buffer.remaining() > stream.padding
         {
             messages.push(SmlMessage::deserialize(&mut buffer)?);
         }
 
         return Ok(SmlFile
         {
-            version: stream.header,
-            messages: messages,
-            end_crc: stream.footer
+            version: stream.version,
+            messages: messages
         });
-    }
-
-    fn calc_crc(&self) -> u16
-    {
-        return 0;
     }
 }
