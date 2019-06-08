@@ -215,6 +215,12 @@ impl StromMiner
                 return Option::None;
             }
 
+            if record.value as u32 == 0xFFFFFFFF
+            {
+                warn!(self.logger, "Skipping NaN SMA record");
+                return Option::None;
+            }
+
             // TODO: this is an ugly mess
             let power = if last_timestamp == 0
             {
