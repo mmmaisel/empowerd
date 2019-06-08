@@ -32,7 +32,7 @@ reqwest = { version = "*", default-features = false }
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 signal-hook = "*"
-slog = "*"
+slog = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
 slog-term = "*"
 
 #slog-async = "*"

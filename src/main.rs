@@ -194,7 +194,7 @@ fn daemon_main(settings: Settings, logger: Logger)
         scheduler.add_task(SMA_TASK_ID, settings.sma_poll_interval);
         scheduler.add_task(METER_TASK_ID, settings.meter_poll_interval);
         let result = scheduler.run(condition_child, &child_logger,
-            |id, now, interval|
+            |id, now, _interval|
         {
             match id
             {
@@ -204,7 +204,7 @@ fn daemon_main(settings: Settings, logger: Logger)
                 }
                 SMA_TASK_ID =>
                 {
-                    miner.mine_solar_data(interval);
+                    miner.mine_solar_data(now);
                 }
                 METER_TASK_ID =>
                 {

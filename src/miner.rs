@@ -1,5 +1,4 @@
 use std::net;
-use std::time;
 use slog::Logger;
 use influx_db_client::Client;
 
@@ -127,8 +126,26 @@ impl StromMiner
         }
     }
 
-    pub fn mine_solar_data(&mut self, _interval: i64)
+    pub fn mine_solar_data(&mut self, now: i64)
     {
+        let last_record = match SolarData::last(&self.influx_conn)
+        {
+            Ok(x) => x,
+            Err(e) =>
+            {
+                if e.series_exists()
+                {
+                    error!(self.logger, "Query error {}", e);
+                    return;
+                }
+                else
+                {
+                    SolarData::new(0, 0.0, 0.0)
+                }
+            }
+        };
+        trace!(self.logger, "Read {:?} from database", last_record);
+
         let result = self.sma_client.identify(self.sma_addr);
         let identity = match result
         {
@@ -157,16 +174,13 @@ impl StromMiner
             return;
         }
 
-        let now = time::SystemTime::now().
-            duration_since(time::UNIX_EPOCH).
-            unwrap().as_secs() as u32;
-
-        // TODO: derive interval from last influx timestamp
-        trace!(self.logger, "GetDayData from {} to {}", now-86400, now);
+        trace!(self.logger, "GetDayData from {} to {}",
+            last_record.timestamp, now);
 
         // TODO: this command is not accepted by SMA, needs -86400 ?
         //   this data is delayed by about one hour?
-        let data = match self.sma_client.get_day_data(now-86400, now)
+        let data = match self.sma_client.get_day_data(
+            last_record.timestamp as u32, now as u32)
         {
             Err(e) =>
             {
@@ -191,41 +205,36 @@ impl StromMiner
             return;
         }
 
-        let last_record = match SolarData::last(&self.influx_conn)
-        {
-            Ok(x) => x,
-            Err(e) =>
-            {
-                if e.series_exists()
-                {
-                    error!(self.logger, "Query error {}", e);
-                }
-                else
-                {
-                    // TODO: handle first record correctly
-                    SolarData::new(0, 0.0, 0.0);
-                }
-                return;
-            }
-        };
-        trace!(self.logger, "Read {:?} from database", last_record);
-
         let mut last_energy = last_record.energy as f64;
         let mut last_timestamp = last_record.timestamp as i64;
-        let record_count = data.len();
 
-        let records: Vec<SolarData> = data.into_iter().map(|record|
+        let records: Vec<SolarData> = data.into_iter().filter_map(|record|
         {
+            if record.timestamp as i64 == last_timestamp
+            {
+                return Option::None;
+            }
+
             // TODO: this is an ugly mess
-            let power = 3600.0 * ((record.value as f64) - last_energy) /
-                (((record.timestamp as i64) - last_timestamp) as f64);
+            let power = if last_timestamp == 0
+            {
+                0.0
+            }
+            else
+            {
+                3600.0 * ((record.value as f64) - last_energy) /
+                (((record.timestamp as i64) - last_timestamp) as f64)
+            };
+
             last_energy = record.value as f64;
             last_timestamp = record.timestamp as i64;
-            return SolarData::new(
+            return Some(SolarData::new(
                 record.timestamp as i64,
                 power,
-                record.value as f64);
+                record.value as f64));
         }).collect();
+
+        let record_count = records.len();
         if let Err(e) = SolarData::save_all(&self.influx_conn, records)
         {
             error!(self.logger, "Save SolarData failed, {}", e);

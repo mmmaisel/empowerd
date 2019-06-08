@@ -98,10 +98,17 @@ impl Scheduler
             self.now = time::SystemTime::now().
                 duration_since(time::UNIX_EPOCH).
                 expect("💩️ Time outside of epoch").as_secs() as i64;
-            let delay = (self.next_wake - self.now) as u64;
+            let mut delay = self.next_wake - self.now;
+            if delay <= 1
+            {
+                warn!(logger, "Scheduler cant keep up with job interval. \
+                    Some jobs are skipped.");
+                delay = 1;
+            }
             debug!(logger, "Sleep {} sec", delay);
             let result = cvar.wait_timeout(running,
-                time::Duration::new(delay, 0)).expect("💩️ poisened mutex");
+                time::Duration::new(delay as u64, 0)).
+                expect("💩️ poisened mutex");
             running = result.0;
         }
         debug!(logger, "stopping scheduler");
