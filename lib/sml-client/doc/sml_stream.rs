@@ -26,25 +26,35 @@ impl SmlStream
         {
             let mut data: Vec<u8> = Vec::new();
             let mut crc_state = State::<X_25>::new();
-            let start_escape = buffer.bytes().windows(4).position(|x|
+            let mut header: u32;
+            let footer: u32;
+            // TODO: extract method
+            loop
             {
-                NativeEndian::read_u32(&x) == 0x1b1b1b1b
-            });
-            match start_escape
-            {
-                Some(x) => buffer.advance(x),
-                None => return Err("Did not found start token".to_string())
+                let start_escape = buffer.bytes().windows(4).position(|x|
+                {
+                    NativeEndian::read_u32(&x) == 0x1b1b1b1b
+                });
+                if cfg!(debug_assertions)
+                {
+                    println!("found start of SML file at {:?}", start_escape);
+                }
+                match start_escape
+                {
+                    Some(x) => buffer.advance(x),
+                    None => return Err("Did not found start token".to_string())
+                }
+
+                header = buffer.get_sml_escape()?;
+                if header == 0x01010101
+                {
+                    crc_state.update(
+                        &[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
+                    break;
+                }
             }
 
-            let header = buffer.get_sml_escape()?;
-            // TODO: this code sucks
-            crc_state.update(&[0x1b, 0x1b, 0x1b, 0x1b]);
-            crc_state.update(&[((header & 0xFF000000) >> 24) as u8]);
-            crc_state.update(&[((header & 0x00FF0000) >> 16) as u8]);
-            crc_state.update(&[((header & 0x0000FF00) >> 8) as u8]);
-            crc_state.update(&[( header & 0x000000FF) as u8]);
-            let footer: u32;
-
+            // TODO: extract method
             loop
             {
                 let next_escape = buffer.bytes().windows(4).position(|x|
