@@ -32,6 +32,7 @@ impl SmlClient
     {
         let mut settings = SerialPortSettings::default();
         settings.baud_rate = baudrate;
+        // TODO: open port on demand, allow running without serial device
         let mut port = match serialport::open_with_settings(
             &port_name, &settings)
         {

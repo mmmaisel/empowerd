@@ -9,14 +9,17 @@ extern crate sml_client;
 
 use dachs_client::*;
 use sma_client::*;
+use sml_client::*;
 
 use crate::models::*;
+use crate::settings::*;
 
 pub struct StromMiner
 {
     influx_conn: Client,
     dachs_client: DachsClient,
     sma_client: SmaClient,
+    sml_client: SmlClient,
     sma_pw: String,
     sma_addr: net::SocketAddr,
     logger: Logger
@@ -24,18 +27,17 @@ pub struct StromMiner
 
 impl StromMiner
 {
-    pub fn new(db_url: String, db_name: String,
-        dachs_addr: String, dachs_pw: String,
-        sma_addr: String, sma_pw: String, logger: Logger) -> StromMiner
+    pub fn new(s: Settings, logger: Logger) -> StromMiner
     {
         return StromMiner
         {
             // TODO: add DB password
-            influx_conn: Client::new(format!("http://{}", db_url), db_name),
-            dachs_client: DachsClient::new(dachs_addr, dachs_pw),
+            influx_conn: Client::new(format!("http://{}", s.db_url), s.db_name),
+            dachs_client: DachsClient::new(s.dachs_addr, s.dachs_pw),
             sma_client: SmaClient::new(),
-            sma_pw: sma_pw,
-            sma_addr: SmaClient::sma_sock_addr(sma_addr).unwrap(), // TODO: dont panic
+            sml_client: SmlClient::new(s.meter_device, s.meter_baud).unwrap(), // TODO: dont panic
+            sma_pw: s.sma_pw,
+            sma_addr: SmaClient::sma_sock_addr(s.sma_addr).unwrap(), // TODO: dont panic
             logger: logger
         };
     }
@@ -225,6 +227,62 @@ impl StromMiner
         {
             trace!(self.logger, "Wrote {} solar records to database",
                 record_count);
+        }
+    }
+
+    pub fn mine_meter_data(&mut self, now: i64)
+    {
+        let (consumed, produced) = match
+            self.sml_client.get_consumed_produced()
+        {
+            Ok((x, y)) => (x, y),
+            Err(e) =>
+            {
+                error!(self.logger, "Get electric meter data failed, {}", e);
+                return;
+            }
+        };
+
+        let last_record = match MeterData::last(&self.influx_conn)
+        {
+            Ok(x) => x,
+            Err(e) =>
+            {
+                if e.series_exists()
+                {
+                    error!(self.logger, "Query error {}", e);
+                }
+                else
+                {
+                    let model = MeterData::new(now, 0.0, produced, consumed);
+                    if let Err(e) = model.save(&self.influx_conn)
+                    {
+                        error!(self.logger, "Save MeterData failed, {}", e);
+                    }
+                    else
+                    {
+                        trace!(self.logger, "Wrote {:?} to database", model);
+                    }
+                }
+                return;
+            }
+        };
+        trace!(self.logger, "Read {:?} from database", last_record);
+
+        let power = 3.6 * (
+            produced - last_record.energy_produced -
+            (consumed - last_record.energy_consumed) ) /
+            ((now - last_record.timestamp) as f64);
+
+        // TODO: everywhere: only use f64 where necessary
+        let model = MeterData::new(now, power, produced, consumed);
+        if let Err(e) = model.save(&self.influx_conn)
+        {
+            error!(self.logger, "Save MeterData failed, {}", e);
+        }
+        else
+        {
+            trace!(self.logger, "Wrote {:?} to database", model);
         }
     }
 }

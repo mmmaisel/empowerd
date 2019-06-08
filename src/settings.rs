@@ -4,7 +4,7 @@ extern crate config;
 use config::{Config, ConfigError, File, FileFormat};
 
 // https://github.com/mehcode/config-rs/blob/master/examples/hierarchical-env/src/settings.rs
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Settings
 {
     pub daemonize: bool,
@@ -15,14 +15,18 @@ pub struct Settings
     pub dachs_pw: String,
     pub sma_addr: String,
     pub sma_pw: String,
+    pub meter_device: String,
+    pub meter_baud: u32,
     pub db_url: String,
     pub db_name: String,
     pub db_pw: String,
     // TODO: polling should be 300s aligned
     pub dachs_poll_interval: i64,
     pub sma_poll_interval: i64,
+    pub meter_poll_interval: i64,
     pub import_solar: bool,
-    pub import_dachs: bool
+    pub import_dachs: bool,
+    pub import_meter: bool
     // TODO: only one import option must be set
 }
 
@@ -39,13 +43,21 @@ impl Settings
         config.set_default("log_level", 5)?;
         config.set_default("dachs_poll_interval", 300)?;
         config.set_default("sma_poll_interval", 3600)?;
+        config.set_default("meter_poll_interval", 300)?;
         config.set_default("import_solar", false)?;
         config.set_default("import_dachs", false)?;
+        config.set_default("import_meter", false)?;
 
         config.merge(File::with_name(&filename).
             format(FileFormat::Hjson))?;
 
         let mut settings: Settings = config.try_into()?;
+
+        if settings.meter_poll_interval < 5
+        {
+            return Err(ConfigError::Message(
+                "meter_poll_interval must be >= 5".to_string()));
+        }
 
         for arg in env::args()
         {
@@ -61,6 +73,10 @@ impl Settings
             if arg == "--import-dachs"
             {
                 settings.import_dachs = true;
+            }
+            if arg == "--import-meter"
+            {
+                settings.import_meter = true;
             }
         }
         return Ok(settings);

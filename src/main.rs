@@ -104,6 +104,7 @@ fn main()
         import_dachs(settings.db_url, settings.db_name);
         return;
     }
+    // TODO: import_meter
     if settings.daemonize
     {
         let daemon = Daemonize::new().
@@ -126,6 +127,7 @@ fn daemon_main(settings: Settings, logger: Logger)
 {
     const DACHS_TASK_ID: u32 = 1;
     const SMA_TASK_ID: u32 = 2;
+    const METER_TASK_ID: u32 = 3;
 
     let (mut intpipe_r, mut intpipe_w) = match UnixStream::pair()
     {
@@ -175,14 +177,12 @@ fn daemon_main(settings: Settings, logger: Logger)
             }
             unsafe { libc::kill(libc::getpid(), signal_hook::SIGINT) };
         }));
-        let mut miner = StromMiner::new(
-            settings.db_url, settings.db_name,
-            settings.dachs_addr, settings.dachs_pw,
-            settings.sma_addr, settings.sma_pw, child_logger.new(o!()));
+        let mut miner = StromMiner::new(settings.clone(), child_logger.new(o!()));
 
         let mut scheduler = Scheduler::new();
         scheduler.add_task(DACHS_TASK_ID, settings.dachs_poll_interval);
         scheduler.add_task(SMA_TASK_ID, settings.sma_poll_interval);
+        scheduler.add_task(METER_TASK_ID, settings.meter_poll_interval);
         let result = scheduler.run(condition_child, &child_logger,
             |id, now, interval|
         {
@@ -195,6 +195,10 @@ fn daemon_main(settings: Settings, logger: Logger)
                 SMA_TASK_ID =>
                 {
                     miner.mine_solar_data(interval);
+                }
+                METER_TASK_ID =>
+                {
+                    miner.mine_meter_data(now);
                 }
                 _ =>
                 {
