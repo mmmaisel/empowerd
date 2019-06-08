@@ -27,19 +27,26 @@ pub struct StromMiner
 
 impl StromMiner
 {
-    pub fn new(s: Settings, logger: Logger) -> StromMiner
+    pub fn new(s: Settings, logger: Logger) -> Result<StromMiner, String>
     {
-        return StromMiner
+        let influx_conn = Client::new(
+            format!("http://{}", s.db_url), s.db_name);
+        let dachs_client = DachsClient::new(s.dachs_addr, s.dachs_pw);
+        let sma_client = SmaClient::new();
+        let sml_client = SmlClient::new(s.meter_device, s.meter_baud)?;
+        let sma_addr = SmaClient::sma_sock_addr(s.sma_addr)?;
+
+        return Ok(StromMiner
         {
             // TODO: add DB password
-            influx_conn: Client::new(format!("http://{}", s.db_url), s.db_name),
-            dachs_client: DachsClient::new(s.dachs_addr, s.dachs_pw),
-            sma_client: SmaClient::new(),
-            sml_client: SmlClient::new(s.meter_device, s.meter_baud).unwrap(), // TODO: dont panic
+            influx_conn: influx_conn,
+            dachs_client: dachs_client,
+            sma_client: sma_client,
+            sml_client: sml_client,
             sma_pw: s.sma_pw,
-            sma_addr: SmaClient::sma_sock_addr(s.sma_addr).unwrap(), // TODO: dont panic
+            sma_addr: sma_addr,
             logger: logger
-        };
+        });
     }
 
     pub fn mine_dachs_data(&mut self, now: i64)

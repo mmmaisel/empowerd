@@ -177,7 +177,17 @@ fn daemon_main(settings: Settings, logger: Logger)
             }
             unsafe { libc::kill(libc::getpid(), signal_hook::SIGINT) };
         }));
-        let mut miner = StromMiner::new(settings.clone(), child_logger.new(o!()));
+        let mut miner = match
+            StromMiner::new(settings.clone(), child_logger.new(o!()))
+        {
+            Ok(x) => x,
+            Err(e) =>
+            {
+                error!(child_logger, "Could not create miner, error: {}", e);
+                intpipe_w.write(&[55]).unwrap();
+                return;
+            }
+        };
 
         let mut scheduler = Scheduler::new();
         scheduler.add_task(DACHS_TASK_ID, settings.dachs_poll_interval);
