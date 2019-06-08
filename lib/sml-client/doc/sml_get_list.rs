@@ -58,6 +58,18 @@ impl SmlListEntry
             signature: signature
         });
     }
+
+    pub fn as_f64(&self) -> Option<f64>
+    {
+        return match (&self.value, &self.scaler)
+        {
+            (SmlValue::Int(v),  Some(s)) =>
+                Some((*v as f64) * 10f64.powf(*s as f64)),
+            (SmlValue::UInt(v), Some(s)) =>
+                Some((*v as f64) * 10f64.powf(*s as f64)),
+            _ => None
+        };
+    }
 }
 
 #[derive(Debug)]
