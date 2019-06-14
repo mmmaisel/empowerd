@@ -1,15 +1,17 @@
 #[macro_use] extern crate lazy_static;
 extern crate reqwest;
 extern crate regex;
+#[macro_use] extern crate slog;
 
 use regex::Regex;
+use slog::Logger;
 
 pub struct DachsClient
 {
     client: reqwest::Client,
     url: String,
-    password: String
-    // TODO: use feature to add slog logging here
+    password: String,
+    logger: Option<Logger>
 }
 
 lazy_static!
@@ -26,7 +28,7 @@ impl DachsClient
     const KEY_TOTAL_ENERGY: &'static str = "BD3112.Hka_Bd.ulArbeitElektr";
     const KEY_RUNTIME: &'static str = "Hka_Bd.ulBetriebssekunden";
 
-    pub fn new(url: String, password: String)
+    pub fn new(url: String, password: String, logger: Option<Logger>)
         -> DachsClient
     {
         let client = reqwest::Client::new();
@@ -34,7 +36,8 @@ impl DachsClient
         {
             client: client,
             url: format!("http://{}:8080", url),
-            password: password
+            password: password,
+            logger: logger
         };
     }
 
@@ -61,25 +64,28 @@ impl DachsClient
                     },
                     _ =>
                     {
-                        return Err("💩️ Dachs GLT API returned an error".to_string());
+                        return Err("💩️ Dachs GLT API returned an error".
+                            to_string());
                     }
                 }
             }
-            Err(_) => return Err("💩️ Querying Dachs GLT API failed.".to_string())
+            Err(_) => return Err("💩️ Querying Dachs GLT API failed.".
+                to_string())
         };
 
         return match text
         {
             Ok(text) =>
             {
-                if cfg!(debug_assertions)
+                match &self.logger
                 {
-                    println!("query_glt {}: {}", key, &text);
+                    Some(x) => trace!(x, "query_glt {}: {}", key, &text),
+                    None => ()
                 }
                 Ok(text)
             }
-            Err(_) => return
-                Err("💩️ Decoding Dachs GLT API response failed.".to_string())
+            Err(_) => return Err(
+                "💩️ Decoding Dachs GLT API response failed.".to_string())
         }
     }
 
@@ -89,15 +95,17 @@ impl DachsClient
         let extracted_val = match EXTR_TOTAL_ENERGY.captures(&result)
         {
             Some(x) => x,
-            None => return Err("💩️ Parsing Dachs total energy failed.".to_string())
+            None => return Err(
+                "💩️ Parsing Dachs total energy failed.".to_string())
         };
 
         let energy: f64 = extracted_val.get(1).unwrap().
             as_str().parse().unwrap();
 
-        if cfg!(debug_assertions)
+        match &self.logger
         {
-            println!("Energy f64: {}", &energy);
+            Some(x) => trace!(x, "Energy f64: {}", &energy),
+            None => ()
         }
         return Ok(energy as i32);
     }
@@ -108,15 +116,17 @@ impl DachsClient
         let extracted_val = match EXTR_RUNTIME.captures(&result)
         {
             Some(x) => x,
-            None => return Err("💩️ Parsing Dachs runtime failed.".to_string())
+            None => return Err(
+                "💩️ Parsing Dachs runtime failed.".to_string())
         };
 
         let runtime_h: f64 = extracted_val.get(1).unwrap().
             as_str().parse().unwrap();
 
-        if cfg!(debug_assertions)
+        match &self.logger
         {
-            println!("Runtime h: {}", &runtime_h);
+            Some(x) => trace!(x, "Runtime h: {}", &runtime_h),
+            None => ()
         }
         return Ok((runtime_h * 3600.0) as i32);
     }
