@@ -1,6 +1,7 @@
 extern crate bytes;
 extern crate crc16;
 extern crate serialport;
+#[macro_use] extern crate slog;
 
 use std::io::Cursor;
 use std::time::Duration;
@@ -8,6 +9,7 @@ use std::thread;
 
 use bytes::BytesMut;
 use serialport::{SerialPort, SerialPortSettings};
+use slog::Logger;
 
 mod doc;
 use doc::SmlBody;
@@ -17,7 +19,8 @@ use doc::SmlStream;
 pub struct SmlClient
 {
     port: Box<SerialPort>,
-    buffer: BytesMut
+    buffer: BytesMut,
+    logger: Option<Logger>
 }
 
 impl SmlClient
@@ -27,7 +30,7 @@ impl SmlClient
     const OBIS_CONSUMED: [u8; 6] = [1, 0, 1, 8, 0, 255];
     const OBIS_PRODUCED: [u8; 6] = [1, 0, 2, 8, 0, 255];
 
-    pub fn new(port_name: String, baudrate: u32)
+    pub fn new(port_name: String, baudrate: u32, logger: Option<Logger>)
         -> Result<SmlClient, String>
     {
         let mut settings = SerialPortSettings::default();
@@ -47,7 +50,8 @@ impl SmlClient
         return Ok(SmlClient
         {
             port: port,
-            buffer: BytesMut::with_capacity(SmlClient::BUFFER_SIZE)
+            buffer: BytesMut::with_capacity(SmlClient::BUFFER_SIZE),
+            logger: logger
         });
     }
 
@@ -71,12 +75,16 @@ impl SmlClient
         };
         unsafe { self.buffer.set_len(num_recv); }
 
-        // TODO: log this if logger is given
-        if cfg!(debug_assertions)
+        match &self.logger
         {
-            println!("data: {:?}", self.buffer);
-            println!("cap: {}", self.buffer.capacity());
+            Some(x) =>
+            {
+                trace!(x, "data: {:?}", self.buffer);
+                trace!(x, "cap: {}", self.buffer.capacity());
+            }
+            None => ()
         }
+
         let mut cursor = Cursor::new(&mut self.buffer);
         let mut streams = SmlStream::deserialize(&mut cursor)?;
 

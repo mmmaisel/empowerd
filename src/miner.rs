@@ -33,7 +33,8 @@ impl StromMiner
         let dachs_client = DachsClient::new(
             s.dachs_addr, s.dachs_pw, Some(logger.new(o!())));
         let sma_client = SmaClient::new();
-        let sml_client = SmlClient::new(s.meter_device, s.meter_baud)?;
+        let sml_client = SmlClient::new(
+            s.meter_device, s.meter_baud, Some(logger.new(o!())))?;
         let sma_addr = SmaClient::sma_sock_addr(s.sma_addr)?;
 
         return Ok(StromMiner
