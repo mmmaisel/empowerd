@@ -43,7 +43,7 @@ impl SmaCmdLogin
     pub const OPCODE: u32 = 0xFFFD04;
     pub const LENGTH: u16 = 32;
 
-    pub fn new() -> SmaCmdLogin
+    pub fn new(logger: &Option<Logger>) -> SmaCmdLogin
     {
         let mut retval = SmaCmdLogin
         {
@@ -60,9 +60,10 @@ impl SmaCmdLogin
             password: [0x88; 12],
             end: SmaEndToken::new()
         };
-        if cfg!(debug_assertions)
+        match &logger
         {
-            println!("Local timestamp: {}", retval.timestamp);
+            Some(x) => trace!(x, "Local timestamp: {}", retval.timestamp),
+            None => ()
         }
         retval.data_header.infer_wordcount(retval.pkt_header.data_len);
         retval.data_header.class = SmaDataHeader::CMD_CLASS_A0;

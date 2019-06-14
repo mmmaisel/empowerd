@@ -342,7 +342,7 @@ impl SmaEndToken
     }
 }
 
-pub fn parse_response(mut buffer: &mut Buf)
+pub fn parse_response(mut buffer: &mut Buf, logger: &Option<Logger>)
     -> Result<Vec<Box<SmaResponse>>, String>
 {
     let mut data: Vec<Box<SmaResponse>> = Vec::new();
@@ -363,7 +363,7 @@ pub fn parse_response(mut buffer: &mut Buf)
                     (SmaPacketHeader::LENGTH + SmaDataHeader::LENGTH + 4)
                     as usize
                 {
-                    let packet = parse_command(&mut buffer);
+                    let packet = parse_command(&mut buffer, logger);
                     match packet
                     {
                         Ok(packet) => data.push(packet),
@@ -385,15 +385,17 @@ pub fn parse_response(mut buffer: &mut Buf)
     return Ok(data);
 }
 
-fn parse_command(buffer: &mut Buf) -> Result<Box<SmaResponse>, String>
+fn parse_command(buffer: &mut Buf, logger: &Option<Logger>)
+    -> Result<Box<SmaResponse>, String>
 {
     let pkt_header = SmaPacketHeader::deserialize(buffer);
     let data_header = SmaDataHeader::deserialize(buffer);
 
     let cmd_word = SmaCmdWord::deserialize(buffer);
-    if cfg!(debug_assertions)
+    match &logger
     {
-        println!("Received cmd_word: {:X}", cmd_word.word);
+        Some(x) => trace!(x, "Received cmd_word: {:X}", cmd_word.word),
+        None => ()
     }
 
     let packet: Box<SmaResponse>;

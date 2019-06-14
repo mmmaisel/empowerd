@@ -1,13 +1,15 @@
-mod cmds;
-
 extern crate bytes;
+#[macro_use] extern crate slog;
+
 use bytes::{BytesMut, Buf};
+use slog::Logger;
 
 use std::net;
 
+mod cmds;
+
 use crate::cmds::*;
 pub use cmds::SmaData;
-pub use cmds::SmaData::*;
 pub use cmds::TimestampedInt;
 
 pub struct SmaClient
@@ -17,15 +19,15 @@ pub struct SmaClient
     packet_id: u16,
     dst_addr: net::SocketAddr,
     dst_susy_id: u16,
-    dst_serial: u32
-    // TODO: use feature to add slog logging here
+    dst_serial: u32,
+    logger: Option<Logger>
 }
 
 impl SmaClient
 {
     const BUFFER_SIZE: usize = 1024;
 
-    pub fn new() -> SmaClient
+    pub fn new(logger: Option<Logger>) -> SmaClient
     {
         let multicast_addr = net::SocketAddrV4::new(
             net::Ipv4Addr::new(238,12,255,254), 0);
@@ -49,7 +51,8 @@ impl SmaClient
             dst_addr: net::SocketAddr::new(net::IpAddr::V4(
                 net::Ipv4Addr::new(0,0,0,0)), 0),
             dst_susy_id: 0,
-            dst_serial: 0
+            dst_serial: 0,
+            logger: logger
         };
     }
 
@@ -58,7 +61,7 @@ impl SmaClient
     {
         match data
         {
-            None() =>
+            SmaData::None() =>
             {
                 std::mem::swap(data, &mut new_data);
                 return;
@@ -87,27 +90,34 @@ impl SmaClient
             let mut buf = std::io::Cursor::new(
                 &self.buffer[0..self.buffer.len()]);
 
-            let responses = match parse_response(&mut buf)
+            let responses = match parse_response(&mut buf, &self.logger)
             {
                 Err(e) => return Err(e),
                 Ok(x) => x
             };
             for response in responses.into_iter()
             {
-                if cfg!(debug_assertions)
+                match &self.logger
                 {
-                    println!("Received packet {}, fragment {}",
-                        response.packet_id() & 0x7FFF, response.fragment_id());
+                    Some(x) =>
+                    {
+                        trace!(x, "Received packet {}, fragment {}",
+                        response.packet_id() & 0x7FFF,
+                        response.fragment_id());
+                    }
+                    None => ()
                 }
 
                 if response.packet_id() & 0x7FFF != self.packet_id - 1
                 {
-                    return Err(format!("💩️ received packet ID {:X}, expected {:X}",
+                    return Err(
+                        format!("💩️ received packet ID {:X}, expected {:X}",
                         response.packet_id() & 0x7FFF, self.packet_id - 1));
                 }
                 if response.opcode() != cmd.opcode()
                 {
-                    return Err(format!("💩️ received opcode {:X}, expected {:X}",
+                    return Err(
+                        format!("💩️ received opcode {:X}, expected {:X}",
                         response.opcode(), cmd.opcode()));
                 }
                 // TODO: handle ordering issues
@@ -144,11 +154,13 @@ impl SmaClient
         match dst_addr
         {
             Ok(x) => return Ok(x),
-            Err(_) => return Err(format!("💩️ {} is not an IP address", addr))
+            Err(_) => return Err(
+                format!("💩️ {} is not an IP address", addr))
         }
     }
 
-    pub fn set_dst(&mut self, addr: net::SocketAddr, susy_id: u16, serial: u32)
+    pub fn set_dst(&mut self, addr: net::SocketAddr, susy_id: u16,
+        serial: u32)
     {
         self.dst_addr = addr;
         self.dst_susy_id = susy_id;
@@ -158,9 +170,10 @@ impl SmaClient
     pub fn identify(&mut self, dst_addr: net::SocketAddr)
         -> Result<SmaEndpoint, String>
     {
-        if cfg!(debug_assertions)
+        match &self.logger
         {
-            println!("Identify");
+            Some(x) => trace!(x, "Identify"),
+            None => ()
         }
         let mut cmd = SmaCmdIdentify::new();
         self.init_cmd_data_header(&mut cmd.data_header, true);
@@ -170,8 +183,9 @@ impl SmaClient
             {
                 match x
                 {
-                    Endpoint(x) => return Ok(x),
-                    _ => return Err("💩️ received unexpected data type".to_string())
+                    SmaData::Endpoint(x) => return Ok(x),
+                    _ => return Err(
+                        "💩️ received unexpected data type".to_string())
                 }
             }
             Err(e) => return Err(e)
@@ -180,11 +194,12 @@ impl SmaClient
 
     pub fn login(&mut self, passwd: &String) -> Result<(), String>
     {
-        if cfg!(debug_assertions)
+        match &self.logger
         {
-            println!("login");
+            Some(x) => trace!(x, "Login"),
+            None => ()
         }
-        let mut cmd = SmaCmdLogin::new();
+        let mut cmd = SmaCmdLogin::new(&self.logger);
         self.init_cmd_data_header(&mut cmd.data_header, true);
         cmd.set_password(passwd);
         match self.issue_command(&cmd, self.dst_addr)
@@ -193,8 +208,9 @@ impl SmaClient
             {
                 match x
                 {
-                    None() => return Ok(()),
-                    _ => return Err("💩️ received unexpected data type".to_string())
+                    SmaData::None() => return Ok(()),
+                    _ => return Err(
+                        "💩️ received unexpected data type".to_string())
                 }
             }
             Err(e) => return Err(e)
@@ -203,9 +219,10 @@ impl SmaClient
 
     pub fn logout(&mut self) -> Result<(), String>
     {
-        if cfg!(debug_assertions)
+        match &self.logger
         {
-            println!("logout");
+            Some(x) => trace!(x, "Logout"),
+            None => ()
         }
         let mut cmd = SmaCmdLogout::new();
         self.init_cmd_data_header(&mut cmd.data_header, true);
@@ -218,9 +235,10 @@ impl SmaClient
     pub fn get_day_data(&mut self, start_time: u32, end_time: u32)
         -> Result<Vec<TimestampedInt>, String>
     {
-        if cfg!(debug_assertions)
+        match &self.logger
         {
-            println!("get_day_data");
+            Some(x) => trace!(x, "GetDayData"),
+            None => ()
         }
         let mut cmd = SmaCmdGetDayData::new();
         self.init_cmd_data_header(&mut cmd.data_header, false);
@@ -232,8 +250,9 @@ impl SmaClient
             {
                 match x
                 {
-                    IntTimeSeries(x) => return Ok(x),
-                    _ => return Err("💩️ received unexpected data type".to_string())
+                    SmaData::IntTimeSeries(x) => return Ok(x),
+                    _ => return Err(
+                        "💩️ received unexpected data type".to_string())
                 }
             }
             Err(e) => return Err(e)
@@ -244,10 +263,14 @@ impl SmaClient
         -> Result<usize, String>
     {
         self.buffer.clear();
-        if cfg!(debug_assertions)
+        match &self.logger
         {
-            println!("Cap: {}, Len: {}",
-                self.buffer.capacity(), self.buffer.len());
+            Some(x) =>
+            {
+                trace!(x, "Cap: {}, Len: {}", self.buffer.capacity(),
+                    self.buffer.len());
+            }
+            None => ()
         }
         unsafe { self.buffer.set_len(SmaClient::BUFFER_SIZE); }
         let (num_recv, src_addr) = match
