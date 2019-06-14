@@ -8,7 +8,7 @@ use std::time::Duration;
 use std::thread;
 
 use bytes::BytesMut;
-use serialport::{SerialPort, SerialPortSettings};
+use serialport::SerialPortSettings;
 use slog::Logger;
 
 mod doc;
@@ -18,7 +18,8 @@ use doc::SmlStream;
 
 pub struct SmlClient
 {
-    port: Box<SerialPort>,
+    port_name: String,
+    settings: SerialPortSettings,
     buffer: BytesMut,
     logger: Option<Logger>
 }
@@ -31,33 +32,33 @@ impl SmlClient
     const OBIS_PRODUCED: [u8; 6] = [1, 0, 2, 8, 0, 255];
 
     pub fn new(port_name: String, baudrate: u32, logger: Option<Logger>)
-        -> Result<SmlClient, String>
+        -> SmlClient
     {
         let mut settings = SerialPortSettings::default();
         settings.baud_rate = baudrate;
-        // TODO: open port on demand, allow running without serial device
-        let mut port = match serialport::open_with_settings(
-            &port_name, &settings)
-        {
-            Ok(port) => port,
-            Err(e) => return Err(format!(
-                "Failed to open {}, error: {}", port_name, e))
-        };
 
-        // TODO: remove this
-        port.write_request_to_send(false);
-
-        return Ok(SmlClient
+        return SmlClient
         {
-            port: port,
+            port_name: port_name,
+            settings: settings,
             buffer: BytesMut::with_capacity(SmlClient::BUFFER_SIZE),
             logger: logger
-        });
+        };
     }
 
     pub fn get_sml_file(&mut self) -> Result<SmlFile, String>
     {
-        if let Err(e) = self.port.clear(serialport::ClearBuffer::Input)
+        let mut port = match serialport::open_with_settings(
+            &self.port_name, &self.settings)
+        {
+            Ok(port) => port,
+            Err(e) => return Err(format!(
+                "Failed to open {}, error: {}", self.port_name, e))
+        };
+
+        // TODO: remove this
+        port.write_request_to_send(false);
+        if let Err(e) = port.clear(serialport::ClearBuffer::Input)
         {
             return Err(
                 format!("Failed to flush input buffer, error: {}", e));
@@ -67,7 +68,7 @@ impl SmlClient
         self.buffer.clear();
         // TODO: do this without unsafe
         unsafe { self.buffer.set_len(SmlClient::BUFFER_SIZE); }
-        let num_recv = match self.port.read(&mut self.buffer)
+        let num_recv = match port.read(&mut self.buffer)
         {
             Ok(x) => x,
             Err(e) => return Err(
