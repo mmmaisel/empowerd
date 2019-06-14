@@ -27,23 +27,36 @@ impl SmaClient
 {
     const BUFFER_SIZE: usize = 1024;
 
-    pub fn new(logger: Option<Logger>) -> SmaClient
+    pub fn new(logger: Option<Logger>) -> Result<SmaClient, String>
     {
         let multicast_addr = net::SocketAddrV4::new(
             net::Ipv4Addr::new(238,12,255,254), 0);
         let local_addr = net::SocketAddrV4::new(
             net::Ipv4Addr::new(0,0,0,0), 0);
-        let socket = net::UdpSocket::bind(local_addr).
-            expect("💩️ Binding socket failed");
-        socket.set_read_timeout(Some(<std::time::Duration>::new(5, 0))).
-            expect("💩️ Set socket timeout failed");
+        let socket = match net::UdpSocket::bind(local_addr)
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!(
+                "Binding socket failed, error: {}", e))
+        };
+        if let Err(e) = socket.set_read_timeout(Some(
+            <std::time::Duration>::new(5, 0)))
+        {
+            return Err(format!("Set socket timeout failed, error: {}", e));
+        }
         // TODO: multicast stuff seems to be unneccessary
-        socket.set_multicast_loop_v4(false).
-            expect("💩️ Disable multicast loop failed");
-        socket.join_multicast_v4(&multicast_addr.ip(), &local_addr.ip()).
-            expect("💩️ Join multicast group failed");
+        if let Err(e) = socket.set_multicast_loop_v4(false)
+        {
+            return Err(format!("Disable multicast loop failed, error: {}", e));
+        }
+        if let Err(e) = socket.join_multicast_v4(&multicast_addr.ip(),
+            &local_addr.ip())
+        {
+            return Err(format!("Join multicast group failed, error: {}", e));
+        }
         let buffer = BytesMut::with_capacity(SmaClient::BUFFER_SIZE);
-        return SmaClient
+
+        return Ok(SmaClient
         {
             socket: socket,
             buffer: buffer,
@@ -53,7 +66,7 @@ impl SmaClient
             dst_susy_id: 0,
             dst_serial: 0,
             logger: logger
-        };
+        });
     }
 
     // TODO: don't panic
