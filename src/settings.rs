@@ -19,6 +19,7 @@ pub struct Settings
     pub meter_baud: u32,
     pub db_url: String,
     pub db_name: String,
+    pub db_user: String,
     pub db_pw: String,
     // TODO: polling should be 300s aligned
     pub dachs_poll_interval: i64,

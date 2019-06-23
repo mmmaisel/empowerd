@@ -29,7 +29,8 @@ impl StromMiner
     pub fn new(s: Settings, logger: Logger) -> Result<StromMiner, String>
     {
         let influx_conn = Client::new(
-            format!("http://{}", s.db_url), s.db_name);
+            format!("http://{}", s.db_url), s.db_name).
+            set_authentication(s.db_user, s.db_pw);
         let dachs_client = DachsClient::new(
             s.dachs_addr, s.dachs_pw, Some(logger.new(o!())));
         let sma_client = SmaClient::new(Some(logger.new(o!())))?;
@@ -39,7 +40,6 @@ impl StromMiner
 
         return Ok(StromMiner
         {
-            // TODO: add DB password
             influx_conn: influx_conn,
             dachs_client: dachs_client,
             sma_client: sma_client,
