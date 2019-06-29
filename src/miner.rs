@@ -293,9 +293,9 @@ impl StromMiner
         };
         trace!(self.logger, "Read {:?} from database", last_record);
 
-        let power = 3.6 * (
-            produced - last_record.energy_produced -
-            (consumed - last_record.energy_consumed) ) /
+        let power = 3600.0 * (
+            consumed - last_record.energy_consumed -
+            (produced - last_record.energy_produced) ) /
             ((now - last_record.timestamp) as f64);
 
         // TODO: everywhere: only use f64 where necessary
