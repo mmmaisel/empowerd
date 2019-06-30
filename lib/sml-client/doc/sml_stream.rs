@@ -69,8 +69,10 @@ impl SmlStream
                         crc_state.update(&data_to_append);
                         data.append(&mut data_to_append);
                     }
-                    None => return Err(
-                        "Did not found next escape token".to_string())
+                    // If no next_escape is found then an incomplete
+                    // file was read.
+                    // TODO: handle incomplete files and write correct test for it
+                    None => return Ok(streams)
                 }
 
                 let escape = buffer.get_sml_escape()?;

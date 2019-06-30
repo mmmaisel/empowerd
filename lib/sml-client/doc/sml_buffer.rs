@@ -182,6 +182,11 @@ pub trait SmlBuf: Buf
 
     fn get_sml_escape(&mut self) -> Result<u32, String>
     {
+        if self.remaining() < 8
+        {
+            return Err("Less than 8 chars remaining".to_string());
+        }
+
         let escape = self.get_u32_be();
         if escape != 0x1b1b1b1b
         {
