@@ -8,6 +8,8 @@ use config::{Config, ConfigError, File, FileFormat};
 pub struct Settings
 {
     pub daemonize: bool,
+    pub pid_file: String,
+    pub wrk_dir: String,
     pub one_shot: bool,
     pub log_filename: String,
     pub log_level: u8,
@@ -39,8 +41,10 @@ impl Settings
         let mut config = Config::new();
 
         config.set_default("daemonize", true)?;
+        config.set_default("pid_file", "/var/run/stromd/pid")?;
+        config.set_default("wrk_dir", "/")?;
         config.set_default("one_shot", false)?;
-        config.set_default("log_filename", "/tmp/stromd.log")?; // TODO
+        config.set_default("log_filename", "/var/log/stromd.log")?;
         config.set_default("log_level", 5)?;
         config.set_default("dachs_poll_interval", 300)?;
         config.set_default("sma_poll_interval", 3600)?;

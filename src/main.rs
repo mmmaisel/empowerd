@@ -108,9 +108,9 @@ fn main()
     if settings.daemonize
     {
         let daemon = Daemonize::new().
-            pid_file("/tmp/test.pid").
+            pid_file(&settings.pid_file).
             chown_pid_file(true).
-            working_directory("/tmp");
+            working_directory(&settings.wrk_dir);
 
         match daemon.start()
         {
@@ -160,7 +160,6 @@ fn daemon_main(settings: Settings, logger: Logger)
     let condition_child = condition_parent.clone();
     let child_logger = logger.new(o!());
 
-    info!(logger, "🚀️ Starting main");
     let child = thread::spawn(move ||
     {
         panic::set_hook(Box::new(|panic_info|
