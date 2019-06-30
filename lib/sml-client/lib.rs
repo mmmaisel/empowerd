@@ -63,7 +63,7 @@ impl SmlClient
             return Err(
                 format!("Failed to flush input buffer, error: {}", e));
         }
-        thread::sleep(Duration::from_secs(3));
+        thread::sleep(Duration::from_secs(4));
 
         self.buffer.clear();
         // TODO: do this without unsafe
