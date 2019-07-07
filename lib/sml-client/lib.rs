@@ -26,7 +26,7 @@ pub struct SmlClient
 
 impl SmlClient
 {
-    const BUFFER_SIZE: usize = 512;
+    const BUFFER_SIZE: usize = 1024;
 
     const OBIS_CONSUMED: [u8; 6] = [1, 0, 1, 8, 0, 255];
     const OBIS_PRODUCED: [u8; 6] = [1, 0, 2, 8, 0, 255];
@@ -56,8 +56,7 @@ impl SmlClient
                 "Failed to open {}, error: {}", self.port_name, e))
         };
 
-        // TODO: remove this
-        port.write_request_to_send(false);
+        //port.write_request_to_send(false);
         if let Err(e) = port.clear(serialport::ClearBuffer::Input)
         {
             return Err(

@@ -45,7 +45,12 @@ impl SmlStream
                     None => return Err("Did not found start token".to_string())
                 }
 
-                header = buffer.get_sml_escape()?;
+                // Next escape might be incomplete.
+                header = match buffer.get_sml_escape()
+                {
+                    Ok(x) => x,
+                    Err(_) => return Ok(streams)
+                };
                 if header == 0x01010101
                 {
                     crc_state.update(
@@ -75,7 +80,12 @@ impl SmlStream
                     None => return Ok(streams)
                 }
 
-                let escape = buffer.get_sml_escape()?;
+                // Next escape might be incomplete.
+                let escape = match buffer.get_sml_escape()
+                {
+                    Ok(x) => x,
+                    Err(_) => return Ok(streams)
+                };
                 // TODO: this code sucks
                 crc_state.update(&[0x1b, 0x1b, 0x1b, 0x1b]);
                 crc_state.update(&[((escape & 0xFF000000) >> 24) as u8]);

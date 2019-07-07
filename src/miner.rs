@@ -256,13 +256,27 @@ impl StromMiner
 
     pub fn mine_meter_data(&mut self, now: i64)
     {
-        let (consumed, produced) = match
-            self.sml_client.get_consumed_produced()
+        let mut meter_data = self.sml_client.get_consumed_produced();
+        for _ in 1..3
+        {
+            if let Err(e) = meter_data
+            {
+                error!(self.logger,
+                    "Get electric meter data failed, {}, retrying...", e);
+                meter_data = self.sml_client.get_consumed_produced();
+            }
+            else
+            {
+                break;
+            }
+        }
+        let (consumed, produced) = match meter_data
         {
             Ok((x, y)) => (x, y),
             Err(e) =>
             {
-                error!(self.logger, "Get electric meter data failed, {}", e);
+                error!(self.logger,
+                    "Get electric meter data failed, {}, giving up!", e);
                 return;
             }
         };
