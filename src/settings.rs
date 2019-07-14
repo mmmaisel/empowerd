@@ -27,10 +27,7 @@ pub struct Settings
     pub dachs_poll_interval: i64,
     pub sma_poll_interval: i64,
     pub meter_poll_interval: i64,
-    pub import_solar: bool,
-    pub import_dachs: bool,
-    pub import_meter: bool
-    // TODO: only one import option must be set
+    pub import: String
 }
 
 impl Settings
@@ -49,9 +46,7 @@ impl Settings
         config.set_default("dachs_poll_interval", 300)?;
         config.set_default("sma_poll_interval", 3600)?;
         config.set_default("meter_poll_interval", 300)?;
-        config.set_default("import_solar", false)?;
-        config.set_default("import_dachs", false)?;
-        config.set_default("import_meter", false)?;
+        config.set_default("import", "none")?;
 
         config.merge(File::with_name(&filename).
             format(FileFormat::Hjson))?;
@@ -64,6 +59,7 @@ impl Settings
                 "meter_poll_interval must be >= 5".to_string()));
         }
 
+        let mut found_import = false;
         for arg in env::args()
         {
             // TODO: add nodaemonize
@@ -71,17 +67,15 @@ impl Settings
             {
                 settings.daemonize = true;
             }
-            if arg == "--import-solar"
+
+            if arg == "--import"
             {
-                settings.import_solar = true;
+                found_import = true;
             }
-            if arg == "--import-dachs"
+            else if found_import == true
             {
-                settings.import_dachs = true;
-            }
-            if arg == "--import-meter"
-            {
-                settings.import_meter = true;
+                settings.import = arg;
+                found_import = false;
             }
         }
         return Ok(settings);

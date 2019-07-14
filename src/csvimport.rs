@@ -16,6 +16,7 @@ struct CsvSolarRecord
     power: Option<String>
 }
 
+// TODO: deduplicate all those functions
 pub fn import_solar(miner: &StromMiner) -> Result<(), String>
 {
     let mut reader = csv::ReaderBuilder::new().
@@ -62,6 +63,7 @@ struct CsvDachsRecord
     energy: String
 }
 
+// TODO: deduplicate all those functions
 pub fn import_dachs(miner: &StromMiner) -> Result<(), String>
 {
     let mut reader = csv::ReaderBuilder::new().
@@ -97,41 +99,123 @@ pub fn import_dachs(miner: &StromMiner) -> Result<(), String>
     return Ok(());
 }
 
-/*#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize)]
+struct CsvMeterRecord
+{
+    date_time: String,
+    consumed: String,
+    produced: String
+}
+
+// TODO: deduplicate all those functions
+pub fn import_meter(miner: &StromMiner) -> Result<(), String>
+{
+    let mut reader = csv::ReaderBuilder::new().
+        delimiter(b';').
+        has_headers(false).
+        from_reader(std::io::stdin());
+
+    for record in reader.deserialize().into_iter()
+    {
+        let csvrecord: CsvMeterRecord = match record
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse csv, {}", e))
+        };
+        let timestamp: i64 = match
+            Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
+        {
+            Ok(x) => x.timestamp() as i64,
+            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+        };
+        let consumed: f64 = match csvrecord.consumed.parse()
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse consumed, {}", e))
+        };
+        let produced: f64 = match csvrecord.produced.parse()
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse produced, {}", e))
+        };
+        miner.save_meter_data(timestamp, produced, consumed);
+    };
+    return Ok(());
+}
+
+#[derive(Debug, Deserialize)]
 struct CsvWaterRecord
 {
     date_time: String,
     total: String
 }
 
-// TODO: this will not connect to production db, also above
-pub fn import_water(db_url: String, db_name: String)
+// TODO: deduplicate all those functions
+pub fn import_water(miner: &StromMiner) -> Result<(), String>
 {
-    // TODO: add DB password
-    // TODO: correct error handling
-    let influx_conn = Client::new(format!("http://{}", db_url), db_name);
     let mut reader = csv::ReaderBuilder::new().
         delimiter(b';').
         has_headers(false).
         from_reader(std::io::stdin());
 
-    let data = reader.deserialize().into_iter().map(|record|
+    for record in reader.deserialize().into_iter()
     {
-        let csvrecord: CsvWaterRecord = record.expect("💩️ cant parse");
-        let timestamp: i64 =
-            Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S").
-            expect("💩️ cant parse datetime").
-            timestamp() as i64;
-        let total: f64 = csvrecord.total.replace(",", ".").parse().expect("💩️");
+        let csvrecord: CsvWaterRecord = match record
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse csv, {}", e))
+        };
+        let timestamp: i64 = match
+            Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
+        {
+            Ok(x) => x.timestamp() as i64,
+            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+        };
+        let total: f64 = match csvrecord.total.parse()
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse total, {}", e))
+        };
+        // TODO: ALL: allow batch jobs here, only read last once
+        miner.save_water_data(timestamp, total);
+    };
+    return Ok(());
+}
 
-        // TODO: calc delta
+#[derive(Debug, Deserialize)]
+struct CsvGasRecord
+{
+    date_time: String,
+    total: String
+}
 
-        return WaterData::new(timestamp, delta, total);
-    }).collect();
-    // TODO: calc delta, one after one, no save all
-/*    if let Err(e) = SolarData::save_all(&influx_conn, data)
+// TODO: deduplicate all those functions
+pub fn import_gas(miner: &StromMiner) -> Result<(), String>
+{
+    let mut reader = csv::ReaderBuilder::new().
+        delimiter(b';').
+        has_headers(false).
+        from_reader(std::io::stdin());
+
+    for record in reader.deserialize().into_iter()
     {
-        // TODO: use logger
-        println!("Save DachsData failed, {}", e);
-    }*/
-}*/
+        let csvrecord: CsvGasRecord = match record
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse csv, {}", e))
+        };
+        let timestamp: i64 = match
+            Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
+        {
+            Ok(x) => x.timestamp() as i64,
+            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+        };
+        let total: f64 = match csvrecord.total.parse()
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse total, {}", e))
+        };
+        miner.save_gas_data(timestamp, total);
+    };
+    return Ok(());
+}

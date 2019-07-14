@@ -25,7 +25,7 @@ mod models;
 mod scheduler;
 mod settings;
 
-use csvimport::{import_dachs, import_solar};
+use csvimport::*;
 use miner::*;
 use scheduler::*;
 use settings::*;
@@ -92,7 +92,7 @@ fn main()
     info!(root_logger, "⚡️ Starting stromd");
     let logger = root_logger.new(o!());
 
-    if settings.import_solar || settings.import_dachs
+    if settings.import != "none"
     {
         csvimport_main(settings, root_logger.new(o!()));
         return;
@@ -129,23 +129,36 @@ fn csvimport_main(settings: Settings, logger: Logger)
         }
     };
 
-    if settings.import_solar
+    info!(logger, "🔧️ Importing {} data", settings.import);
+    let result = if settings.import == "solar"
     {
-        info!(logger, "🔧️ Importing solar data");
-        if let Err(e) = import_solar(&miner)
-        {
-            error!(logger, "{}", e);
-        }
+        import_solar(&miner)
     }
-    else if settings.import_dachs
+    else if settings.import == "dachs"
     {
-        info!(logger, "🔧️ Importing Dachs data");
-        if let Err(e) = import_dachs(&miner)
-        {
-            error!(logger, "{}", e);
-        }
+        import_dachs(&miner)
     }
-    // TODO: import_meter
+    else if settings.import == "meter"
+    {
+        import_meter(&miner)
+    }
+    else if settings.import == "water"
+    {
+        import_water(&miner)
+    }
+    else if settings.import == "gas"
+    {
+        import_gas(&miner)
+    }
+    else
+    {
+        Err(format!("Invalid import option '{}'", settings.import))
+    };
+
+    if let Err(e) = result
+    {
+        error!(logger, "{}", e);
+    }
 }
 
 fn daemon_main(settings: Settings, logger: Logger)

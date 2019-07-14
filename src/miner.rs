@@ -319,6 +319,7 @@ impl StromMiner
 
     pub fn save_meter_data(&self, timestamp: i64, produced: f64, consumed: f64)
     {
+        // TODO: deduplicate this
         let last_record = match MeterData::last(&self.influx_conn)
         {
             Ok(x) => x,
@@ -356,6 +357,94 @@ impl StromMiner
         if let Err(e) = model.save(&self.influx_conn)
         {
             error!(self.logger, "Save MeterData failed, {}", e);
+        }
+        else
+        {
+            trace!(self.logger, "Wrote {:?} to database", model);
+        }
+    }
+
+    pub fn save_gas_data(&self, timestamp: i64, total: f64)
+    {
+        // TODO: deduplicate this
+        let last_record = match GasData::last(&self.influx_conn)
+        {
+            Ok(x) => x,
+            Err(e) =>
+            {
+                if e.series_exists()
+                {
+                    error!(self.logger, "Query error {}", e);
+                }
+                else
+                {
+                    let model = GasData::new(timestamp, 0.0, total);
+                    if let Err(e) = model.save(&self.influx_conn)
+                    {
+                        error!(self.logger, "Save GasData failed, {}", e);
+                    }
+                    else
+                    {
+                        trace!(self.logger, "Wrote {:?} to database", model);
+                    }
+                }
+                return;
+            }
+        };
+        trace!(self.logger, "Read {:?} from database", last_record);
+
+        let delta = (total - last_record.total) /
+            ((timestamp - last_record.timestamp) as f64);
+
+        // TODO: everywhere: only use f64 where necessary
+        let model = GasData::new(timestamp, delta, total);
+        if let Err(e) = model.save(&self.influx_conn)
+        {
+            error!(self.logger, "Save GasData failed, {}", e);
+        }
+        else
+        {
+            trace!(self.logger, "Wrote {:?} to database", model);
+        }
+    }
+
+    pub fn save_water_data(&self, timestamp: i64, total: f64)
+    {
+        // TODO: deduplicate this
+        let last_record = match WaterData::last(&self.influx_conn)
+        {
+            Ok(x) => x,
+            Err(e) =>
+            {
+                if e.series_exists()
+                {
+                    error!(self.logger, "Query error {}", e);
+                }
+                else
+                {
+                    let model = WaterData::new(timestamp, 0.0, total);
+                    if let Err(e) = model.save(&self.influx_conn)
+                    {
+                        error!(self.logger, "Save WaterData failed, {}", e);
+                    }
+                    else
+                    {
+                        trace!(self.logger, "Wrote {:?} to database", model);
+                    }
+                }
+                return;
+            }
+        };
+        trace!(self.logger, "Read {:?} from database", last_record);
+
+        let delta = (total - last_record.total) /
+            ((timestamp - last_record.timestamp) as f64);
+
+        // TODO: everywhere: only use f64 where necessary
+        let model = WaterData::new(timestamp, delta, total);
+        if let Err(e) = model.save(&self.influx_conn)
+        {
+            error!(self.logger, "Save WaterData failed, {}", e);
         }
         else
         {

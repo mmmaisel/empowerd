@@ -5,12 +5,16 @@ use std::fmt;
 
 use influx_db_client::{Client, Precision, Series};
 pub mod dachs;
+pub mod gas;
 pub mod meter;
 pub mod solar;
+pub mod water;
 
 pub use dachs::*;
+pub use gas::*;
 pub use meter::*;
 pub use solar::*;
+pub use water::*;
 
 pub struct LoadError
 {
