@@ -78,7 +78,14 @@ impl StromMiner
                 return;
             }
         };
+        self.save_dachs_data(now, dachs_runtime as f64,
+            dachs_energy as f64);
+    }
 
+    // TODO: everywhere: only use f64 where necessary
+    pub fn save_dachs_data(&self, timestamp: i64, dachs_runtime: f64,
+        dachs_energy: f64)
+    {
         let last_record = match DachsData::last(&self.influx_conn)
         {
             Ok(x) => x,
@@ -91,7 +98,7 @@ impl StromMiner
                 else
                 {
                     let model = DachsData::new(
-                        now, 0.0, dachs_runtime as f64, dachs_energy as f64);
+                        timestamp, 0.0, dachs_runtime, dachs_energy);
                     if let Err(e) = model.save(&self.influx_conn)
                     {
                         error!(self.logger, "Save DachsData failed, {}", e);
@@ -106,7 +113,7 @@ impl StromMiner
         };
         trace!(self.logger, "Read {:?} from database", last_record);
         // TODO: derive nonlinear power from delta timestamp and delta runtime
-        let power: f64 = if last_record.runtime != dachs_runtime as f64
+        let power: f64 = if dachs_runtime != last_record.runtime
         {
             800.0
         }
@@ -115,9 +122,8 @@ impl StromMiner
             0.0
         };
 
-        // TODO: everywhere: only use f64 where necessary
         let model = DachsData::new(
-            now, power, dachs_runtime as f64, dachs_energy as f64);
+            timestamp, power, dachs_runtime, dachs_energy);
         if let Err(e) = model.save(&self.influx_conn)
         {
             error!(self.logger, "Save DachsData failed, {}", e);
@@ -128,7 +134,7 @@ impl StromMiner
         }
     }
 
-    pub fn mine_solar_data(&mut self, now: i64)
+    pub fn get_last_solar_record(&self) -> Result<SolarData, ()>
     {
         let last_record = match SolarData::last(&self.influx_conn)
         {
@@ -138,7 +144,7 @@ impl StromMiner
                 if e.series_exists()
                 {
                     error!(self.logger, "Query error {}", e);
-                    return;
+                    return Err(());
                 }
                 else
                 {
@@ -147,7 +153,16 @@ impl StromMiner
             }
         };
         trace!(self.logger, "Read {:?} from database", last_record);
+        return Ok(last_record);
+    }
 
+    pub fn mine_solar_data(&mut self, now: i64)
+    {
+        let last_record = match self.get_last_solar_record()
+        {
+            Ok(x) => x,
+            Err(_) => return
+        };
         let result = self.sma_client.identify(self.sma_addr);
         let identity = match result
         {
@@ -207,6 +222,24 @@ impl StromMiner
             return;
         }
 
+        self.save_solar_data(data, Some(last_record));
+    }
+
+    pub fn save_solar_data(&self, data: Vec<TimestampedInt>,
+        last_record: Option<SolarData>)
+    {
+        let last_record = match last_record
+        {
+            Some(x) => x,
+            None =>
+            {
+                match self.get_last_solar_record()
+                {
+                    Ok(x) => x,
+                    Err(_) => return
+                }
+            }
+        };
         let mut last_energy = last_record.energy as f64;
         let mut last_timestamp = last_record.timestamp as i64;
 
@@ -281,6 +314,11 @@ impl StromMiner
             }
         };
 
+        self.save_meter_data(now, produced, consumed);
+    }
+
+    pub fn save_meter_data(&self, timestamp: i64, produced: f64, consumed: f64)
+    {
         let last_record = match MeterData::last(&self.influx_conn)
         {
             Ok(x) => x,
@@ -292,7 +330,8 @@ impl StromMiner
                 }
                 else
                 {
-                    let model = MeterData::new(now, 0.0, produced, consumed);
+                    let model = MeterData::new(timestamp, 0.0, produced,
+                        consumed);
                     if let Err(e) = model.save(&self.influx_conn)
                     {
                         error!(self.logger, "Save MeterData failed, {}", e);
@@ -310,10 +349,10 @@ impl StromMiner
         let power = 3600.0 * (
             consumed - last_record.energy_consumed -
             (produced - last_record.energy_produced) ) /
-            ((now - last_record.timestamp) as f64);
+            ((timestamp - last_record.timestamp) as f64);
 
         // TODO: everywhere: only use f64 where necessary
-        let model = MeterData::new(now, power, produced, consumed);
+        let model = MeterData::new(timestamp, power, produced, consumed);
         if let Err(e) = model.save(&self.influx_conn)
         {
             error!(self.logger, "Save MeterData failed, {}", e);
