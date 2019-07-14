@@ -1,60 +1,111 @@
 extern crate csv;
 extern crate chrono;
-extern crate influx_db_client;
+extern crate sma_client;
 
 use serde::Deserialize;
 use chrono::prelude::*;
-use influx_db_client::Client;
 
-use crate::models::*;
+use sma_client::TimestampedInt;
+use crate::miner::StromMiner;
 
 #[derive(Debug, Deserialize)]
 struct CsvSolarRecord
 {
     date_time: String,
-    total: String,
-    power: String
+    energy: String,
+    power: Option<String>
 }
 
-pub fn import_solar(db_url: String, db_name: String)
+pub fn import_solar(miner: &StromMiner) -> Result<(), String>
 {
-    // TODO: add DB password
-    // TODO: correct error handling
-    let influx_conn = Client::new(format!("http://{}", db_url), db_name);
     let mut reader = csv::ReaderBuilder::new().
         delimiter(b';').
         has_headers(false).
         from_reader(std::io::stdin());
 
-    let data = reader.deserialize().into_iter().map(|record|
+    let data: Result<Vec<TimestampedInt>, String> =
+        reader.deserialize().into_iter().map(|record|
     {
-        let csvrecord: CsvSolarRecord = record.expect("💩️ cant parse");
-        let timestamp: i64 =
-            Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S").
-            expect("💩️ cant parse datetime").
-            timestamp() as i64;
-        let total: f64 = csvrecord.total.replace(",", ".").parse().expect("💩️");
-        let power: f64 = csvrecord.power.replace(",", ".").parse().expect("💩️");
+        let csvrecord: CsvSolarRecord = match record
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse csv, {}", e))
+        };
+        let timestamp: u32 = match
+            Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
+        {
+            Ok(x) => x.timestamp() as u32,
+            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+        };
+        let energy: u32 = match csvrecord.energy.replace(",", "").parse()
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse energy, {}", e))
+        };
 
-        return SolarData::new(timestamp, power, total);
+        return Ok(TimestampedInt { timestamp: timestamp, value: energy } );
     }).collect();
-    if let Err(e) = SolarData::save_all(&influx_conn, data)
+
+    match data
     {
-        // TODO: use logger
-        println!("Save DachsData failed, {}", e);
+        Ok(x) => miner.save_solar_data(x, None),
+        Err(e) => return Err(e)
     }
+    return Ok(());
 }
 
 #[derive(Debug, Deserialize)]
 struct CsvDachsRecord
 {
     date_time: String,
-    power: String,
     runtime: String,
+    energy: String
+}
+
+pub fn import_dachs(miner: &StromMiner) -> Result<(), String>
+{
+    let mut reader = csv::ReaderBuilder::new().
+        delimiter(b';').
+        has_headers(false).
+        from_reader(std::io::stdin());
+
+    for record in reader.deserialize().into_iter()
+    {
+        let csvrecord: CsvDachsRecord = match record
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse csv, {}", e))
+        };
+        let timestamp: i64 = match
+            Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
+        {
+            Ok(x) => x.timestamp() as i64,
+            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+        };
+        let energy: f64 = match csvrecord.energy.parse()
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse energy, {}", e))
+        };
+        let runtime: f64 = match csvrecord.runtime.parse()
+        {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Can't parse runtime, {}", e))
+        };
+        miner.save_dachs_data(timestamp, runtime, energy);
+    };
+    return Ok(());
+}
+
+/*#[derive(Debug, Deserialize)]
+struct CsvWaterRecord
+{
+    date_time: String,
     total: String
 }
 
-pub fn import_dachs(db_url: String, db_name: String)
+// TODO: this will not connect to production db, also above
+pub fn import_water(db_url: String, db_name: String)
 {
     // TODO: add DB password
     // TODO: correct error handling
@@ -66,20 +117,21 @@ pub fn import_dachs(db_url: String, db_name: String)
 
     let data = reader.deserialize().into_iter().map(|record|
     {
-        let csvrecord: CsvDachsRecord = record.expect("💩️ cant parse");
+        let csvrecord: CsvWaterRecord = record.expect("💩️ cant parse");
         let timestamp: i64 =
             Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S").
             expect("💩️ cant parse datetime").
             timestamp() as i64;
-        let power: f64 = csvrecord.power.replace(",", ".").parse().expect("💩️");
-        let runtime: f64 = csvrecord.runtime.replace(",", ".").parse().expect("💩️");
         let total: f64 = csvrecord.total.replace(",", ".").parse().expect("💩️");
 
-        return DachsData::new(timestamp, power, runtime, total);
+        // TODO: calc delta
+
+        return WaterData::new(timestamp, delta, total);
     }).collect();
-    if let Err(e) = DachsData::save_all(&influx_conn, data)
+    // TODO: calc delta, one after one, no save all
+/*    if let Err(e) = SolarData::save_all(&influx_conn, data)
     {
         // TODO: use logger
         println!("Save DachsData failed, {}", e);
-    }
-}
+    }*/
+}*/

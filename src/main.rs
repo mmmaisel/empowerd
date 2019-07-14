@@ -92,19 +92,12 @@ fn main()
     info!(root_logger, "⚡️ Starting stromd");
     let logger = root_logger.new(o!());
 
-    if settings.import_solar
+    if settings.import_solar || settings.import_dachs
     {
-        info!(root_logger, "🔧️ Importing solar data");
-        import_solar(settings.db_url, settings.db_name);
+        csvimport_main(settings, root_logger.new(o!()));
         return;
     }
-    if settings.import_dachs
-    {
-        info!(root_logger, "🔧️ Importing Dachs data");
-        import_dachs(settings.db_url, settings.db_name);
-        return;
-    }
-    // TODO: import_meter
+
     if settings.daemonize
     {
         let daemon = Daemonize::new().
@@ -121,6 +114,38 @@ fn main()
     // TODO: oneshot mode
     daemon_main(settings, root_logger.new(o!()));
     info!(logger, "terminated");
+}
+
+fn csvimport_main(settings: Settings, logger: Logger)
+{
+    let miner = match
+        StromMiner::new(settings.clone(), logger.new(o!()))
+    {
+        Ok(x) => x,
+        Err(e) =>
+        {
+            error!(logger, "Could not create miner, error: {}", e);
+            return;
+        }
+    };
+
+    if settings.import_solar
+    {
+        info!(logger, "🔧️ Importing solar data");
+        if let Err(e) = import_solar(&miner)
+        {
+            error!(logger, "{}", e);
+        }
+    }
+    else if settings.import_dachs
+    {
+        info!(logger, "🔧️ Importing Dachs data");
+        if let Err(e) = import_dachs(&miner)
+        {
+            error!(logger, "{}", e);
+        }
+    }
+    // TODO: import_meter
 }
 
 fn daemon_main(settings: Settings, logger: Logger)
