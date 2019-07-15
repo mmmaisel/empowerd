@@ -36,12 +36,14 @@ pub fn import_solar(miner: &StromMiner) -> Result<(), String>
             Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
         {
             Ok(x) => x.timestamp() as u32,
-            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+            Err(e) => return Err(format!("Can't parse timestamp {}, {}",
+                csvrecord.date_time, e))
         };
         let energy: u32 = match csvrecord.energy.replace(",", "").parse()
         {
             Ok(x) => x,
-            Err(e) => return Err(format!("Can't parse energy, {}", e))
+            Err(e) => return Err(format!("Can't parse energy {}, {}",
+                csvrecord.energy, e))
         };
 
         return Ok(TimestampedInt { timestamp: timestamp, value: energy } );
@@ -82,17 +84,20 @@ pub fn import_dachs(miner: &StromMiner) -> Result<(), String>
             Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
         {
             Ok(x) => x.timestamp() as i64,
-            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+            Err(e) => return Err(format!("Can't parse timestamp {}, {}",
+                csvrecord.date_time, e))
         };
         let energy: f64 = match csvrecord.energy.parse()
         {
             Ok(x) => x,
-            Err(e) => return Err(format!("Can't parse energy, {}", e))
+            Err(e) => return Err(format!("Can't parse energy {}, {}",
+                csvrecord.energy, e))
         };
         let runtime: f64 = match csvrecord.runtime.parse()
         {
             Ok(x) => x,
-            Err(e) => return Err(format!("Can't parse runtime, {}", e))
+            Err(e) => return Err(format!("Can't parse runtime {}, {}",
+                csvrecord.runtime, e))
         };
         miner.save_dachs_data(timestamp, runtime, energy);
     };
@@ -126,17 +131,20 @@ pub fn import_meter(miner: &StromMiner) -> Result<(), String>
             Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
         {
             Ok(x) => x.timestamp() as i64,
-            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+            Err(e) => return Err(format!("Can't parse timestamp {}, {}",
+                csvrecord.date_time, e))
         };
         let consumed: f64 = match csvrecord.consumed.parse()
         {
             Ok(x) => x,
-            Err(e) => return Err(format!("Can't parse consumed, {}", e))
+            Err(e) => return Err(format!("Can't parse consumed {}, {}",
+                csvrecord.consumed, e))
         };
         let produced: f64 = match csvrecord.produced.parse()
         {
             Ok(x) => x,
-            Err(e) => return Err(format!("Can't parse produced, {}", e))
+            Err(e) => return Err(format!("Can't parse produced {}, {}",
+                csvrecord.produced, e))
         };
         miner.save_meter_data(timestamp, produced, consumed);
     };
@@ -169,12 +177,14 @@ pub fn import_water(miner: &StromMiner) -> Result<(), String>
             Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
         {
             Ok(x) => x.timestamp() as i64,
-            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+            Err(e) => return Err(format!("Can't parse timestamp {}, {}",
+                csvrecord.date_time, e))
         };
         let total: f64 = match csvrecord.total.parse()
         {
             Ok(x) => x,
-            Err(e) => return Err(format!("Can't parse total, {}", e))
+            Err(e) => return Err(format!("Can't parse total {}, {}",
+                csvrecord.total, e))
         };
         // TODO: ALL: allow batch jobs here, only read last once
         miner.save_water_data(timestamp, total);
@@ -208,12 +218,14 @@ pub fn import_gas(miner: &StromMiner) -> Result<(), String>
             Utc.datetime_from_str(&csvrecord.date_time, "%d.%m.%Y %H:%M:%S")
         {
             Ok(x) => x.timestamp() as i64,
-            Err(e) => return Err(format!("Can't parse timestamp, {}", e))
+            Err(e) => return Err(format!("Can't parse timestamp {}, {}",
+                csvrecord.date_time, e))
         };
         let total: f64 = match csvrecord.total.parse()
         {
             Ok(x) => x,
-            Err(e) => return Err(format!("Can't parse total, {}", e))
+            Err(e) => return Err(format!("Can't parse total {}, {}",
+                csvrecord.total, e))
         };
         miner.save_gas_data(timestamp, total);
     };
