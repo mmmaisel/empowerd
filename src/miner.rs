@@ -364,7 +364,7 @@ impl StromMiner
         }
     }
 
-    pub fn save_gas_data(&self, timestamp: i64, total: f64)
+    pub fn save_gas_data(&self, timestamp: i64, current: f64, reset: bool)
     {
         // TODO: deduplicate this
         let last_record = match GasData::last(&self.influx_conn)
@@ -378,7 +378,7 @@ impl StromMiner
                 }
                 else
                 {
-                    let model = GasData::new(timestamp, 0.0, total);
+                    let model = GasData::new(timestamp, 0.0, current, 0.0);
                     if let Err(e) = model.save(&self.influx_conn)
                     {
                         error!(self.logger, "Save GasData failed, {}", e);
@@ -393,11 +393,26 @@ impl StromMiner
         };
         trace!(self.logger, "Read {:?} from database", last_record);
 
-        let delta = (total - last_record.total) /
-            ((timestamp - last_record.timestamp) as f64);
+        let rate = if reset
+        {
+            0.0
+        }
+        else
+        {
+            (current - last_record.current) /
+            ((timestamp - last_record.timestamp) as f64)
+        };
+        let total = if reset
+        {
+            0.0
+        }
+        else
+        {
+            current - last_record.current + last_record.total
+        };
 
         // TODO: everywhere: only use f64 where necessary
-        let model = GasData::new(timestamp, delta, total);
+        let model = GasData::new(timestamp, rate, total, current);
         if let Err(e) = model.save(&self.influx_conn)
         {
             error!(self.logger, "Save GasData failed, {}", e);
@@ -408,7 +423,7 @@ impl StromMiner
         }
     }
 
-    pub fn save_water_data(&self, timestamp: i64, total: f64)
+    pub fn save_water_data(&self, timestamp: i64, current: f64, reset: bool)
     {
         // TODO: deduplicate this
         let last_record = match WaterData::last(&self.influx_conn)
@@ -422,7 +437,7 @@ impl StromMiner
                 }
                 else
                 {
-                    let model = WaterData::new(timestamp, 0.0, total);
+                    let model = WaterData::new(timestamp, 0.0, current, 0.0);
                     if let Err(e) = model.save(&self.influx_conn)
                     {
                         error!(self.logger, "Save WaterData failed, {}", e);
@@ -437,11 +452,26 @@ impl StromMiner
         };
         trace!(self.logger, "Read {:?} from database", last_record);
 
-        let delta = (total - last_record.total) /
-            ((timestamp - last_record.timestamp) as f64);
+        let rate = if reset
+        {
+            0.0
+        }
+        else
+        {
+            (current - last_record.current) /
+            ((timestamp - last_record.timestamp) as f64)
+        };
+        let total = if reset
+        {
+            0.0
+        }
+        else
+        {
+            current - last_record.current + last_record.total
+        };
 
         // TODO: everywhere: only use f64 where necessary
-        let model = WaterData::new(timestamp, delta, total);
+        let model = WaterData::new(timestamp, rate, total, current);
         if let Err(e) = model.save(&self.influx_conn)
         {
             error!(self.logger, "Save WaterData failed, {}", e);

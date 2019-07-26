@@ -155,7 +155,8 @@ pub fn import_meter(miner: &StromMiner) -> Result<(), String>
 struct CsvWaterRecord
 {
     date_time: String,
-    total: String
+    current: String,
+    reset: String
 }
 
 // TODO: deduplicate all those functions
@@ -180,14 +181,15 @@ pub fn import_water(miner: &StromMiner) -> Result<(), String>
             Err(e) => return Err(format!("Can't parse timestamp {}, {}",
                 csvrecord.date_time, e))
         };
-        let total: f64 = match csvrecord.total.parse()
+        let current: f64 = match csvrecord.current.parse()
         {
             Ok(x) => x,
-            Err(e) => return Err(format!("Can't parse total {}, {}",
-                csvrecord.total, e))
+            Err(e) => return Err(format!("Can't parse current {}, {}",
+                csvrecord.current, e))
         };
+        let reset = csvrecord.reset == "true";
         // TODO: ALL: allow batch jobs here, only read last once
-        miner.save_water_data(timestamp, total);
+        miner.save_water_data(timestamp, current, reset);
     };
     return Ok(());
 }
@@ -196,7 +198,8 @@ pub fn import_water(miner: &StromMiner) -> Result<(), String>
 struct CsvGasRecord
 {
     date_time: String,
-    total: String
+    current: String,
+    reset: String
 }
 
 // TODO: deduplicate all those functions
@@ -221,13 +224,14 @@ pub fn import_gas(miner: &StromMiner) -> Result<(), String>
             Err(e) => return Err(format!("Can't parse timestamp {}, {}",
                 csvrecord.date_time, e))
         };
-        let total: f64 = match csvrecord.total.parse()
+        let current: f64 = match csvrecord.current.parse()
         {
             Ok(x) => x,
-            Err(e) => return Err(format!("Can't parse total {}, {}",
-                csvrecord.total, e))
+            Err(e) => return Err(format!("Can't parse current {}, {}",
+                csvrecord.current, e))
         };
-        miner.save_gas_data(timestamp, total);
+        let reset = csvrecord.reset == "true";
+        miner.save_gas_data(timestamp, current, reset);
     };
     return Ok(());
 }
