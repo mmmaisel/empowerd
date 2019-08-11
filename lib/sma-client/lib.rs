@@ -147,6 +147,11 @@ impl SmaClient
     {
         header.packet_id = self.packet_id | 0x8000;
         self.packet_id += 1;
+        if self.packet_id >= 0x8000
+        {
+            self.packet_id = 0;
+        }
+
         if broadcast
         {
             header.dst.susy_id = 0xFFFF;
