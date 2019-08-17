@@ -48,7 +48,7 @@ fn setup_logging(settings: &Settings) -> slog::Logger
 
 fn load_settings() -> Result<Settings, ()>
 {
-    let mut cfg_path = "/tmp/test.conf".to_string();
+    let mut cfg_path = "/etc/stromd/stromd.conf".to_string();
     let mut found_cfg: bool = false;
     for arg in env::args()
     {
