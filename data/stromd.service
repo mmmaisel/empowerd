@@ -1,0 +1,17 @@
+[Unit]
+Description=stromd miner service
+After=multi-user.target network-online.target
+
+[Service]
+Type=forking
+User=stromd
+RuntimeDirectory=stromd
+RuntimeDirectoryMode=0750
+PIDFile=/var/run/stromd/pid
+WorkingDirectory=/
+ExecStart=/bin/stromd
+ExecStop=/bin/kill -s TERM $MAINPID
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target
