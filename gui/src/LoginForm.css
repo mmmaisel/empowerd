@@ -1,0 +1,67 @@
+.dialogBorder
+{
+    background: repeating-linear-gradient(45deg,
+        rgba(30, 30, 30, 0.75) 33%,
+        rgba(99, 99, 120, 0.75) 67%,
+        rgba(30, 30, 30, 0.75) 90%);
+    background-clip: padding-box;
+    border: 1px solid rgba(0, 0, 0, 0.8);
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1px rgba(200, 200, 200, 0.9), 0 3px 9px rgba(0, 0, 0, 0.8);
+    text-align: center;
+}
+
+.dialogTitle
+{
+    padding-top: 5px;
+    color: black;
+    cursor: default;
+    display: block;
+    font-weight: 600;
+    font-size: 16pt;
+    line-height: auto;
+    text-decoration: none;
+    text-shadow: 0 0 2px white, 0 0 6px white, 0 0 18px white;
+}
+
+.dialogContent
+{
+    margin: 7px;
+    font-size: 12pt;
+    background: white;
+    border: 1px solid rgba(30, 30, 30, 0.8);
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px rgba(200, 200, 200, 0.9);
+    color: black;
+    padding: 5px;
+}
+
+.button
+{
+    background: linear-gradient(
+        rgba(220, 220, 220,0.80),
+        rgba(180, 180, 180, 0.75) 50%,
+        rgba(120, 120, 120, 0.66) 55%,
+        rgba(160, 160, 160, 0.75));
+    box-shadow: inset 0 0 0 1px rgba(200, 200, 200, 0.9),
+        0 0 0 1px rgba(30, 30, 30, 0.8);
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 6px 12px 6px 12px;
+    margin: 10px;
+    caret-color: transparent;
+}
+
+.textBox
+{
+    margin: 7px;
+    font-size: 12pt;
+    background: rgb(240, 240, 240);
+    border: 1px solid rgba(30, 30, 30, 0.8);
+    border-radius: 2px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+    color: black;
+    padding: 5px;
+}
