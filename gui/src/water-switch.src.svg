@@ -23,7 +23,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -37,16 +37,16 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:window-width="1916"
-     inkscape:window-height="967"
+     inkscape:window-height="994"
      id="namedview879"
      showgrid="true"
-     inkscape:zoom="3.0039063"
-     inkscape:cx="168.88689"
-     inkscape:cy="118.24894"
+     inkscape:zoom="6.0078126"
+     inkscape:cx="131.62499"
+     inkscape:cy="109.52386"
      inkscape:window-x="1600"
-     inkscape:window-y="27"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg8"
+     inkscape:current-layer="g1141"
      inkscape:snap-bbox="true"
      inkscape:bbox-paths="true"
      inkscape:snap-bbox-edge-midpoints="true"
@@ -65,6 +65,18 @@
   </sodipodi:namedview>
   <defs
      id="defs2">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient1092">
+      <stop
+         style="stop-color:#000000;stop-opacity:1;"
+         offset="0"
+         id="stop1088" />
+      <stop
+         style="stop-color:#000000;stop-opacity:0;"
+         offset="1"
+         id="stop1090" />
+    </linearGradient>
     <linearGradient
        id="linearGradient1153"
        inkscape:collect="always">
@@ -1362,7 +1374,17 @@
        x1="26.458332"
        y1="28.324999"
        x2="26.458332"
-       y2="43.641663" />
+       y2="43.641663"
+       gradientTransform="translate(-52.916663,-71.966663)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1092"
+       id="linearGradient1094"
+       x1="21.974998"
+       y1="28.324999"
+       x2="30.691662"
+       y2="39.158329"
+       gradientUnits="userSpaceOnUse" />
   </defs>
   <g
      id="g1209"
@@ -1617,12 +1639,21 @@
        rx="1.4552083" />
     <rect
        rx="1.4552083"
+       y="-43.391666"
+       x="-30.691666"
+       height="14.816666"
+       width="8.4666662"
+       id="rect1139"
+       style="opacity:1;fill:url(#linearGradient1143);fill-opacity:1;stroke:none;stroke-width:0.49999997;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.5098038"
+       transform="scale(-1)" />
+    <rect
+       rx="1.4552083"
        y="28.574999"
        x="22.224998"
        height="14.816666"
        width="8.4666662"
-       id="rect1139"
-       style="opacity:1;fill:url(#linearGradient1143);fill-opacity:1;stroke:none;stroke-width:0.49999997;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.5098038" />
+       id="rect1080"
+       style="opacity:1;fill:none;fill-opacity:0.50819672;stroke:url(#linearGradient1094);stroke-width:0.49999997;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.5098038" />
   </g>
   <g
      id="g1117"
