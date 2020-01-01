@@ -19,7 +19,7 @@ class Status extends Component
         // TODO: post state change
         // TODO: then read state from server and update gui
         let valves = this.state.valves;
-        if(valves[channel] == 1)
+        if(valves[channel] === 1)
             valves[channel] = 0;
         else
             valves[channel] = 1;

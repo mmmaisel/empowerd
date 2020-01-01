@@ -298,7 +298,7 @@ class WaterSwitch extends Component
         let pipes_v = Array(this.props.count);
         for(let i = 0; i < this.props.count; i++)
         {
-            if(this.props.states[i] == 1)
+            if(this.props.states[i] === 1)
                 pipes_v[i] = this.open_pipe(i);
             else
                 pipes_v[i] = this.closed_pipe(i);
@@ -391,7 +391,7 @@ class WaterSwitch extends Component
 
         for(let i = 0; i < this.props.count; i++)
         {
-            if(this.props.states[i] == 1)
+            if(this.props.states[i] === 1)
             {
                 buttons[i] = this.button(i);
                 valves[i] = this.open_valve(i);
