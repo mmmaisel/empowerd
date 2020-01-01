@@ -398,7 +398,7 @@ class WaterSwitch extends Component
             }
             else
             {
-                buttons[i] = this.button_pushed(i);
+                buttons[i] = this.button(i);
                 valves[i] = this.closed_valve(i);
             }
         }
@@ -415,7 +415,8 @@ class WaterSwitch extends Component
     {
         return(
             <g key={"valve" + pos} transform={"matrix(1.556 0 0 1.556 " +
-                    (-14.711 + WaterSwitch.xdist * pos) + " -34.509)"}>
+                    (-14.711 + WaterSwitch.xdist * pos) + " -34.509)"}
+                    onClick={this.onClick.bind(this, pos)} >
                 {/* shadow */}
                 <ellipse cx="26.458" cy="38.1" rx="1.4817" ry=".84667"
                     fill="#070501" filter="url(#filterValveShadow)"
@@ -459,7 +460,8 @@ class WaterSwitch extends Component
     {
         return(
             <g key={"valve" + pos} transform={"matrix(1.556 0 0 1.556 " +
-                    (-14.711 + WaterSwitch.xdist * pos) + " -34.509)"}>
+                    (-14.711 + WaterSwitch.xdist * pos) + " -34.509)"}
+                    onClick={this.onClick.bind(this, pos)} >
                 {/* shadow */}
                 <ellipse cx="26.458" cy="38.1" rx="1.4817" ry=".84667"
                     fill="#070501" filter="url(#filterValveShadow)"
@@ -496,7 +498,8 @@ class WaterSwitch extends Component
     {
         return(
             <g key={"button" + pos} transform={"translate(" +
-                    (WaterSwitch.xdist * pos) + " -13.758)"} >
+                    (WaterSwitch.xdist * pos) + " -13.758)"}
+                    onClick={this.onClick.bind(this, pos)} >
                 <rect x="22.225" y="28.575" width="8.4667" height="14.817"
                     rx="1.4552" fillOpacity=".5082" stroke="#000"
                     strokeLinecap="round" strokeLinejoin="round"
@@ -507,11 +510,14 @@ class WaterSwitch extends Component
         );
     }
 
+    // TODO: use it correctly
+    // TODO: add hover
     button_pushed(pos)
     {
         return(
             <g key={"button" + pos} transform={"translate(" +
-                    (WaterSwitch.xdist * pos) + " -13.758)"} >
+                    (WaterSwitch.xdist * pos) + " -13.758)"}
+                    onClick={this.onClick.bind(this, pos)} >
                 <rect x="22.225" y="28.575" width="8.4667" height="14.817"
                     rx="1.4552" fillOpacity=".5082" stroke="#000"
                     strokeLinecap="round" strokeLinejoin="round"
@@ -531,14 +537,18 @@ class WaterSwitch extends Component
     render()
     {
         return (
-            // TODO: width - count dependency
-            <svg width={512} height={192} version="1.1" viewBox="0 0 135.47 50.8" >
+            <svg viewBox="0 0 135.47, 50.8">
                 { this.defs() }
                 { this.shadow() }
                 { this.pipes() }
                 { this.valves() }
             </svg>
         );
+    }
+
+    onClick = (channel) =>
+    {
+        this.props.onClick(channel);
     }
 }
 
