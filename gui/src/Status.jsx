@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import WaterSwitch from './WaterSwitch.js'
+import WaterSwitch from './WaterSwitch.jsx'
 
 class Status extends Component
 {

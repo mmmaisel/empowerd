@@ -1,10 +1,10 @@
 import React, {Component} from 'react';
 import './App.scss';
 
-import Navbar from './Navbar.js';
-import Config from './Config.js';
-import Status from './Status.js';
-import LoginForm from './LoginForm.js';
+import Navbar from './Navbar.jsx';
+import Config from './Config.jsx';
+import Status from './Status.jsx';
+import LoginForm from './LoginForm.jsx';
 
 class App extends Component
 {
