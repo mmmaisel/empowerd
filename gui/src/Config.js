@@ -3,7 +3,7 @@ import React, {Component} from 'react';
 // TODO: split into classes
 // TODO: add css
 
-import './Config.css';
+import './Config.scss';
 
 class Config extends Component
 {
