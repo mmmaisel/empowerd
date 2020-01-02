@@ -22,12 +22,17 @@ table.configTable
         @include titleBackgroundGradient;
         @include cellBorder;
         @include textWithGlow;
+        padding: 7px;
     }
     td
     {
-        background: white;
         @include cellBorder;
+        background: white;
+        padding: 3px;
+        &.actions
+        {
+            padding: 0;
+        }
     }
     @include roundedTable(6px);
 }
-

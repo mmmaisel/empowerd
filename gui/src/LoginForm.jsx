@@ -60,13 +60,13 @@ class LoginForm extends Component
                 <div className="dialogContent">
                     <div style={grid}>
                         <span style={labelCol}> Username: </span>
-                        <input style={inputCol} className="textBox"
+                        <input style={inputCol}
                             type="text" value={this.state.username}
                             placeholder="username"
                             onChange={this.onUsernameChanged}
                         />
                         <span style={labelCol}> Password: </span>
-                        <input style={inputCol} className="textBox"
+                        <input style={inputCol}
                             type="password" value={this.state.password}
                             onChange={this.onPasswordChanged}
                         />

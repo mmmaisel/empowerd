@@ -54,7 +54,7 @@ button
     caret-color: transparent;
 }
 
-.textBox
+input[type="text"], input[type="password"]
 {
     margin: 7px;
     font-size: 12pt;

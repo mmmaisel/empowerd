@@ -31,8 +31,7 @@ class Status extends Component
     {
         // TODO: server time, manual trigger, next event
         return (
-            <div>
-                Status page
+            <div className="mainframe">
                 <WaterSwitch count={Status.channel_count}
                     states={this.state.valves}
                     onClick={this.onValve} />
