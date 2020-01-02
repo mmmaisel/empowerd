@@ -19,25 +19,35 @@ class Config extends Component
                 ["1234", "2345"]
             ],
             edit_mode: false,
-            edit_row: 0
+            edit_row: 0,
+            edit_data: []
         };
     }
 
     onEdit = (id) =>
     {
-        this.setState({ edit_mode: true, edit_row: id });
+        let data = this.state.data[id].map((x)=>{return x;});
+        this.setState({ edit_mode: true, edit_row: id, edit_data: data });
     }
 
     onSave = (id) =>
+    {
+        let data = this.state.data;
+        data[id] = this.state.edit_data;
+        this.setState({ edit_mode: false, data: data });
+        // TODO: store the data
+    }
+
+    onCancel = (id) =>
     {
         this.setState({ edit_mode: false });
     }
 
     onInput = (row, col, event) =>
     {
-        let data = this.state.data;
-        data[row][col] = event.target.value;
-        this.setState({ data: data });
+        let data = this.state.edit_data;
+        data[col] = event.target.value;
+        this.setState({ edit_data: data });
     }
 
     onAdd = () =>
@@ -63,7 +73,7 @@ class Config extends Component
         if(this.state.edit_mode && this.state.edit_row === i)
             return <td className="actions">
                 <button onClick={this.onSave.bind(this, i)}>Save</button>
-                <button disabled="disabled">Delete</button>
+                <button onClick={this.onCancel.bind(this, i)}>Cancel</button>
             </td>;
         else if(this.state.edit_mode)
             // TODO: style as disabled
@@ -83,7 +93,7 @@ class Config extends Component
         // TODO: do not change col width on edit
         if(this.state.edit_mode && this.state.edit_row === row)
             return <td>
-                <input type="text" value={this.state.data[row][col]}
+                <input type="text" value={this.state.edit_data[col]}
                     onChange={this.onInput.bind(this, row, col)} />
             </td>;
         else
