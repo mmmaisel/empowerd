@@ -1,3 +1,5 @@
+@import "Common";
+
 .dialogBorder
 {
     background: repeating-linear-gradient(45deg,
@@ -14,14 +16,12 @@
 .dialogTitle
 {
     padding-top: 5px;
-    color: black;
     cursor: default;
     display: block;
     font-weight: 600;
-    font-size: 16pt;
     line-height: auto;
     text-decoration: none;
-    text-shadow: 0 0 2px white, 0 0 6px white, 0 0 18px white;
+    @include textWithGlow
 }
 
 .dialogContent
@@ -36,7 +36,7 @@
     padding: 5px;
 }
 
-.button
+button
 {
     background: linear-gradient(
         rgba(220, 220, 220,0.80),

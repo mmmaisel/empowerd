@@ -1,9 +1,9 @@
 import React, {Component} from 'react';
 
 // TODO: split into classes
-// TODO: add css
 
 import './Config.scss';
+import './Widgets.scss';
 
 class Config extends Component
 {

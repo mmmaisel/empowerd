@@ -1,0 +1,16 @@
+@mixin textWithGlow
+{
+    color: black;
+    text-shadow: 0 0 2px white, 0 0 6px white, 0 0 18px white;
+    font-size: 16pt;
+}
+
+@mixin titleBackgroundGradient
+{
+    background: linear-gradient(
+        rgb( 70,  70,  70),
+        rgb(140, 140, 140) 35%,
+        rgb(160, 160, 160) 40%,
+        rgb( 60,  60,  60) 45%,
+        rgb( 10,  10,  10));
+}
