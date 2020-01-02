@@ -28,10 +28,21 @@ table.configTable
     {
         @include cellBorder;
         background: white;
-        padding: 3px;
+        padding: 7px;
         &.actions
         {
             padding: 0;
+            width: 20vw;
+            text-align: center;
+        }
+        &.edit
+        {
+            padding: 0;
+            input
+            {
+                width: stretch;
+                width: -moz-available; /* XXX */
+            }
         }
     }
     @include roundedTable(6px);

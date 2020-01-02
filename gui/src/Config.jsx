@@ -40,6 +40,7 @@ class Config extends Component
 
     onCancel = (id) =>
     {
+        // TODO: remove new row on cancel add
         this.setState({ edit_mode: false });
     }
 
@@ -57,6 +58,7 @@ class Config extends Component
         this.setState({
             edit_mode: true,
             edit_row: this.state.data.length-1,
+            edit_data: [null, null],
             data: data
         });
     }
@@ -90,9 +92,8 @@ class Config extends Component
 
     render_cell(row, col)
     {
-        // TODO: do not change col width on edit
         if(this.state.edit_mode && this.state.edit_row === row)
-            return <td>
+            return <td className="edit">
                 <input type="text" value={this.state.edit_data[col]}
                     onChange={this.onInput.bind(this, row, col)} />
             </td>;
