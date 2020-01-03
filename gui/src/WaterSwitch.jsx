@@ -4,6 +4,15 @@ class WaterSwitch extends Component
 {
     static xdist = 15.875;
 
+    constructor(props)
+    {
+        super(props);
+        this.state =
+        {
+            hovered: Array(this.props.count)
+        };
+    }
+
     defs()
     {
         return (
@@ -211,8 +220,16 @@ class WaterSwitch extends Component
                         gradientUnits="userSpaceOnUse">
                     <stop stopColor="#fff" stopOpacity=".78431" offset={0} />
                     <stop stopColor="#fff" stopOpacity=".5098" offset=".11997" />
-                    <stop stopColor="#fdfdfd" stopOpacity={0} offset=".29271" />
+                    <stop stopColor="#fff" stopOpacity={0} offset=".29271" />
                     <stop stopOpacity={0} offset={1} />
+                </linearGradient>
+                <linearGradient id="linearGradientButtonHovered"
+                        x1="26.458" x2="26.458" y1="28.325" y2="43.642"
+                        gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#fff" stopOpacity=".78431" offset={0} />
+                    <stop stopColor="#fff" stopOpacity=".8259" offset=".11997" />
+                    <stop stopColor="#fff" stopOpacity=".2353" offset=".4" />
+                    <stop stopColor="#fff" stopOpacity=".1353" offset={1} />
                 </linearGradient>
                 <linearGradient id="linearGradientButtonPushed"
                         x1="26.458" x2="26.458" y1="28.325" y2="43.642"
@@ -298,7 +315,7 @@ class WaterSwitch extends Component
         let pipes_v = Array(this.props.count);
         for(let i = 0; i < this.props.count; i++)
         {
-            if(this.props.states[i] === 1)
+            if(this.props.states[i] === true)
                 pipes_v[i] = this.open_pipe(i);
             else
                 pipes_v[i] = this.closed_pipe(i);
@@ -386,27 +403,36 @@ class WaterSwitch extends Component
 
     valves()
     {
-        let buttons = Array(this.props.count);
         let valves = Array(this.props.count);
-
         for(let i = 0; i < this.props.count; i++)
         {
-            if(this.props.states[i] === 1)
-            {
-                buttons[i] = this.button(i);
-                valves[i] = this.open_valve(i);
-            }
-            else
-            {
-                buttons[i] = this.button(i);
-                valves[i] = this.closed_valve(i);
-            }
+            valves[i] = this.valve_ctrl(i);
         }
+        return valves;
+    }
+
+    valve_ctrl(pos)
+    {
+        let valve_button = null;
+        let valve = null;
+
+        if(this.state.hovered[pos] === true)
+            valve_button = this.button_hovered(pos);
+        else
+            valve_button = this.button(pos);
+
+        if(this.props.states[pos] === true)
+            valve = this.open_valve(pos);
+        else
+            valve = this.closed_valve(pos);
 
         return (
-            <g>
-                { buttons }
-                { valves }
+            <g key={"valve" + pos}
+                    onClick={this.onClick.bind(this, pos)}
+                    onMouseEnter={this.onMouseEnter.bind(this, pos)}
+                    onMouseLeave={this.onMouseLeave.bind(this, pos)} >
+                { valve_button }
+                { valve }
             </g>
         );
     }
@@ -414,9 +440,8 @@ class WaterSwitch extends Component
     open_valve(pos)
     {
         return(
-            <g key={"valve" + pos} transform={"matrix(1.556 0 0 1.556 " +
-                    (-14.711 + WaterSwitch.xdist * pos) + " -34.509)"}
-                    onClick={this.onClick.bind(this, pos)} >
+            <g transform={"matrix(1.556 0 0 1.556 " +
+                    (-14.711 + WaterSwitch.xdist * pos) + " -34.509)"} >
                 {/* shadow */}
                 <ellipse cx="26.458" cy="38.1" rx="1.4817" ry=".84667"
                     fill="#070501" filter="url(#filterValveShadow)"
@@ -459,9 +484,8 @@ class WaterSwitch extends Component
     closed_valve(pos)
     {
         return(
-            <g key={"valve" + pos} transform={"matrix(1.556 0 0 1.556 " +
-                    (-14.711 + WaterSwitch.xdist * pos) + " -34.509)"}
-                    onClick={this.onClick.bind(this, pos)} >
+            <g transform={"matrix(1.556 0 0 1.556 " +
+                    (-14.711 + WaterSwitch.xdist * pos) + " -34.509)"} >
                 {/* shadow */}
                 <ellipse cx="26.458" cy="38.1" rx="1.4817" ry=".84667"
                     fill="#070501" filter="url(#filterValveShadow)"
@@ -497,9 +521,8 @@ class WaterSwitch extends Component
     button(pos)
     {
         return(
-            <g key={"button" + pos} transform={"translate(" +
-                    (WaterSwitch.xdist * pos) + " -13.758)"}
-                    onClick={this.onClick.bind(this, pos)} >
+            <g transform={"translate(" +
+                    (WaterSwitch.xdist * pos) + " -13.758)"} >
                 <rect x="22.225" y="28.575" width="8.4667" height="14.817"
                     rx="1.4552" fillOpacity=".5082" stroke="#000"
                     strokeLinecap="round" strokeLinejoin="round"
@@ -515,9 +538,8 @@ class WaterSwitch extends Component
     button_pushed(pos)
     {
         return(
-            <g key={"button" + pos} transform={"translate(" +
-                    (WaterSwitch.xdist * pos) + " -13.758)"}
-                    onClick={this.onClick.bind(this, pos)} >
+            <g transform={"translate(" +
+                    (WaterSwitch.xdist * pos) + " -13.758)"} >
                 <rect x="22.225" y="28.575" width="8.4667" height="14.817"
                     rx="1.4552" fillOpacity=".5082" stroke="#000"
                     strokeLinecap="round" strokeLinejoin="round"
@@ -534,6 +556,21 @@ class WaterSwitch extends Component
         );
     }
 
+    button_hovered(pos)
+    {
+        return(
+            <g transform={"translate(" +
+                    (WaterSwitch.xdist * pos) + " -13.758)"} >
+                <rect x="22.225" y="28.575" width="8.4667" height="14.817"
+                    rx="1.4552" fillOpacity=".5082" stroke="#666"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    strokeOpacity=".5098" strokeWidth=".5" />
+                <rect x="22.225" y="28.575" width="8.4667" height="14.817"
+                    rx="1.4552" fill="url(#linearGradientButtonHovered)" />
+            </g>
+        );
+    }
+
     render()
     {
         return (
@@ -544,6 +581,20 @@ class WaterSwitch extends Component
                 { this.valves() }
             </svg>
         );
+    }
+
+    onMouseEnter = (channel) =>
+    {
+        let hovered = this.state.hovered;
+        hovered[channel] = true;
+        this.setState({ hovered: hovered });
+    }
+
+    onMouseLeave = (channel) =>
+    {
+        let hovered = this.state.hovered;
+        hovered[channel] = false;
+        this.setState({ hovered: hovered });
     }
 
     onClick = (channel) =>
