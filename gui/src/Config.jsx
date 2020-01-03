@@ -148,7 +148,7 @@ class Config extends Component
                         <tr>
                             <th>Time</th>
                             <th>Date</th>
-                            <th>Actions</th>
+                            <th style={{width: "20vw"}}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
