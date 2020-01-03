@@ -64,6 +64,17 @@ button:disabled
         0 0 0 1px rgba(130, 130, 130, 0.8);
 }
 
+button:hover
+{
+    background: linear-gradient(
+        rgba(240, 240, 240,0.80),
+        rgba(220, 220, 220, 0.75) 50%,
+        rgba(180, 180, 180, 0.66) 55%,
+        rgba(200, 200, 200, 0.75));
+    box-shadow: inset 0 0 0 1px rgba(220, 220, 220, 0.9),
+        0 0 0 1px rgba(90, 90, 90, 0.8);
+}
+
 input[type="text"], input[type="password"]
 {
     margin: 7px;
