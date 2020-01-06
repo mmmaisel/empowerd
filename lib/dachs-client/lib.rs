@@ -17,7 +17,7 @@ pub struct DachsClient
 lazy_static!
 {
   static ref EXTR_TOTAL_ENERGY: regex::Regex = Regex::new(
-      r"BD3112\.Hka_Bd\.ulArbeitElektr=([0-9]+\.[0-9]+)\s").unwrap();
+      r"Hka_Bd\.ulArbeitElektr=([0-9]+\.[0-9]+)\s").unwrap();
   static ref EXTR_RUNTIME: regex::Regex = Regex::new(
       r"Hka_Bd\.ulBetriebssekunden=([0-9]+\.[0-9]+)\s").unwrap();
 }
@@ -25,7 +25,7 @@ lazy_static!
 impl DachsClient
 {
     const USERNAME: &'static str = "glt";
-    const KEY_TOTAL_ENERGY: &'static str = "BD3112.Hka_Bd.ulArbeitElektr";
+    const KEY_TOTAL_ENERGY: &'static str = "Hka_Bd.ulArbeitElektr";
     const KEY_RUNTIME: &'static str = "Hka_Bd.ulBetriebssekunden";
 
     pub fn new(url: String, password: String, logger: Option<Logger>)
