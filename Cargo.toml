@@ -10,7 +10,8 @@ members = [
     "lib/influx-derive",
     "lib/slog-daemon",
     "lib/sma-client",
-    "lib/sml-client" ]
+    "lib/sml-client",
+    "lib/wh1080-usb" ]
 
 [dependencies]
 dachs-client = { version = "*", path = "lib/dachs-client/" }
@@ -18,6 +19,7 @@ influx-derive = { version = "*", path = "lib/influx-derive" }
 slog-daemon = { version = "*", path = "lib/slog-daemon" }
 sma-client = { version = "*", path = "lib/sma-client/" }
 sml-client = { version = "*", path = "lib/sml-client/" }
+wh1080-usb = { version = "*", path = "lib/wh1080-usb/" }
 
 bytes = "*"
 chrono = "*"

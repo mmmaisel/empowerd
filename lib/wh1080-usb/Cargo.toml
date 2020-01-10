@@ -1,0 +1,11 @@
+[package]
+name = "wh1080-usb"
+version = "0.1.0"
+authors = ["jm3"]
+edition = "2018"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+hidapi = "*"
