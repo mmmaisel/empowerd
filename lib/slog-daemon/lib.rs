@@ -24,7 +24,7 @@ impl RotatingLogger
         match signal_hook::flag::register(
             signal_hook::SIGHUP, Arc::clone(&reopen_log))
         {
-            Ok(x) => (),
+            Ok(_x) => (),
             // TODO: print out e
             Err(e) => panic!("💩️ Unable to register SIGHUP")
         }
@@ -47,7 +47,8 @@ impl RotatingLogger
             self.file = OpenOptions::new().append(true).create(true).
                 open(&self.filename).expect("💩️ Can't open logfile");
         }
-        self.file.write(msg.as_bytes());
+        // TODO: don't panic
+        self.file.write(msg.as_bytes()).unwrap();
         return Ok(());
     }
 }
@@ -77,10 +78,10 @@ impl Drain for DaemonDrain
         -> Result<(), String>
     {
         let mut logger = self.logger.lock().expect("💩️ poisoned mutex");
-        // TODO: improve formatting
+        // TODO: improve formatting, don't panic
         logger.log(format!("[{}] {} {:?} {:?}\n",
             chrono::Local::now().format("%H:%M:%S %d %b %Y"),
-            info.level(), info.msg(), logger_values));
+            info.level(), info.msg(), logger_values)).unwrap();
         return Ok(());
     }
 }
