@@ -8,4 +8,5 @@ edition = "2018"
 path = "lib.rs"
 
 [dependencies]
+rusb = "*"
 hidapi = "*"
