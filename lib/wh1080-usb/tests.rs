@@ -1,8 +1,109 @@
-extern crate hidapi;
-
 use hidapi::HidApi;
-
 use crate::WH1080Client;
+
+struct WH1080FakeReader {
+    pos: usize
+}
+
+impl WH1080FakeReader {
+    const FAKE_DATA: &'static [&'static [u8; 64]] = &[
+        concat_bytes!(
+            b"\xfe\0\0\0\03\x19- --.- -- --.- -- --.- --\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x91\x8f\xfd"
+        ),
+        concat_bytes!(
+            b"\xfa\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\xec\x85\xfd"
+        ),
+        concat_bytes!(
+            b"\xfa\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\xec\x85\xfd"
+        ),
+        concat_bytes!(
+            b"\xfb\0\0\0\0A6&dateutc=now&baromin=30.03&tempf=42.8&hum",
+            b"idity=60&wind\x1f\x98\xfd"
+        ),
+        concat_bytes!(
+            b"\xfb\0\0\0\0B6speedmph=0&windgustmph=0&winddir=129&dewp",
+            b"tf=29.8&raini\xbd\xe2\xfd"
+        ),
+        concat_bytes!(
+            b"\xfb\0\0\0\0C6n=0&dailyrainin=0&UV=0&indoortempf=68.7&i",
+            b"ndoorhumidity\xf6!\xfd"
+        ),
+        concat_bytes!(
+            b"\xfb\0\0\0\0D\x03=49\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\xb4y\xfd"
+        ),
+        concat_bytes!(
+            b"\xfa\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\xec\x85\xfd"
+        ),
+        concat_bytes!(
+            b"\xfe\0\0\0\0163 2020-01-17 17:30 20.4 49 6.0 60 0.0 0.0 ",
+            b"0.0 0.0 129 F\x16\xfd"
+        ),
+        concat_bytes!(
+            b"\xfe\0\0\0\026SE 1017 954 0 -1.2 --.- --.- -- --.- -- -",
+            b"-.- -- --.- -\x9c$\xfd"
+        ),
+        concat_bytes!(
+            b"\xfe\0\0\0\03\x19- --.- -- --.- -- --.- --\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x91\x8f\xfd"
+        ),
+        concat_bytes!(
+            b"\xfa\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\xec\x85\xfd"
+        ),
+        concat_bytes!(
+            b"\xfa\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\xec\x85\xfd"
+        ),
+        concat_bytes!(
+            b"\xfe\0\0\0\0163 2020-01-17 17:30 20.4 49 6.0 61 0.0 0.0 ",
+            b"0.0 0.0 129 +\xce\xfd"
+        ),
+        concat_bytes!(
+            b"\xfe\0\0\0\026SE 1017 954 0 -1.0 --.- --.- -- --.- -- --",
+            b".- -- --.- -d\x93\xfd"
+        ),
+        concat_bytes!(
+            b"\xfe\0\0\0\03\x19- --.- -- --.- -- --.- --\0\0\0\0\0\0\0",
+            b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x91\x8f\xfd"
+        ),
+    ];
+
+    pub fn new() -> WH1080FakeReader {
+        return WH1080FakeReader { pos: 0 };
+    }
+
+    pub fn read_data(&mut self) -> Result<(), String> {
+        println!(
+            "Received 64 bytes: {}",
+            String::from_utf8_lossy(WH1080FakeReader::FAKE_DATA[self.pos])
+        );
+        self.pos += 1;
+        if self.pos == WH1080FakeReader::FAKE_DATA.len() {
+            self.pos = 0;
+        }
+        return Ok(());
+    }
+}
+
+#[test]
+fn fake_read() {
+    let mut client = WH1080FakeReader::new();
+
+    for _ in 0..20 {
+        client.read_data();
+    }
+}
 
 #[test]
 fn read_data_from_usb() {

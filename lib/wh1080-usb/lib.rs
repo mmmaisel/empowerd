@@ -77,3 +77,7 @@ impl WH1080Client {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[cfg_attr(test, macro_use)]
+extern crate byte_strings;
