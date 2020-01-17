@@ -2,7 +2,24 @@ extern crate hidapi;
 
 use hidapi::HidApi;
 
+use crate::WH1080Client;
+
 #[test]
+fn read_data_from_usb() {
+    let mut client = WH1080Client::new(None);
+
+    match client.device_info() {
+        Ok(x) => println!("{}", x),
+        Err(e) => panic!(e),
+    }
+
+    match client.read_data() {
+        Ok(_) => (),
+        Err(e) => panic!(e),
+    }
+}
+
+//#[test]
 fn with_hid() {
     let api = match HidApi::new() {
         Ok(x) => x,
@@ -28,18 +45,18 @@ fn with_hid() {
         //vec![0x00, 0xfc, 0xd5, 0x01, 0x00, 0x00, 0x97, 0x0b, 0xfd]; // more output ?
     match device.write(&read_0_cmd) {
         Ok(count) => {
-	    if count != read_0_cmd.len() {
-	        panic!("Not all data was written");
+            if count != read_0_cmd.len() {
+                panic!("Not all data was written");
             }
         }
         Err(e) => panic!("Writing data failed: {}", e),
     }*/
     for addr in 0..16 {
-
         match device.read(&mut buffer) {
             Ok(x) => {
-		println!("Received {} bytes: {}", x, String::from_utf8_lossy(&buffer[0..x]));
-		println!("{:2X?}", &buffer[0..x]);
+                println!("Received {} bytes: {}", x,
+                    String::from_utf8_lossy(&buffer[0..x]));
+                println!("{:2X?}", &buffer[0..x]);
             }
             Err(e) => panic!("Error reading device: {}", e),
         }
