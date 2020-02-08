@@ -9,7 +9,7 @@ class WaterSwitch extends Component
         super(props);
         this.state =
         {
-            hovered: Array(this.props.count)
+            hovered: Array(this.props.labels.length)
         };
     }
 
@@ -83,7 +83,7 @@ class WaterSwitch extends Component
                     <stop stopColor="#989898" offset=".5" />
                     <stop stopColor="#393939" offset={1} />
                 </linearGradient>
-                <filter id="filter1323" x="-.079" y="-.24947"
+                <filter id="filterPipeShadow" x="-.079" y="-.24947"
                         width="1.158" height="1.4989"
                         colorInterpolationFilters="sRGB">
                     <feGaussianBlur stdDeviation="2.0902082" />
@@ -248,18 +248,24 @@ class WaterSwitch extends Component
                     <stop offset={0} />
                     <stop stopOpacity={0} offset={1} />
                 </linearGradient>
+
+                <filter id="filterTextShadow"
+                        colorInterpolationFilters="sRGB">
+                    <feGaussianBlur stdDeviation="0.3" />
+                </filter>
             </defs>
         );
     }
 
     shadow()
     {
+        let count = this.props.labels.length;
         let pipe_shadow_h = <rect x="2.1167" y="30.692"
-            width={31.75 + WaterSwitch.xdist * this.props.count}
+            width={31.75 + WaterSwitch.xdist * count}
             height="3.175" ry={0} />;
-        let pipe_shadows_v = Array(this.props.count);
+        let pipe_shadows_v = Array(count);
 
-        for(let i = 0; i < this.props.count; i++)
+        for(let i = 0; i < count; i++)
         {
             pipe_shadows_v[i] = <path
                 transform={"translate(" + WaterSwitch.xdist * i + ")"}
@@ -270,7 +276,7 @@ class WaterSwitch extends Component
         }
 
         return (
-            <g transform="translate(0 -13.758)" filter="url(#filter1323)">
+            <g transform="translate(0 -13.758)" filter="url(#filterPipeShadow)">
                 { pipe_shadow_h }
                 { pipe_shadows_v }
             </g>
@@ -279,8 +285,9 @@ class WaterSwitch extends Component
 
     pipes()
     {
+        let count = this.props.labels.length;
         let pipe_h = <rect x="4.2333" y="7.4083"
-            width={27.517 + WaterSwitch.xdist * this.props.count}
+            width={27.517 + WaterSwitch.xdist * count}
             height="10.583"
             fill="url(#linearGradientPipeH)" />;
         let flow_window = <g transform="translate(0 -13.758)">
@@ -307,13 +314,13 @@ class WaterSwitch extends Component
         let pipe_cap_l = <rect x="3.175" y="6.35" width="1.0583" height="12.7"
             fill="url(#linearGradientPipeCapL)" stroke="#757575"
             strokeLinecap="round" strokeLinejoin="round" strokeWidth=".1" />;
-        let pipe_cap_r = <rect x={31.75 + WaterSwitch.xdist * this.props.count}
+        let pipe_cap_r = <rect x={31.75 + WaterSwitch.xdist * count}
             y="8.4667" width="1.0583" height="8.4667"
             fill="url(#linearGradientPipeCapR)" stroke="#4a4a4a"
             strokeLinecap="round" strokeLinejoin="round" strokeWidth=".1" />
 
-        let pipes_v = Array(this.props.count);
-        for(let i = 0; i < this.props.count; i++)
+        let pipes_v = Array(count);
+        for(let i = 0; i < count; i++)
         {
             if(this.props.states[i] === true)
                 pipes_v[i] = this.open_pipe(i);
@@ -403,8 +410,9 @@ class WaterSwitch extends Component
 
     valves()
     {
-        let valves = Array(this.props.count);
-        for(let i = 0; i < this.props.count; i++)
+        let count = this.props.labels.length;
+        let valves = Array(count);
+        for(let i = 0; i < count; i++)
         {
             valves[i] = this.valve_ctrl(i);
         }
@@ -571,14 +579,50 @@ class WaterSwitch extends Component
         );
     }
 
+    label(pos, text)
+    {
+        return(
+            <g transform={"translate(" + (WaterSwitch.xdist * pos) + ")"} >
+                {/* text shadow */}
+                <text transform="rotate(-90)" x="-38" y="28.5"
+                        font-family="sans-serif" font-size="6px"
+                        stroke="#FFFFFF" filter="url(#filterTextShadow)"
+                        pointer-events="none"
+                        stroke-width=".5" text-align="end" text-anchor="end">
+                    { text }
+                </text>
+                {/* text itself */}
+                <text transform="rotate(-90)" x="-38" y="28.5"
+                        font-family="sans-serif" font-size="6px"
+                        pointer-events="none"
+                        stroke-width=".25" text-align="end" text-anchor="end">
+                    { text }
+                </text>
+            </g>
+        );
+    }
+
+    labels()
+    {
+        let count = this.props.labels.length;
+        let labels = Array(count);
+        for(let i = 0; i < count; i++)
+        {
+            labels[i] = this.label(i, this.props.labels[i]);
+        }
+        return labels;
+    }
+
     render()
     {
         return (
-            <svg viewBox="0 0 135.47, 50.8">
+            // TODO: fit view box to longest label
+            <svg viewBox="0 0 135.47, 70">
                 { this.defs() }
                 { this.shadow() }
                 { this.pipes() }
                 { this.valves() }
+                { this.labels() }
             </svg>
         );
     }
