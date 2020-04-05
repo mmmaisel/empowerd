@@ -1,5 +1,13 @@
 use hidapi::HidApi;
 use crate::WH1080Client;
+use crate::WH1080Buf;
+
+use std::io::Cursor;
+
+use bytes::Bytes;
+use bytes::BytesMut;
+use bytes::Buf;
+use bytes::BufMut;
 
 struct WH1080FakeReader {
     pos: usize
@@ -83,11 +91,12 @@ impl WH1080FakeReader {
         return WH1080FakeReader { pos: 0 };
     }
 
-    pub fn read_data(&mut self) -> Result<(), String> {
+    pub fn read_data(&mut self, mut buf: &mut BytesMut) -> Result<(), String> {
+        buf.put(&WH1080FakeReader::FAKE_DATA[self.pos][..]);
         println!(
             "Received 64 bytes: {}",
-            String::from_utf8_lossy(WH1080FakeReader::FAKE_DATA[self.pos])
-        );
+            String::from_utf8_lossy(WH1080FakeReader::FAKE_DATA[self.pos]
+        ));
         self.pos += 1;
         if self.pos == WH1080FakeReader::FAKE_DATA.len() {
             self.pos = 0;
@@ -100,8 +109,15 @@ impl WH1080FakeReader {
 fn fake_read() {
     let mut client = WH1080FakeReader::new();
 
+    let mut buf: BytesMut = BytesMut::with_capacity(64);
     for _ in 0..20 {
-        client.read_data();
+        if let Err(e) = client.read_data(&mut buf)
+        {
+            panic!(e)
+        };
+        let mut cursor = Cursor::new(&mut buf);
+        cursor.get_message_type();
+        buf.clear();
     }
 }
 
@@ -250,7 +266,6 @@ fn decode_data() {
     // &UV= 0             [Index]
     // &indoortempf=69.9  [F]       ==  21,05°C
     // &indoorhumidity=52 [%]
-
 
     println!("data1: {}", String::from_utf8_lossy(&data));
     println!("data2: {}", String::from_utf8_lossy(&data2));

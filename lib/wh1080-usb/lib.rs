@@ -7,6 +7,12 @@ use bytes::BytesMut;
 use hidapi::HidApi;
 use slog::Logger;
 
+mod message;
+use message::Message;
+
+mod wh1080_buffer;
+use wh1080_buffer::WH1080Buf;
+
 struct WH1080Client {
     buffer: BytesMut,
     logger: Option<Logger>,
