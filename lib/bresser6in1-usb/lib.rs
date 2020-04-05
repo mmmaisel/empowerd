@@ -10,20 +10,22 @@ use slog::Logger;
 mod message;
 use message::Message;
 
-mod wh1080_buffer;
-use wh1080_buffer::WH1080Buf;
+mod bresser6in1_buf;
+use bresser6in1_buf::Bresser6in1Buf;
 
-struct WH1080Client {
+// TODO: buffer der sich selbst parse, trait
+
+struct Bresser6in1Client {
     buffer: BytesMut,
     logger: Option<Logger>,
 }
 
-impl WH1080Client {
+impl Bresser6in1Client {
     const BUFFER_SIZE: usize = 512;
 
-    pub fn new(logger: Option<Logger>) -> WH1080Client {
-        return WH1080Client {
-            buffer: BytesMut::with_capacity(WH1080Client::BUFFER_SIZE),
+    pub fn new(logger: Option<Logger>) -> Bresser6in1Client {
+        return Bresser6in1Client {
+            buffer: BytesMut::with_capacity(Bresser6in1Client::BUFFER_SIZE),
             logger: logger,
         };
     }
@@ -58,9 +60,9 @@ impl WH1080Client {
             self.buffer.clear();
             // TODO: do this without unsafe
             unsafe {
-                self.buffer.set_len(WH1080Client::BUFFER_SIZE);
+                self.buffer.set_len(Bresser6in1Client::BUFFER_SIZE);
             }
-            //            self.buffer.resize(WH1080Client::BUFFER_SIZE, 0);
+            //            self.buffer.resize(Bresser6in1Client::BUFFER_SIZE, 0);
             let num_recv = match device.read(&mut self.buffer) {
                 Ok(x) => x,
                 Err(e) => return Err(format!("Error reading device: {}", e)),

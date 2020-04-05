@@ -1,5 +1,5 @@
 [package]
-name = "wh1080-usb"
+name = "bresser6in1-usb"
 version = "0.1.0"
 authors = ["jm3"]
 edition = "2018"

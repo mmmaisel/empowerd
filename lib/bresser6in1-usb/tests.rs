@@ -1,6 +1,6 @@
 use hidapi::HidApi;
-use crate::WH1080Client;
-use crate::WH1080Buf;
+use crate::Bresser6in1Client;
+use crate::Bresser6in1Buf;
 
 use std::io::Cursor;
 
@@ -9,11 +9,12 @@ use bytes::BytesMut;
 use bytes::Buf;
 use bytes::BufMut;
 
-struct WH1080FakeReader {
+
+struct Bresser6in1FakeReader {
     pos: usize
 }
 
-impl WH1080FakeReader {
+impl Bresser6in1FakeReader {
     const FAKE_DATA: &'static [&'static [u8; 64]] = &[
         concat_bytes!(
             b"\xfe\0\0\0\03\x19- --.- -- --.- -- --.- --\0\0\0\0\0\0\0",
@@ -87,18 +88,18 @@ impl WH1080FakeReader {
         ),
     ];
 
-    pub fn new() -> WH1080FakeReader {
-        return WH1080FakeReader { pos: 0 };
+    pub fn new() -> Bresser6in1FakeReader {
+        return Bresser6in1FakeReader { pos: 0 };
     }
 
     pub fn read_data(&mut self, mut buf: &mut BytesMut) -> Result<(), String> {
-        buf.put(&WH1080FakeReader::FAKE_DATA[self.pos][..]);
+        buf.put(&Bresser6in1FakeReader::FAKE_DATA[self.pos][..]);
         println!(
             "Received 64 bytes: {}",
-            String::from_utf8_lossy(WH1080FakeReader::FAKE_DATA[self.pos]
+            String::from_utf8_lossy(Bresser6in1FakeReader::FAKE_DATA[self.pos]
         ));
         self.pos += 1;
-        if self.pos == WH1080FakeReader::FAKE_DATA.len() {
+        if self.pos == Bresser6in1FakeReader::FAKE_DATA.len() {
             self.pos = 0;
         }
         return Ok(());
@@ -107,7 +108,7 @@ impl WH1080FakeReader {
 
 #[test]
 fn fake_read() {
-    let mut client = WH1080FakeReader::new();
+    let mut client = Bresser6in1FakeReader::new();
 
     let mut buf: BytesMut = BytesMut::with_capacity(64);
     for _ in 0..20 {
@@ -121,9 +122,9 @@ fn fake_read() {
     }
 }
 
-#[test]
+//#[test]
 fn read_data_from_usb() {
-    let mut client = WH1080Client::new(None);
+    let mut client = Bresser6in1Client::new(None);
 
     match client.device_info() {
         Ok(x) => println!("{}", x),

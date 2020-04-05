@@ -11,7 +11,7 @@ members = [
     "lib/slog-daemon",
     "lib/sma-client",
     "lib/sml-client",
-    "lib/wh1080-usb" ]
+    "lib/bresser6in1-usb" ]
 
 [dependencies]
 dachs-client = { version = "*", path = "lib/dachs-client/" }
@@ -19,7 +19,7 @@ influx-derive = { version = "*", path = "lib/influx-derive" }
 slog-daemon = { version = "*", path = "lib/slog-daemon" }
 sma-client = { version = "*", path = "lib/sma-client/" }
 sml-client = { version = "*", path = "lib/sml-client/" }
-wh1080-usb = { version = "*", path = "lib/wh1080-usb/" }
+bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
 
 bytes = "*"
 chrono = "*"
