@@ -13,8 +13,6 @@ use message::Message;
 mod bresser6in1_buf;
 use bresser6in1_buf::Bresser6in1Buf;
 
-// TODO: buffer der sich selbst parse, trait
-
 struct Bresser6in1Client {
     buffer: BytesMut,
     logger: Option<Logger>,

@@ -1,6 +1,7 @@
 use hidapi::HidApi;
 use crate::Bresser6in1Client;
 use crate::Bresser6in1Buf;
+use crate::Message;
 
 use std::io::Cursor;
 
@@ -117,7 +118,12 @@ fn fake_read() {
             panic!(e)
         };
         let mut cursor = Cursor::new(&mut buf);
-        cursor.get_message_type();
+        let msg = match cursor.to_message() {
+            Ok(x) => x,
+            Err(e) => panic!(e)
+        };
+        println!("Decoded: {:?}", msg);
+        assert_eq!(0, cursor.remaining(), "Did not read whole buffer.");
         buf.clear();
     }
 }
@@ -208,7 +214,6 @@ fn decode_data() {
         0x00, 0x61, 0xE8, 0xFD,
     ];
 
-    // XXX: this are multiple HID blocks in one buffer: 0xFX, 0x00-3, ..., 0xFD
     let data2 = vec![
         0xFE, 0x00, 0x00, 0x00, 0x00, 0x33, 0x1D, 0x2E, 0x2D, 0x20, 0x2D, 0x2D,
         0x20, 0x2D, 0x2D, 0x2E, 0x2D, 0x20, 0x2D, 0x2D, 0x20, 0x2D, 0x2D, 0x2E,
