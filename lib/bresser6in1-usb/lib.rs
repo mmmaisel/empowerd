@@ -19,17 +19,17 @@ use parser::*;
 mod data;
 use data::*;
 
-struct Bresser6in1Client {
+struct Client {
     buffer: BytesMut,
     logger: Option<Logger>,
 }
 
-impl Bresser6in1Client {
+impl Client {
     const BUFFER_SIZE: usize = 512;
 
-    pub fn new(logger: Option<Logger>) -> Bresser6in1Client {
-        return Bresser6in1Client {
-            buffer: BytesMut::with_capacity(Bresser6in1Client::BUFFER_SIZE),
+    pub fn new(logger: Option<Logger>) -> Client {
+        return Client {
+            buffer: BytesMut::with_capacity(Client::BUFFER_SIZE),
             logger: logger,
         };
     }
@@ -64,9 +64,9 @@ impl Bresser6in1Client {
             self.buffer.clear();
             // TODO: do this without unsafe
             unsafe {
-                self.buffer.set_len(Bresser6in1Client::BUFFER_SIZE);
+                self.buffer.set_len(Client::BUFFER_SIZE);
             }
-            //            self.buffer.resize(Bresser6in1Client::BUFFER_SIZE, 0);
+            //            self.buffer.resize(Client::BUFFER_SIZE, 0);
             let num_recv = match device.read(&mut self.buffer) {
                 Ok(x) => x,
                 Err(e) => return Err(format!("Error reading device: {}", e)),

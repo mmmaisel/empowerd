@@ -1,5 +1,5 @@
 use hidapi::HidApi;
-use crate::Bresser6in1Client;
+use crate::Client;
 use crate::Bresser6in1Buf;
 use crate::Message;
 use crate::Parser;
@@ -13,12 +13,11 @@ use bytes::BytesMut;
 use bytes::Buf;
 use bytes::BufMut;
 
-
-struct Bresser6in1FakeReader {
+struct FakeReader {
     pos: usize
 }
 
-impl Bresser6in1FakeReader {
+impl FakeReader {
     const FAKE_DATA: &'static [&'static [u8; 64]] = &[
         concat_bytes!(
             b"\xfe\0\0\0\03\x19- --.- -- --.- -- --.- --\0\0\0\0\0\0\0",
@@ -92,18 +91,18 @@ impl Bresser6in1FakeReader {
         ),
     ];
 
-    pub fn new() -> Bresser6in1FakeReader {
-        return Bresser6in1FakeReader { pos: 0 };
+    pub fn new() -> FakeReader {
+        return FakeReader { pos: 0 };
     }
 
     pub fn read_data(&mut self, mut buf: &mut BytesMut) -> Result<(), String> {
-        buf.put(&Bresser6in1FakeReader::FAKE_DATA[self.pos][..]);
+        buf.put(&FakeReader::FAKE_DATA[self.pos][..]);
         println!(
             "Received 64 bytes: {}",
-            String::from_utf8_lossy(Bresser6in1FakeReader::FAKE_DATA[self.pos]
+            String::from_utf8_lossy(FakeReader::FAKE_DATA[self.pos]
         ));
         self.pos += 1;
-        if self.pos == Bresser6in1FakeReader::FAKE_DATA.len() {
+        if self.pos == FakeReader::FAKE_DATA.len() {
             self.pos = 0;
         }
         return Ok(());
@@ -112,7 +111,7 @@ impl Bresser6in1FakeReader {
 
 #[test]
 fn fake_read() {
-    let mut client = Bresser6in1FakeReader::new();
+    let mut client = FakeReader::new();
 
     let mut buf: BytesMut = BytesMut::with_capacity(64);
     let mut parser = Parser::new();
@@ -168,7 +167,7 @@ fn fake_read() {
 
 //#[test]
 fn read_data_from_usb() {
-    let mut client = Bresser6in1Client::new(None);
+    let mut client = Client::new(None);
 
     match client.device_info() {
         Ok(x) => println!("{}", x),
