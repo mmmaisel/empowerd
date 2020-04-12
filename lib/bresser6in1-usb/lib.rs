@@ -7,14 +7,17 @@ use bytes::BytesMut;
 use hidapi::HidApi;
 use slog::Logger;
 
+mod bresser6in1_buf;
+use bresser6in1_buf::Bresser6in1Buf;
+
 mod message;
 use message::Message;
 
 mod parser;
 use parser::*;
 
-mod bresser6in1_buf;
-use bresser6in1_buf::Bresser6in1Buf;
+mod data;
+use data::*;
 
 struct Bresser6in1Client {
     buffer: BytesMut,

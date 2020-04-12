@@ -4,6 +4,7 @@ use crate::Bresser6in1Buf;
 use crate::Message;
 use crate::Parser;
 use crate::ParserResult;
+use crate::Data;
 
 use std::io::Cursor;
 
@@ -137,6 +138,27 @@ fn fake_read() {
                     "SE 1017 954 0 -1.2 --.- --.- -- --.- -- --.- -- --.- -",
                     "- --.- -- --.- -- --.- --"), payload);
                 message_was_parsed = true;
+
+                let data = Data::from_string(payload);
+                match data {
+                    Ok(x) => {
+                        println!("Parsed data: {:?}", x);
+                        assert_eq!(20.4, x.temperature_in);
+                        assert_eq!(49, x.humidity_in);
+                        assert_eq!(6.0, x.temperature_out);
+                        assert_eq!(60, x.humidity_out);
+                        assert_eq!(0.0, x.rain_day);
+                        assert_eq!(0.0, x.rain_actual);
+                        assert_eq!(0.0, x.wind_actual);
+                        assert_eq!(0.0, x.wind_gust);
+                        assert_eq!(129, x.wind_dir);
+                        assert_eq!(1017, x.baro_sea);
+                        assert_eq!(954, x.baro_absolute);
+                        assert_eq!(0.0, x.uv_index);
+                        assert_eq!(-1.2, x.dew_point);
+                    },
+                    Err(e) => panic!(e)
+                }
             }
         };
         buf.clear();
