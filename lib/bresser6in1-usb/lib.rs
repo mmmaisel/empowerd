@@ -10,6 +10,9 @@ use slog::Logger;
 mod message;
 use message::Message;
 
+mod parser;
+use parser::*;
+
 mod bresser6in1_buf;
 use bresser6in1_buf::Bresser6in1Buf;
 

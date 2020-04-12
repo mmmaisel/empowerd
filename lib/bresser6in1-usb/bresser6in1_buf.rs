@@ -21,7 +21,7 @@ pub trait Bresser6in1Buf: Buf
         let msgtype: u8 = self.get_u8();
         let _padding: u32 = self.get_u32_le();
         let fragment: u8 = self.get_u8();
-        let length: u8 = self.get_u8();
+        let length: usize = self.get_u8() as usize;
         let mut data: [u8; 54] = [0; 54];
         self.copy_to_slice(&mut data);
         let _crc: u16 = self.get_u16_le();

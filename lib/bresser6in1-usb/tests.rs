@@ -2,6 +2,8 @@ use hidapi::HidApi;
 use crate::Bresser6in1Client;
 use crate::Bresser6in1Buf;
 use crate::Message;
+use crate::Parser;
+use crate::ParserResult;
 
 use std::io::Cursor;
 
@@ -112,7 +114,10 @@ fn fake_read() {
     let mut client = Bresser6in1FakeReader::new();
 
     let mut buf: BytesMut = BytesMut::with_capacity(64);
-    for _ in 0..20 {
+    let mut parser = Parser::new();
+    let mut message_was_parsed = false;
+
+    for _ in 0..12 {
         if let Err(e) = client.read_data(&mut buf)
         {
             panic!(e)
@@ -124,8 +129,19 @@ fn fake_read() {
         };
         println!("Decoded: {:?}", msg);
         assert_eq!(0, cursor.remaining(), "Did not read whole buffer.");
+
+        if let Ok(result) = parser.parse_message(msg) {
+            if let ParserResult::Success(payload) = result {
+                assert_eq!(concat!(
+                    "3 2020-01-17 17:30 20.4 49 6.0 60 0.0 0.0 0.0 0.0 129 ",
+                    "SE 1017 954 0 -1.2 --.- --.- -- --.- -- --.- -- --.- -",
+                    "- --.- -- --.- -- --.- --"), payload);
+                message_was_parsed = true;
+            }
+        };
         buf.clear();
     }
+    assert!(message_was_parsed);
 }
 
 //#[test]
