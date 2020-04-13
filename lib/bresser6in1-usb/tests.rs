@@ -110,7 +110,7 @@ impl FakeReader {
 }
 
 #[test]
-fn fake_read() {
+fn parse_fake_data() {
     let mut client = FakeReader::new();
 
     let mut buf: BytesMut = BytesMut::with_capacity(64);
@@ -165,8 +165,8 @@ fn fake_read() {
     assert!(message_was_parsed);
 }
 
-//#[test]
-fn read_data_from_usb() {
+#[test]
+fn parse_usb_data() {
     let mut client = Client::new(None);
 
     match client.device_info() {
@@ -174,54 +174,11 @@ fn read_data_from_usb() {
         Err(e) => panic!(e),
     }
 
-    match client.read_data() {
-        Ok(_) => (),
+    println!("Reading data from USB...");
+    let data = match client.read_data() {
+        Ok(x) => println!("done: {:?}", x),
         Err(e) => panic!(e),
-    }
-}
-
-//#[test]
-fn with_hid() {
-    let api = match HidApi::new() {
-        Ok(x) => x,
-        Err(e) => panic!("Error initialising hidapi: {}", e),
     };
-
-    println!("Initialised API");
-
-    let device = match api.open(0x1941, 0x8021) {
-        Ok(x) => x,
-        Err(e) => panic!("Error opening device: {}", e),
-    };
-
-    println!("Opened Device");
-
-    let mut buffer = [0; 256];
-    /*let read_0_cmd =
-        vec![0x00, 0xfc, 0x03, 0x00, 0x00, 0x00, 0x2f, 0xa1, 0xfd]; // ???
-        //vec![0x00, 0xfc, 0x07, 0x00, 0x00, 0x00, 0xe5, 0x50, 0xfd]; // ???
-        vec![0x00, 0xfc, 0x08, 0x14, 0x01, 0x0c, 0xa0, 0x5c, 0xfd]; // ???
-        //vec![0x00, 0xfc, 0x09, 0x0d, 0x17, 0x24, 0x59, 0xfb, 0xfd]; // more output ?
-        //vec![0x00, 0xfc, 0xd4, 0x01, 0x00, 0x00, 0xe1, 0xbf, 0xfd]; // more output ?
-        //vec![0x00, 0xfc, 0xd5, 0x01, 0x00, 0x00, 0x97, 0x0b, 0xfd]; // more output ?
-    match device.write(&read_0_cmd) {
-        Ok(count) => {
-            if count != read_0_cmd.len() {
-                panic!("Not all data was written");
-            }
-        }
-        Err(e) => panic!("Writing data failed: {}", e),
-    }*/
-    for addr in 0..16 {
-        match device.read(&mut buffer) {
-            Ok(x) => {
-                println!("Received {} bytes: {}", x,
-                    String::from_utf8_lossy(&buffer[0..x]));
-                println!("{:2X?}", &buffer[0..x]);
-            }
-            Err(e) => panic!("Error reading device: {}", e),
-        }
-    }
 }
 
 //#[test]

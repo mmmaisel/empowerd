@@ -30,7 +30,7 @@ pub trait Bresser6in1Buf: Buf
         // TODO: validate crc?
 
         if end != 0xFD {
-            return Err("Invalid EOF received".to_string());
+            return Err(format!("Invalid EOF value {:X} received", end));
         }
 
         return Ok(Message {
