@@ -142,6 +142,7 @@ fn parse_fake_data() {
                 match data {
                     Ok(x) => {
                         println!("Parsed data: {:?}", x);
+                        assert_eq!(1579282200, x.timestamp);
                         assert_eq!(20.4, x.temperature_in);
                         assert_eq!(49, x.humidity_in);
                         assert_eq!(6.0, x.temperature_out);

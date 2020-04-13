@@ -1,7 +1,10 @@
+extern crate chrono;
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+
 #[derive(Debug)]
 pub struct Data
 {
-    pub timestamp: u32,     // format??
+    pub timestamp: u32,
     pub temperature_in: f32,
     pub humidity_in: u8,
     pub temperature_out: f32,
@@ -14,7 +17,7 @@ pub struct Data
     pub baro_sea: u16,
     pub baro_absolute: u16,
     pub uv_index: f32,
-    pub dew_point: f32
+    pub dew_point: f32,
 }
 
 impl Data {
@@ -23,14 +26,26 @@ impl Data {
         let _ = tokens.next();
 
         let date = match tokens.next() {
-            Some(x) => 0, // TODO: convert it
+            Some(x) => {
+                match NaiveDate::parse_from_str(x, "%Y-%m-%d") {
+                    Ok(y) => y,
+                    Err(e) => return Err(format!("{}, {}", e.to_string(), x))
+                }
+            }
             None => return Err("Unexpected end of data found.".to_string())
         };
 
         let time = match tokens.next() {
-            Some(x) => 0, // TODO: convert it
+            Some(x) => {
+                match NaiveTime::parse_from_str(x, "%H:%M") {
+                    Ok(y) => y,
+                    Err(e) => return Err(format!("{}, {}", e.to_string(), x))
+                }
+            }
             None => return Err("Unexpected end of data found.".to_string())
         };
+
+        let timestamp = NaiveDateTime::new(date, time).timestamp() as u32;
 
         let temperature_in = match tokens.next() {
             Some(x) => {
@@ -177,7 +192,7 @@ impl Data {
         }
 
         return Ok(Data {
-            timestamp: 0, // TODO
+            timestamp: timestamp,
             temperature_in: temperature_in,
             humidity_in: humidity_in,
             temperature_out: temperature_out,
