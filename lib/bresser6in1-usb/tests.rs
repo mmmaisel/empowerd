@@ -1,7 +1,5 @@
-use hidapi::HidApi;
 use crate::Client;
 use crate::Bresser6in1Buf;
-use crate::Message;
 use crate::Parser;
 use crate::ParserResult;
 use crate::Data;
@@ -95,7 +93,7 @@ impl FakeReader {
         return FakeReader { pos: 0 };
     }
 
-    pub fn read_data(&mut self, mut buf: &mut BytesMut) -> Result<(), String> {
+    pub fn read_data(&mut self, buf: &mut BytesMut) -> Result<(), String> {
         buf.put(&FakeReader::FAKE_DATA[self.pos][..]);
         println!(
             "Received 64 bytes: {}",
@@ -176,7 +174,7 @@ fn parse_usb_data() {
     }
 
     println!("Reading data from USB...");
-    let data = match client.read_data() {
+    match client.read_data() {
         Ok(x) => println!("done: {:?}", x),
         Err(e) => panic!(e),
     };
