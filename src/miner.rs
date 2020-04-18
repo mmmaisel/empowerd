@@ -2,12 +2,15 @@ use std::net;
 use slog::Logger;
 use influx_db_client::Client;
 
+extern crate bresser6in1_usb;
 extern crate dachs_client;
 extern crate sma_client;
 extern crate sml_client;
 
+use bresser6in1_usb::{Client as BresserClient, Data as BresserData};
 use dachs_client::*;
 use sma_client::*;
+use sml_client::*;
 use sml_client::*;
 
 use crate::models::*;
@@ -16,6 +19,7 @@ use crate::settings::*;
 pub struct StromMiner
 {
     influx_conn: Client,
+    bresser_client: BresserClient,
     dachs_client: DachsClient,
     sma_client: SmaClient,
     sml_client: SmlClient,
@@ -31,6 +35,7 @@ impl StromMiner
         let influx_conn = Client::new(
             format!("http://{}", s.db_url), s.db_name).
             set_authentication(s.db_user, s.db_pw);
+        let bresser_client = BresserClient::new(Some(logger.new(o!())));
         let dachs_client = DachsClient::new(
             s.dachs_addr, s.dachs_pw, Some(logger.new(o!())));
         let sma_client = SmaClient::new(Some(logger.new(o!())))?;
@@ -41,6 +46,7 @@ impl StromMiner
         return Ok(StromMiner
         {
             influx_conn: influx_conn,
+            bresser_client: bresser_client,
             dachs_client: dachs_client,
             sma_client: sma_client,
             sml_client: sml_client,
@@ -357,6 +363,50 @@ impl StromMiner
         if let Err(e) = model.save(&self.influx_conn)
         {
             error!(self.logger, "Save MeterData failed, {}", e);
+        }
+        else
+        {
+            trace!(self.logger, "Wrote {:?} to database", model);
+        }
+    }
+
+    pub fn mine_weather_data(&mut self, now: i64)
+    {
+        let mut weather_data = self.bresser_client.read_data();
+        for _ in 1..3
+        {
+            if let Err(e) = weather_data
+            {
+                error!(self.logger,
+                    "Get weather data failed, {}, retrying...", e);
+                weather_data = self.bresser_client.read_data();
+            }
+            else
+            {
+                break;
+            }
+        }
+        let weather_data = match weather_data
+        {
+            Ok(x) => x,
+            Err(e) =>
+            {
+                error!(self.logger,
+                    "Get weather data failed, {}, giving up!", e);
+                return;
+            }
+        };
+
+        self.save_weather_data(now, weather_data);
+    }
+
+    pub fn save_weather_data(&self, timestamp: i64, data: BresserData)
+    {
+        // TODO: deduplicate this
+        let model = WeatherData::new(timestamp, data);
+        if let Err(e) = model.save(&self.influx_conn)
+        {
+            error!(self.logger, "Save WeatherData failed, {}", e);
         }
         else
         {

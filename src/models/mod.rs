@@ -9,12 +9,14 @@ pub mod gas;
 pub mod meter;
 pub mod solar;
 pub mod water;
+pub mod weather;
 
 pub use dachs::*;
 pub use gas::*;
 pub use meter::*;
 pub use solar::*;
 pub use water::*;
+pub use weather::*;
 
 pub struct LoadError
 {

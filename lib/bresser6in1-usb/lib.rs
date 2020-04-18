@@ -19,8 +19,9 @@ use parser::*;
 
 mod data;
 use data::*;
+pub use data::Data;
 
-struct Client {
+pub struct Client {
     buffer: BytesMut,
     logger: Option<Logger>,
     parser: Parser,

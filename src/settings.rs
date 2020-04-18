@@ -27,6 +27,7 @@ pub struct Settings
     pub dachs_poll_interval: i64,
     pub sma_poll_interval: i64,
     pub meter_poll_interval: i64,
+    pub weather_poll_interval: i64,
     pub import: String
 }
 
@@ -46,6 +47,7 @@ impl Settings
         config.set_default("dachs_poll_interval", 300)?;
         config.set_default("sma_poll_interval", 3600)?;
         config.set_default("meter_poll_interval", 300)?;
+        config.set_default("weather_poll_interval", 300)?;
         config.set_default("import", "none")?;
 
         config.merge(File::with_name(&filename).
