@@ -317,3 +317,6 @@ impl SmaClient
         };
     }
 }
+
+#[cfg(test)]
+mod tests;
