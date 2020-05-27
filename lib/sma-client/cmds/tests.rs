@@ -59,7 +59,7 @@ fn dererialize_identify()
         0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00
     ]);
-    let response = parse_command(&mut input_buffer);
+    let response = parse_command(&mut input_buffer, &None);
     let response = match response
     {
         Err(e) => panic!("Parse identify response failed: {}", e),
@@ -93,7 +93,7 @@ fn serialize_login()
         0x88, 0x88, 0x00, 0x00, 0x00, 0x00
     ];
     let mut buffer = BytesMut::with_capacity(BUFFER_SIZE);
-    let mut cmd = SmaCmdLogin::new();
+    let mut cmd = SmaCmdLogin::new(&None);
     setup_header(&mut cmd.data_header);
     cmd.set_password(&"0000".to_string());
     cmd.timestamp = 0x5cbad4fc;
@@ -118,7 +118,7 @@ fn deserialize_login()
         0xb8, 0xb8, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
         0x88, 0x88, 0x00, 0x00, 0x00, 0x00
     ]);
-    let response = parse_command(&mut input_buffer);
+    let response = parse_command(&mut input_buffer, &None);
     let response = match response
     {
         Err(e) => panic!("Parse login response failed: {}", e),
@@ -147,7 +147,7 @@ fn deserialize_failed_login()
         0xb8, 0xb8, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
         0x88, 0x88, 0x00, 0x00, 0x00, 0x00
     ]);
-    let response = parse_command(&mut input_buffer);
+    let response = parse_command(&mut input_buffer, &None);
     let response = match response
     {
         Err(e) => (),
@@ -220,7 +220,7 @@ fn deserialize_get_day_data()
         0xc2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00
     ]);
-    let response = parse_command(&mut input_buffer);
+    let response = parse_command(&mut input_buffer, &None);
     let response = match response
     {
         Err(e) => panic!("Parse get day data response failed: {}", e),
@@ -256,7 +256,7 @@ fn reject_random_junk()
         0xBC, 0x69, 0x68, 0x92, 0x07, 0x5D, 0xE4, 0xE8,
         0x1D, 0x2D, 0xE0, 0x2D, 0xB3, 0x8C, 0x22, 0x19
     ]);
-    let response = parse_command(&mut input_buffer);
+    let response = parse_command(&mut input_buffer, &None);
     let response = match response
     {
         Err(e) => (),
