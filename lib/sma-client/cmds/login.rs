@@ -95,7 +95,8 @@ pub struct SmaPayloadLogin
 
 impl SmaPayloadLogin
 {
-    pub const LENGTH: usize = 28;
+    pub const LENGTH_MIN: usize = 16;
+    pub const LENGTH_MAX: usize = 28;
 
     pub fn deserialize(buffer: &mut Buf) -> SmaPayloadLogin
     {
@@ -104,7 +105,9 @@ impl SmaPayloadLogin
         let timestamp = buffer.get_u32_le();
         let padding = buffer.get_u32_le();
         let mut password: [u8; 12] = [0; 12];
-        buffer.copy_to_slice(&mut password);
+        if buffer.remaining() >= 12 {
+            buffer.copy_to_slice(&mut password);
+        }
 
         return SmaPayloadLogin
         {
@@ -142,7 +145,8 @@ impl SmaResponse for SmaResponseLogin
     fn validate(&self) -> Result<(), String>
     {
         self.pkt_header.validate()?;
-        if self.pkt_header.data_len != SmaResponseLogin::LENGTH
+        if self.pkt_header.data_len != SmaResponseLogin::LENGTH_MIN &&
+            self.pkt_header.data_len != SmaResponseLogin::LENGTH_MAX
         {
             return Err("SmaResponseLogin has invalid length".to_string());
         }
@@ -171,5 +175,6 @@ impl SmaResponse for SmaResponseLogin
 
 impl SmaResponseLogin
 {
-    pub const LENGTH: u16 = 0x003A;
+    pub const LENGTH_MAX: u16 = 0x003A;
+    pub const LENGTH_MIN: u16 = 0x002E;
 }

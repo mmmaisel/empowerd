@@ -421,7 +421,7 @@ fn parse_command(buffer: &mut Buf, logger: &Option<Logger>)
         }
         SmaCmdLogin::OPCODE =>
         {
-            if buffer.remaining() < SmaPayloadLogin::LENGTH
+            if buffer.remaining() < SmaPayloadLogin::LENGTH_MIN
             {
                 return Err("💩️ Received incomplete SmaLogin packet".
                     to_string());
