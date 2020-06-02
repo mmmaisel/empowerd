@@ -326,9 +326,15 @@ impl SmaEndToken
 
     pub fn deserialize(buffer: &mut Buf) -> SmaEndToken
     {
+        if buffer.remaining() >= 4 {
+            let _end = buffer.get_u32_le();
+        } else {
+            let _end = buffer.get_u16_le();
+        }
+
         return SmaEndToken
         {
-            end: buffer.get_u32_le()
+            end: 0
         };
     }
 

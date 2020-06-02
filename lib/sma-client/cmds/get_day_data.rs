@@ -76,11 +76,17 @@ impl SmaDayDataRecord
 
     fn deserialize(buffer: &mut Buf) -> SmaDayDataRecord
     {
+        let timestamp = buffer.get_u32_le();
+        let energy = buffer.get_u32_le();
+        if buffer.remaining() > 4 {
+            let _padding = buffer.get_u32_le();
+        }
+
         return SmaDayDataRecord
         {
-            timestamp: buffer.get_u32_le(),
-            energy: buffer.get_u32_le(),
-            _padding: buffer.get_u32_le()
+            timestamp: timestamp,
+            energy: energy,
+            _padding: 0
         };
     }
 }
