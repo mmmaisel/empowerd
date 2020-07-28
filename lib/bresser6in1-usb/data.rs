@@ -18,6 +18,10 @@ pub struct Data
     pub baro_absolute: u16,
     pub uv_index: f32,
     pub dew_point: f32,
+    pub temperature_x1: Option<f32>,
+    pub humidity_x1: Option<u8>,
+    pub temperature_x2: Option<f32>,
+    pub humidity_x2: Option<u8>,
 }
 
 impl Data {
@@ -181,7 +185,49 @@ impl Data {
             None => return Err("Unexpected end of data found.".to_string())
         };
 
-        for _ in 0..15 {
+        let _unknown = tokens.next();
+
+        let temperature_x1 = match tokens.next() {
+            Some(x) => {
+                match x.parse::<f32>() {
+                    Ok(y) => Some(y),
+                    Err(e) => None,
+                }
+            }
+            None => return Err("Unexpected end of data found.".to_string())
+        };
+
+        let humidity_x1 = match tokens.next() {
+            Some(x) => {
+                match x.parse::<u8>() {
+                    Ok(y) => Some(y),
+                    Err(e) => None,
+                }
+            }
+            None => return Err("Unexpected end of data found.".to_string())
+        };
+
+        let temperature_x2 = match tokens.next() {
+            Some(x) => {
+                match x.parse::<f32>() {
+                    Ok(y) => Some(y),
+                    Err(e) => None,
+                }
+            }
+            None => return Err("Unexpected end of data found.".to_string())
+        };
+
+        let humidity_x2 = match tokens.next() {
+            Some(x) => {
+                match x.parse::<u8>() {
+                    Ok(y) => Some(y),
+                    Err(e) => None,
+                }
+            }
+            None => return Err("Unexpected end of data found.".to_string())
+        };
+
+        for _ in 0..10 {
             if let None = tokens.next() {
                 return Err("Unexpected end of data found.".to_string())
             }
@@ -205,7 +251,11 @@ impl Data {
             baro_sea: baro_sea,
             baro_absolute: baro_absolute,
             uv_index: uv_index,
-            dew_point: dew_point
+            dew_point: dew_point,
+            temperature_x1: temperature_x1,
+            humidity_x1: humidity_x1,
+            temperature_x2: temperature_x2,
+            humidity_x2: humidity_x2,
         });
     }
 }

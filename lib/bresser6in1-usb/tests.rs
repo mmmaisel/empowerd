@@ -60,11 +60,11 @@ impl FakeReader {
             b"0.0 0.0 129 F\x16\xfd"
         ),
         concat_bytes!(
-            b"\xfe\0\0\0\026SE 1017 954 0 -1.2 --.- --.- -- --.- -- -",
-            b"-.- -- --.- -\x9c$\xfd"
+            b"\xfe\0\0\0\026SE 1017 954 0 -1.2 27.3 57 33.4 40 --.- --",
+            b" --.- -- --.\x9c$\xfd"
         ),
         concat_bytes!(
-            b"\xfe\0\0\0\03\x19- --.- -- --.- -- --.- --\0\0\0\0\0\0\0",
+            b"\xfe\0\0\0\03\x14- -- --.- -- --.- --\0\0\0\0\0\0\0\0\0\0\0\0",
             b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x91\x8f\xfd"
         ),
         concat_bytes!(
@@ -134,8 +134,8 @@ fn parse_fake_data() {
             if let ParserResult::Success(payload) = result {
                 assert_eq!(concat!(
                     "3 2020-01-17 17:30 20.4 49 6.0 60 0.0 0.0 0.0 0.0 129 ",
-                    "SE 1017 954 0 -1.2 --.- --.- -- --.- -- --.- -- --.- -",
-                    "- --.- -- --.- -- --.- --"), payload);
+                    "SE 1017 954 0 -1.2 27.3 57 33.4 40 --.- -- --.- -- --.- -",
+                    "- --.- -- --.- --"), payload);
                 message_was_parsed = true;
 
                 let data = Data::from_string(payload);
@@ -156,6 +156,10 @@ fn parse_fake_data() {
                         assert_eq!(954, x.baro_absolute);
                         assert_eq!(0.0, x.uv_index);
                         assert_eq!(-1.2, x.dew_point);
+                        assert_eq!(Some(27.3), x.temperature_x1);
+                        assert_eq!(Some(57), x.humidity_x1);
+                        assert_eq!(Some(33.4), x.temperature_x2);
+                        assert_eq!(Some(40), x.humidity_x2);
                     },
                     Err(e) => panic!(e)
                 }
