@@ -403,7 +403,14 @@ impl StromMiner
     pub fn save_weather_data(&self, timestamp: i64, data: BresserData)
     {
         // TODO: deduplicate this
-        let model = WeatherData::new(timestamp, data);
+        let model = match WeatherData::new(timestamp, data) {
+            Ok(x) => x,
+            Err(e) => {
+                error!(self.logger, "{}", e);
+                return;
+            }
+        };
+
         if let Err(e) = model.save(&self.influx_conn)
         {
             error!(self.logger, "Save WeatherData failed, {}", e);
