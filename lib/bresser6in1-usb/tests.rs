@@ -4,6 +4,8 @@ use crate::Parser;
 use crate::ParserResult;
 use crate::Data;
 
+use hidapi::HidApi;
+
 use std::io::Cursor;
 
 use bytes::Bytes;
@@ -164,7 +166,7 @@ fn parse_fake_data() {
     assert!(message_was_parsed);
 }
 
-#[test]
+//#[test]
 fn parse_usb_data() {
     let mut client = Client::new(None);
 
@@ -271,4 +273,28 @@ fn decode_data() {
 
     println!("data len: {}", data.len());
     println!("data2 len: {}", data2.len());
+}
+
+//#[test]
+fn read_raw_usb_data() {
+    let api = match HidApi::new() {
+        Ok(x) => x,
+        Err(e) => panic!("Error initialising hidapi: {}", e),
+    };
+
+    let device = match api.open(0x1941, 0x8021) {
+        Ok(x) => x,
+        Err(e) => panic!("Error opening device: {}", e),
+    };
+
+    let mut buffer: [u8; 256] = [0; 256];
+
+    for _ in 0..16 {
+        let num_recv = match device.read(&mut buffer[..]) {
+            Ok(x) => x,
+            Err(e) => panic!("Error reading device: {}", e),
+        };
+        eprintln!("Received: {:?}", String::from_utf8_lossy(
+            &buffer[..num_recv]));
+    }
 }
