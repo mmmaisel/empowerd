@@ -1,54 +1,39 @@
-use warp::Filter;
-use std::sync::Arc;
 use juniper::http::graphiql::graphiql_source;
 use juniper::RootNode;
+use std::sync::Arc;
+use warp::Filter;
 
-#[derive(juniper::GraphQLObject)]
-struct ValveState {
-    state: i32,
-}
+mod mutation;
+mod query;
+mod valve;
 
-struct QueryRoot;
-struct MutationRoot;
+use mutation::*;
+use query::*;
+use valve::*;
 
-#[juniper::object(Context = Context)]
-impl QueryRoot {
-    async fn valves(ctx: &Context) -> juniper::FieldResult<ValveState> {
-        return Ok(ValveState { state: 123 });
-    }
-}
+type Schema = RootNode<'static, Query, Mutation>;
 
-#[juniper::object(Context = Context)]
-impl MutationRoot {
-    async fn set_valves(ctx: &Context, state: i32) -> juniper::FieldResult<ValveState> {
-        return Ok(ValveState { state: state });
-    }
-}
+pub struct Context {}
 
-type Schema = RootNode<'static, QueryRoot, MutationRoot>;
-
-struct Context {
-}
-
-use std::convert::Infallible;
 use juniper::http::GraphQLRequest;
+use std::convert::Infallible;
 
 async fn graphql(
     schema: Arc<Schema>,
     ctx: Arc<Context>,
     req: GraphQLRequest,
 ) -> Result<impl warp::Reply, Infallible> {
-    let res = req.execute(&schema, &ctx);//.await;
+    let res = req.execute(&schema, &ctx); //.await;
     let json = serde_json::to_string(&res).expect("Invalid JSON response");
     Ok(json)
 }
 
 #[tokio::main]
-async fn main () {
-    let schema = Arc::new(Schema::new(QueryRoot, MutationRoot));
+async fn main() {
+    let schema = Arc::new(Schema::new(Query, Mutation));
     let schema = warp::any().map(move || Arc::clone(&schema));
 
-    let ctx = Arc::new(Context { });
+    let ctx = Arc::new(Context {});
     let ctx = warp::any().map(move || Arc::clone(&ctx));
 
     let graphql_route = warp::post()
