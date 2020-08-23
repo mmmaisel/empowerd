@@ -37,4 +37,17 @@ impl WaterSwitch {
             None => return Err("Valve index not found".into()),
         };
     }
+
+    pub fn get_open(&self) -> Result<Vec<bool>, String> {
+        return self
+            .pins
+            .iter()
+            .map(|pin| {
+                return match pin.get_value() {
+                    Ok(x) => Ok(x != 0),
+                    Err(e) => Err(e.to_string()),
+                };
+            })
+            .collect();
+    }
 }
