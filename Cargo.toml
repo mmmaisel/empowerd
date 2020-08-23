@@ -17,4 +17,4 @@ serde_json = "*"
 #diesel = { version="*", features=["sqlite", "r2d2"] }
 #r2d2-diesel="*"
 #jsonwebtoken="*"
-#sysfs_gpio = "*"
+sysfs_gpio = "*"

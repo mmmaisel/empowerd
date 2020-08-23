@@ -6,14 +6,18 @@ use warp::Filter;
 mod mutation;
 mod query;
 mod valve;
+mod water_switch;
 
 use mutation::*;
 use query::*;
 use valve::*;
+use water_switch::*;
 
 type Schema = RootNode<'static, Query, Mutation>;
 
-pub struct Context {}
+pub struct Context {
+    water_switch: WaterSwitch,
+}
 
 use juniper::http::GraphQLRequest;
 use std::convert::Infallible;
@@ -33,7 +37,12 @@ async fn main() {
     let schema = Arc::new(Schema::new(Query, Mutation));
     let schema = warp::any().map(move || Arc::clone(&schema));
 
-    let ctx = Arc::new(Context {});
+    // TODO: add config for this
+    let water_switch = WaterSwitch::new(vec![]);
+
+    let ctx = Arc::new(Context {
+        water_switch: water_switch,
+    });
     let ctx = warp::any().map(move || Arc::clone(&ctx));
 
     let graphql_route = warp::post()
