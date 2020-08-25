@@ -1,4 +1,6 @@
 use std::convert::TryInto;
+use std::thread;
+use std::time;
 use sysfs_gpio::{Direction, Pin};
 
 pub struct WaterSwitch {
@@ -19,9 +21,10 @@ impl WaterSwitch {
         let pins = pin_nums
             .into_iter()
             .map(|pin_num| {
+                // TODO: dont unwrap use nice errors
                 let pin = Pin::new(pin_num.try_into().unwrap());
                 pin.export().unwrap();
-                // TODO: needs delay
+                thread::sleep(time::Duration::from_millis(100));
                 pin.set_direction(Direction::Out).unwrap();
                 return pin;
             })
