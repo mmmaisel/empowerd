@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use sysfs_gpio::{Direction, Pin};
 
 pub struct WaterSwitch {
@@ -7,20 +8,21 @@ pub struct WaterSwitch {
 impl Drop for WaterSwitch {
     fn drop(&mut self) {
         for pin in &self.pins {
-            pin.set_direction(Direction::In);
-            pin.unexport();
+            pin.set_direction(Direction::In).unwrap();
+            pin.unexport().unwrap();
         }
     }
 }
 
 impl WaterSwitch {
-    pub fn new(pin_nums: Vec<u64>) -> WaterSwitch {
+    pub fn new(pin_nums: Vec<i64>) -> WaterSwitch {
         let pins = pin_nums
             .into_iter()
             .map(|pin_num| {
-                let pin = Pin::new(pin_num);
-                pin.export();
-                pin.set_direction(Direction::Out);
+                let pin = Pin::new(pin_num.try_into().unwrap());
+                pin.export().unwrap();
+                // TODO: needs delay
+                pin.set_direction(Direction::Out).unwrap();
                 return pin;
             })
             .collect();

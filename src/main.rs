@@ -5,11 +5,13 @@ use warp::Filter;
 
 mod mutation;
 mod query;
+mod settings;
 mod valve;
 mod water_switch;
 
 use mutation::*;
 use query::*;
+use settings::*;
 use valve::*;
 use water_switch::*;
 
@@ -37,8 +39,13 @@ async fn main() {
     let schema = Arc::new(Schema::new(Query, Mutation));
     let schema = warp::any().map(move || Arc::clone(&schema));
 
-    // TODO: add config for this
-    let water_switch = WaterSwitch::new(vec![]);
+    let settings = match Settings::load() {
+        Ok(x) => x,
+        Err(e) => panic!("Could not load config: {}", e),
+    };
+
+    // TODO: add graceful exit
+    let water_switch = WaterSwitch::new(settings.pins);
 
     let ctx = Arc::new(Context {
         water_switch: water_switch,
@@ -58,5 +65,7 @@ async fn main() {
 
     let routes = graphql_route.or(graphiql_route);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
+    println!("Ready");
+    // TODO: config this
+    warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
 }
