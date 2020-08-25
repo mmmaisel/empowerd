@@ -1,6 +1,7 @@
 use juniper::http::graphiql::graphiql_source;
 use juniper::RootNode;
 use std::sync::Arc;
+use tokio::signal;
 use warp::Filter;
 
 mod mutation;
@@ -44,7 +45,6 @@ async fn main() {
         Err(e) => panic!("Could not load config: {}", e),
     };
 
-    // TODO: add graceful exit
     let water_switch = WaterSwitch::new(settings.pins);
 
     let ctx = Arc::new(Context {
@@ -66,6 +66,13 @@ async fn main() {
     let routes = graphql_route.or(graphiql_route);
 
     println!("Ready");
-    // TODO: config this
-    warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
+    tokio::select! {
+        // TODO: config listen address
+        _ = warp::serve(routes).run(([0, 0, 0, 0], 8000)) => {
+            println!("Server loop exited.");
+        }
+        _ = signal::ctrl_c() => {
+            println!("Received SIGINT, exit.");
+        }
+    }
 }
