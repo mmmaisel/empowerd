@@ -1,9 +1,13 @@
+use daemonize::Daemonize;
 use juniper::http::graphiql::graphiql_source;
 use juniper::RootNode;
 use std::net;
 use std::sync::Arc;
+use tokio::runtime::Runtime;
 use tokio::signal;
 use warp::Filter;
+
+// TODO: implement logger (slog?)
 
 mod mutation;
 mod query;
@@ -36,15 +40,33 @@ async fn graphql(
     Ok(json)
 }
 
-#[tokio::main]
-async fn main() {
-    let schema = Arc::new(Schema::new(Query, Mutation));
-    let schema = warp::any().map(move || Arc::clone(&schema));
-
+fn main() {
     let settings = match Settings::load() {
         Ok(x) => x,
         Err(e) => panic!("Could not load config: {}", e),
     };
+
+    if settings.daemonize {
+        let daemon = Daemonize::new()
+            .pid_file(&settings.pid_file)
+            .chown_pid_file(true)
+            .working_directory(&settings.wrk_dir);
+
+        match daemon.start() {
+            Ok(_) => println!("Daemonized"),
+            Err(e) => panic!("Daemonize failed: {}", e),
+        }
+    }
+
+    match Runtime::new() {
+        Ok(mut rt) => rt.block_on(tokio_main(settings)),
+        Err(e) => panic!("Failed to create tokio runtime: {}", e),
+    };
+}
+
+async fn tokio_main(settings: Settings) {
+    let schema = Arc::new(Schema::new(Query, Mutation));
+    let schema = warp::any().map(move || Arc::clone(&schema));
 
     let water_switch = WaterSwitch::new(settings.pins);
 
