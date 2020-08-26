@@ -1,5 +1,6 @@
 use juniper::http::graphiql::graphiql_source;
 use juniper::RootNode;
+use std::net;
 use std::sync::Arc;
 use tokio::signal;
 use warp::Filter;
@@ -64,11 +65,15 @@ async fn main() {
         .map(|| warp::reply::html(graphiql_source("graphql")));
 
     let routes = graphql_route.or(graphiql_route);
+    let address = format!("{}:{}", settings.listen_address, settings.port);
+    let address = match address.parse::<net::SocketAddr>() {
+        Ok(x) => x,
+        Err(_) => panic!("{} is not an IP address", address),
+    };
 
     println!("Ready");
     tokio::select! {
-        // TODO: config listen address
-        _ = warp::serve(routes).run(([0, 0, 0, 0], 8000)) => {
+        _ = warp::serve(routes).run(address) => {
             println!("Server loop exited.");
         }
         _ = signal::ctrl_c() => {

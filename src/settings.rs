@@ -8,6 +8,8 @@ pub struct Settings {
     pub daemonize: bool,
     pub pid_file: String,
     pub wrk_dir: String,
+    pub listen_address: String,
+    pub port: u16,
     pub pins: Vec<i64>,
 }
 
@@ -18,6 +20,8 @@ impl Settings {
         config.set_default("daemonize", false)?;
         config.set_default("pid_file", "/var/run/water/pid")?;
         config.set_default("wrk_dir", "/")?;
+        config.set_default("listen_address", "127.0.0.1")?;
+        config.set_default("port", 3000)?;
         config.set_default("pins", Vec::<i64>::new())?;
 
         config.merge(File::with_name(&filename).format(FileFormat::Toml))?;
