@@ -26,6 +26,7 @@ impl WaterSwitch {
                 pin.export().unwrap();
                 thread::sleep(time::Duration::from_millis(100));
                 pin.set_direction(Direction::Out).unwrap();
+                pin.set_value(1).unwrap();
                 return pin;
             })
             .collect();
@@ -35,7 +36,7 @@ impl WaterSwitch {
 
     pub fn set_open(&self, channel: usize, open: bool) -> Result<(), String> {
         match self.pins.get(channel) {
-            Some(pin) => match pin.set_value(if open { 1 } else { 0 }) {
+            Some(pin) => match pin.set_value(if open { 0 } else { 1 }) {
                 Ok(_) => return Ok(()),
                 Err(e) => return Err(e.to_string()),
             },
@@ -49,7 +50,7 @@ impl WaterSwitch {
             .iter()
             .map(|pin| {
                 return match pin.get_value() {
-                    Ok(x) => Ok(x != 0),
+                    Ok(x) => Ok(x == 0),
                     Err(e) => Err(e.to_string()),
                 };
             })
