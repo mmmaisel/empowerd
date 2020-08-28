@@ -1,9 +1,10 @@
+use serde::Deserialize;
 use std::env;
 
 use config::{Config, ConfigError, File, FileFormat};
 use getopts::Options;
 
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Settings {
     pub daemonize: bool,
     pub pid_file: String,

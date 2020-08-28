@@ -1,43 +1,56 @@
 use daemonize::Daemonize;
 use juniper::http::graphiql::graphiql_source;
+use juniper::http::GraphQLRequest;
 use juniper::RootNode;
+use std::convert::Infallible;
 use std::net;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::signal;
 use warp::Filter;
 
-// TODO: implement logger (slog?)
+// TODO: implement logger (slog? + term)
 
 mod mutation;
 mod query;
+mod session_manager;
 mod settings;
 mod valve;
 mod water_switch;
 
 use mutation::*;
 use query::*;
+use session_manager::*;
 use settings::*;
 use valve::*;
 use water_switch::*;
 
 type Schema = RootNode<'static, Query, Mutation>;
 
-pub struct Context {
+pub struct Globals {
+    session_manager: SessionManager,
     water_switch: WaterSwitch,
 }
 
-use juniper::http::GraphQLRequest;
-use std::convert::Infallible;
+pub struct Context {
+    globals: Arc<Globals>,
+    token: String,
+}
 
 async fn graphql(
+    auth: Option<String>,
     schema: Arc<Schema>,
-    ctx: Arc<Context>,
+    globals: Arc<Globals>,
     req: GraphQLRequest,
 ) -> Result<impl warp::Reply, Infallible> {
+    let ctx = Context {
+        globals: globals.clone(),
+        token: auth.unwrap_or("".into()).replace("Bearer ", ""),
+    };
+    eprintln!("Raw token: {:?}", &ctx.token);
+
     let res = req.execute(&schema, &ctx); //.await;
-    let json = serde_json::to_string(&res).expect("Invalid JSON response");
-    Ok(json)
+    return Ok(serde_json::to_string(&res).expect("Invalid JSON response"));
 }
 
 fn main() {
@@ -68,17 +81,20 @@ async fn tokio_main(settings: Settings) {
     let schema = Arc::new(Schema::new(Query, Mutation));
     let schema = warp::any().map(move || Arc::clone(&schema));
 
+    let session_manager = SessionManager::new().unwrap();
     let water_switch = WaterSwitch::new(settings.pins);
 
-    let ctx = Arc::new(Context {
+    let globals = Arc::new(Globals {
+        session_manager: session_manager,
         water_switch: water_switch,
     });
-    let ctx = warp::any().map(move || Arc::clone(&ctx));
+    let globals = warp::any().map(move || Arc::clone(&globals));
 
     let graphql_route = warp::post()
         .and(warp::path!("graphql"))
+        .and(warp::header::optional("Authorization"))
         .and(schema.clone())
-        .and(ctx.clone())
+        .and(globals.clone())
         .and(warp::body::json())
         .and_then(graphql);
 
