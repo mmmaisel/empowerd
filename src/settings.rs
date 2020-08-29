@@ -11,6 +11,8 @@ pub struct Settings {
     pub wrk_dir: String,
     pub listen_address: String,
     pub port: u16,
+    pub username: String,
+    pub hashed_pw: String,
     pub pins: Vec<i64>,
 }
 
@@ -23,6 +25,8 @@ impl Settings {
         config.set_default("wrk_dir", "/")?;
         config.set_default("listen_address", "127.0.0.1")?;
         config.set_default("port", 3000)?;
+        config.set_default("username", "water")?;
+        config.set_default("hashed_pw", "!")?;
         config.set_default("pins", Vec::<i64>::new())?;
 
         config.merge(File::with_name(&filename).format(FileFormat::Toml))?;

@@ -30,6 +30,8 @@ use water_switch::*;
 type Schema = RootNode<'static, Query, Mutation>;
 
 pub struct Globals {
+    username: String,
+    hashed_pw: String,
     session_manager: SessionManager,
     water_switch: WaterSwitch,
 }
@@ -87,6 +89,8 @@ async fn tokio_main(settings: Settings) {
     let water_switch = WaterSwitch::new(settings.pins);
 
     let globals = Arc::new(Globals {
+        username: settings.username,
+        hashed_pw: settings.hashed_pw,
         session_manager: session_manager,
         water_switch: water_switch,
     });

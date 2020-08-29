@@ -10,10 +10,27 @@ pub struct Mutation;
 impl Mutation {
     async fn login(
         ctx: &Context,
-        credentials: String,
+        username: String,
+        password: String,
     ) -> juniper::FieldResult<String> {
-        // TODO: validate credentials
-        return ctx.globals.session_manager.register().map_err(|e| e.into());
+        if username == ctx.globals.username {
+            match argon2::verify_encoded(
+                &ctx.globals.hashed_pw,
+                password.as_bytes(),
+            ) {
+                Ok(valid) => {
+                    if valid {
+                        return ctx
+                            .globals
+                            .session_manager
+                            .register()
+                            .map_err(|e| e.into());
+                    }
+                }
+                Err(e) => println!("Verify password failed: {}", e),
+            }
+        }
+        return Err("Incorrect user or password!".into());
     }
 
     async fn logout(ctx: &Context) -> juniper::FieldResult<String> {
