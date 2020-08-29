@@ -19,6 +19,13 @@ impl Mutation {
         };
     }
 
+    async fn logout(ctx: &Context) -> juniper::FieldResult<String> {
+        return match ctx.globals.session_manager.destroy(&ctx.token) {
+            Ok(()) => Ok("Logged out".into()),
+            Err(e) => Err(e.into()),
+        };
+    }
+
     async fn set_valve(
         ctx: &Context,
         valve: InputValve,
