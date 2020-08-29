@@ -85,7 +85,10 @@ async fn tokio_main(settings: Settings) {
     let schema = Arc::new(Schema::new(Query, Mutation));
     let schema = warp::any().map(move || Arc::clone(&schema));
 
-    let session_manager = SessionManager::new().unwrap();
+    let session_manager = match SessionManager::new(settings.session_timeout) {
+        Ok(x) => x,
+        Err(e) => panic!("Creating session manager failed: {}", e),
+    };
     let water_switch = WaterSwitch::new(settings.pins);
 
     let globals = Arc::new(Globals {
