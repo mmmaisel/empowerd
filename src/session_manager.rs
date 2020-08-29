@@ -29,10 +29,8 @@ impl SessionManager {
             return Err(format!("Could not get random key: {}", e));
         }
 
-        let key = match Hmac::new_varkey(&key) {
-            Ok(x) => x,
-            Err(e) => return Err(format!("Could not create HMAC: {}", e)),
-        };
+        let key = Hmac::new_varkey(&key)
+            .map_err(|e| format!("Could not create HMAC: {}", e))?;
 
         return Ok(SessionManager {
             rand: rand,
@@ -53,10 +51,10 @@ impl SessionManager {
         };
 
         // XXX: needs session.clone() because sign_with_key consumes object
-        let token: String = match session.clone().sign_with_key(&self.key) {
-            Ok(x) => x,
-            Err(e) => return Err(format!("Could not sign new session: {}", e)),
-        };
+        let token: String = session
+            .clone()
+            .sign_with_key(&self.key)
+            .map_err(|e| format!("Could not sign new session: {}", e))?;
 
         // TODO: dont unwrap
         self.sessions

@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use daemonize::Daemonize;
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;

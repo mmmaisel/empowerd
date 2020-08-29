@@ -13,10 +13,7 @@ impl Mutation {
         credentials: String,
     ) -> juniper::FieldResult<String> {
         // TODO: validate credentials
-        return match ctx.globals.session_manager.register() {
-            Ok(x) => Ok(x),
-            Err(e) => Err(e.into()),
-        };
+        return ctx.globals.session_manager.register().map_err(|e| e.into());
     }
 
     async fn logout(ctx: &Context) -> juniper::FieldResult<String> {

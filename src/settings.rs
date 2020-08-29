@@ -38,10 +38,7 @@ impl Settings {
             "daemonize",
         );
 
-        let matches = match options.parse(env::args()) {
-            Ok(m) => m,
-            Err(e) => return Err(e.to_string()),
-        };
+        let matches = options.parse(env::args()).map_err(|e| e.to_string())?;
 
         let cfg_path = if matches.opt_present("c") {
             matches.opt_str("c").unwrap()
@@ -49,10 +46,8 @@ impl Settings {
             "/etc/water/water.conf".to_string()
         };
 
-        let mut settings = match Settings::load_from_file(cfg_path) {
-            Ok(x) => x,
-            Err(e) => return Err(e.to_string()),
-        };
+        let mut settings =
+            Settings::load_from_file(cfg_path).map_err(|e| e.to_string())?;
 
         if matches.opt_present("d") {
             settings.daemonize = true;
