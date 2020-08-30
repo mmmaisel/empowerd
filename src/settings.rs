@@ -46,10 +46,9 @@ impl Settings {
 
         let matches = options.parse(env::args()).map_err(|e| e.to_string())?;
 
-        let cfg_path = if matches.opt_present("c") {
-            matches.opt_str("c").unwrap()
-        } else {
-            "/etc/water/water.conf".to_string()
+        let cfg_path = match matches.opt_str("c") {
+            Some(x) => x,
+            None => "/etc/water/water.conf".into(),
         };
 
         let mut settings =

@@ -10,28 +10,34 @@ pub struct WaterSwitch {
 impl Drop for WaterSwitch {
     fn drop(&mut self) {
         for pin in &self.pins {
-            pin.set_direction(Direction::In).unwrap();
-            pin.unexport().unwrap();
+            if let Err(e) = pin.set_direction(Direction::In) {
+                panic!("Failed to uninitialize pin: {}", e)
+            }
+            if let Err(e) = pin.unexport() {
+                panic!("Failed to uninitialize pin: {}", e)
+            }
         }
     }
 }
 
 impl WaterSwitch {
-    pub fn new(pin_nums: Vec<i64>) -> WaterSwitch {
+    pub fn new(pin_nums: Vec<i64>) -> Result<WaterSwitch, String> {
         let pins = pin_nums
             .into_iter()
             .map(|pin_num| {
-                // TODO: dont unwrap use nice errors
-                let pin = Pin::new(pin_num.try_into().unwrap());
-                pin.export().unwrap();
+                let pin_num = TryInto::<u64>::try_into(pin_num)
+                    .map_err(|e| e.to_string())?;
+                let pin = Pin::new(pin_num);
+                pin.export().map_err(|e| e.to_string())?;
                 thread::sleep(time::Duration::from_millis(100));
-                pin.set_direction(Direction::Out).unwrap();
-                pin.set_value(1).unwrap();
-                return pin;
+                pin.set_direction(Direction::Out)
+                    .map_err(|e| e.to_string())?;
+                pin.set_value(1).map_err(|e| e.to_string())?;
+                return Ok(pin);
             })
-            .collect();
+            .collect::<Result<Vec<Pin>, String>>()?;
 
-        return WaterSwitch { pins: pins };
+        return Ok(WaterSwitch { pins: pins });
     }
 
     pub fn set_open(&self, channel: usize, open: bool) -> Result<(), String> {
