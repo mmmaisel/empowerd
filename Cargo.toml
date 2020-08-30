@@ -11,8 +11,8 @@ tokio = { version=">=0.2.0", features=["full"] }
 juniper = "*"
 warp = "*"
 
-slog = "*"
-slog-term = "*"
+slog = { version="*", features=["max_level_trace"] }
+sloggers = { version="*", default_features=false }
 
 jwt = "*"
 hmac = "*"

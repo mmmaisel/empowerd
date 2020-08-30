@@ -9,6 +9,7 @@ pub struct Settings {
     pub daemonize: bool,
     pub pid_file: String,
     pub wrk_dir: String,
+    pub logfile: String,
     pub listen_address: String,
     pub port: u16,
     pub session_timeout: u64,
@@ -24,6 +25,7 @@ impl Settings {
         config.set_default("daemonize", false)?;
         config.set_default("pid_file", "/var/run/water/pid")?;
         config.set_default("wrk_dir", "/")?;
+        config.set_default("logfile", "/var/log/waterd.log")?;
         config.set_default("listen_address", "127.0.0.1")?;
         config.set_default("port", 3000)?;
         config.set_default("session_timeout", 300)?;

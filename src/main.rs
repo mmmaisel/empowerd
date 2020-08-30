@@ -4,7 +4,13 @@ use daemonize::Daemonize;
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
 use juniper::RootNode;
-use slog::{error, info, trace, Logger};
+use slog::{debug, error, info, Logger};
+use sloggers::{
+    file::FileLoggerBuilder,
+    terminal::{Destination, TerminalLoggerBuilder},
+    types::{OverflowStrategy, Severity},
+    Build,
+};
 use std::convert::Infallible;
 use std::net;
 use std::process;
@@ -12,8 +18,6 @@ use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::signal;
 use warp::Filter;
-
-// TODO: implement logger (slog? + term)
 
 mod mutation;
 mod query;
@@ -68,13 +72,22 @@ fn main() {
         }
     };
 
-    let term_decorator = slog_term::PlainSyncDecorator::new(std::io::stdout());
-    let term_drain = slog_term::FullFormat::new(term_decorator).build();
+    let root_logger = if settings.daemonize {
+        FileLoggerBuilder::new(&settings.logfile)
+            .level(Severity::Info)
+            .overflow_strategy(OverflowStrategy::Block)
+            .build()
+    } else {
+        TerminalLoggerBuilder::new()
+            .level(Severity::Trace)
+            .overflow_strategy(OverflowStrategy::Block)
+            .destination(Destination::Stdout)
+            .build()
+    };
+    let root_logger = root_logger.unwrap();
 
-    // TODO: async logging and filter level from config
-    let root_logger = Logger::root(slog::Fuse(term_drain), slog::o!());
     info!(root_logger, "💦️ Starting waterd");
-    trace!(root_logger, "Settings: {:?}", &settings);
+    debug!(root_logger, "Settings: {:?}", &settings);
 
     if settings.daemonize {
         let daemon = Daemonize::new()
@@ -86,6 +99,7 @@ fn main() {
             Ok(_) => info!(root_logger, "Daemonized"),
             Err(e) => {
                 error!(root_logger, "Daemonize failed: {}", e);
+                drop(root_logger);
                 process::exit(1);
             }
         }
@@ -93,10 +107,13 @@ fn main() {
 
     match Runtime::new() {
         Ok(mut rt) => {
-            process::exit(rt.block_on(tokio_main(settings, root_logger)))
+            let retval = rt.block_on(tokio_main(settings, root_logger.clone()));
+            drop(root_logger);
+            process::exit(retval);
         }
         Err(e) => {
             error!(root_logger, "Failed to create tokio runtime: {}", e);
+            drop(root_logger);
             process::exit(1);
         }
     };
