@@ -11,6 +11,9 @@ tokio = { version=">=0.2.0", features=["full"] }
 juniper = "*"
 warp = "*"
 
+slog = "*"
+slog-term = "*"
+
 jwt = "*"
 hmac = "*"
 sha2 = "*"

@@ -59,9 +59,6 @@ impl Settings {
             settings.daemonize = true;
         }
 
-        if cfg!(debug_assertions) {
-            println!("{:?}", &settings);
-        }
         return Ok(settings);
     }
 }

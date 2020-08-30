@@ -1,3 +1,4 @@
+use slog::warn;
 use std::convert::TryInto;
 
 use super::Context;
@@ -20,14 +21,14 @@ impl Mutation {
             ) {
                 Ok(valid) => {
                     if valid {
-                        return ctx
-                            .globals
-                            .session_manager
-                            .register()
-                            .map_err(|e| e.into());
+                        return ctx.globals.session_manager.register().map_err(
+                            |e| e.to_string(&ctx.globals.logger).into(),
+                        );
                     }
                 }
-                Err(e) => println!("Verify password failed: {}", e),
+                Err(e) => {
+                    warn!(ctx.globals.logger, "Verify password failed: {}", e)
+                }
             }
         }
         return Err("Incorrect user or password!".into());
@@ -36,7 +37,7 @@ impl Mutation {
     async fn logout(ctx: &Context) -> juniper::FieldResult<String> {
         return match ctx.globals.session_manager.destroy(&ctx.token) {
             Ok(()) => Ok("Logged out".into()),
-            Err(e) => Err(e.into()),
+            Err(e) => Err(e.to_string(&ctx.globals.logger).into()),
         };
     }
 
@@ -44,7 +45,9 @@ impl Mutation {
         ctx: &Context,
         valve: InputValve,
     ) -> juniper::FieldResult<Valve> {
-        ctx.globals.session_manager.verify(&ctx.token)?;
+        if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
+            return Err(e.to_string(&ctx.globals.logger).into());
+        }
 
         let channel: usize = match valve.id.try_into() {
             Ok(x) => x,
