@@ -2,21 +2,32 @@ import React, { Component } from "react";
 import "./Widgets.scss";
 
 class LoginForm extends Component {
-    #token;
+    static IDLE = 0;
+    static BUSY = 1;
+    static FAILED = 2;
 
     constructor(props) {
         super(props);
-        this.#token = "test";
         this.state = {
+            login_state: LoginForm.IDLE,
             username: "",
             password: "",
         };
     }
 
-    login = () => {
-        this.props.onLogin();
-        // TODO: ajax
-        // TODO: pass logged in to parent
+    onLogin = () => {
+        this.setState({ login_state: LoginForm.BUSY });
+        this.props.api.login(
+            this.state.username,
+            this.state.password,
+            (response) => {
+                this.props.onLogin();
+                this.setState({ login_state: LoginForm.IDLE });
+            },
+            (error) => {
+                this.setState({ login_state: LoginForm.FAILED });
+            }
+        );
     };
 
     onUsernameChanged = (event) => {
@@ -26,6 +37,14 @@ class LoginForm extends Component {
     onPasswordChanged = (event) => {
         this.setState({ password: event.target.value });
     };
+
+    loginState() {
+        if (this.state.login_state === LoginForm.BUSY) {
+            return <div>Logging in...</div>;
+        } else if (this.state.login_state === LoginForm.FAILED) {
+            return <div>Login failed...</div>;
+        }
+    }
 
     render() {
         let grid = {
@@ -63,7 +82,8 @@ class LoginForm extends Component {
                             onChange={this.onPasswordChanged}
                         />
                     </div>
-                    <button className="button" onClick={this.login}>
+                    {this.loginState()}
+                    <button className="button" onClick={this.onLogin}>
                         Login
                     </button>
                 </div>
