@@ -1,73 +1,65 @@
-import React, {Component} from 'react';
-import './Widgets.scss';
+import React, { Component } from "react";
+import "./Widgets.scss";
 
-class LoginForm extends Component
-{
+class LoginForm extends Component {
     #token;
 
-    constructor(props)
-    {
+    constructor(props) {
         super(props);
-        this.#token = "test"
-        this.state =
-        {
+        this.#token = "test";
+        this.state = {
             username: "",
             password: "",
         };
     }
 
-    login = () =>
-    {
+    login = () => {
         this.props.onLogin();
         // TODO: ajax
         // TODO: pass logged in to parent
-    }
+    };
 
-    onUsernameChanged = (event) =>
-    {
-        this.setState({username: event.target.value});
-    }
+    onUsernameChanged = (event) => {
+        this.setState({ username: event.target.value });
+    };
 
-    onPasswordChanged = (event) =>
-    {
-        this.setState({password: event.target.value});
-    }
+    onPasswordChanged = (event) => {
+        this.setState({ password: event.target.value });
+    };
 
-    render()
-    {
-        let grid =
-        {
+    render() {
+        let grid = {
             marginTop: "3px",
             display: "grid",
             gridGap: "3px",
             gridTemplateColumns: "[labels] auto [controls] 1fr",
             alignItems: "center",
-            userSelect: "none"
+            userSelect: "none",
         };
-        let labelCol =
-        {
+        let labelCol = {
             gridColumn: "labels",
         };
-        let inputCol =
-        {
-            gridColumn: "controls"
+        let inputCol = {
+            gridColumn: "controls",
         };
         return (
             <div className="dialogBorder">
-                <div className="dialogTitle">
-                    Please Login
-                </div>
+                <div className="dialogTitle">Please Login</div>
                 <div className="dialogContent">
                     <div style={grid}>
                         <span style={labelCol}> Username: </span>
-                        <input style={inputCol}
-                            type="text" value={this.state.username}
+                        <input
+                            style={inputCol}
+                            type="text"
+                            value={this.state.username}
                             placeholder="username"
                             onChange={this.onUsernameChanged}
                         />
                         <span style={labelCol}> Password: </span>
-                        <input style={inputCol}
-                            type="password" value={this.state.password}
+                        <input
+                            style={inputCol}
+                            type="password"
+                            value={this.state.password}
                             onChange={this.onPasswordChanged}
                         />
                     </div>

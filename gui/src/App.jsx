@@ -1,78 +1,63 @@
-import React, {Component} from 'react';
-import './App.scss';
+import React, { Component } from "react";
+import "./App.scss";
 
-import Navbar from './Navbar.jsx';
-import Config from './Config.jsx';
-import Status from './Status.jsx';
-import LoginForm from './LoginForm.jsx';
+import Navbar from "./Navbar.jsx";
+import Config from "./Config.jsx";
+import Status from "./Status.jsx";
+import LoginForm from "./LoginForm.jsx";
 
-class App extends Component
-{
-    constructor(props)
-    {
+class App extends Component {
+    constructor(props) {
         super(props);
         this.items = ["Status", "Config", "Logout"];
-        this.state =
-        {
+        this.state = {
             logged_in: false,
-            active_tab: this.items[0]
+            active_tab: this.items[0],
         };
     }
 
-    onLogin = () =>
-    {
+    onLogin = () => {
         this.setState({ logged_in: true });
         // TODO: real login logic
-    }
+    };
 
-    onLogout = () =>
-    {
+    onLogout = () => {
         this.setState({ logged_in: false });
         // TODO: real logout logic
-    }
+    };
 
-    onTab = (which) =>
-    {
-        if(which === "Logout")
-        {
+    onTab = (which) => {
+        if (which === "Logout") {
             this.onLogout();
-        }
-        else
-        {
+        } else {
             this.setState({ active_tab: which });
         }
-    }
+    };
 
-    render()
-    {
+    render() {
         let content;
-        if(this.state.logged_in)
-        {
-            if(this.state.active_tab === "Status")
-            {
-                content = <Status />
-            }
-            else if(this.state.active_tab === "Config")
-            {
-                content = <Config />
-            }
-            else
-            {
-                throw("Invalid active_tab");
+        if (this.state.logged_in) {
+            if (this.state.active_tab === "Status") {
+                content = <Status />;
+            } else if (this.state.active_tab === "Config") {
+                content = <Config />;
+            } else {
+                throw "Invalid active_tab";
             }
             return (
                 <div>
-                    <Navbar items={ this.items } onTab={ this.onTab }
-                        active_tab={ this.state.active_tab } />
-                    { content }
+                    <Navbar
+                        items={this.items}
+                        onTab={this.onTab}
+                        active_tab={this.state.active_tab}
+                    />
+                    {content}
                 </div>
             );
-        }
-        else
-        {
+        } else {
             return (
                 <div className="loginScreen">
-                    <LoginForm onLogin={ this.onLogin }/>
+                    <LoginForm onLogin={this.onLogin} />
                 </div>
             );
         }

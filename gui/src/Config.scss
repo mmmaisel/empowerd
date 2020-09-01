@@ -1,7 +1,6 @@
 @import "Common";
 
-table.configTable
-{
+table.configTable {
     border-collapse: collapse;
     border-style: hidden;
     width: 100%;
@@ -11,35 +10,28 @@ table.configTable
     table-layout: fixed;
 }
 
-@mixin cellBorder
-{
+@mixin cellBorder {
     border: solid #aaa 1px;
 }
 
-.configTable
-{
-    th
-    {
+.configTable {
+    th {
         @include titleBackgroundGradient;
         @include cellBorder;
         @include textWithGlow;
         padding: 7px;
     }
-    td
-    {
+    td {
         @include cellBorder;
         background: white;
         padding: 7px;
-        &.actions
-        {
+        &.actions {
             padding: 0;
             text-align: center;
         }
-        &.edit
-        {
+        &.edit {
             padding: 0;
-            input
-            {
+            input {
                 width: stretch;
                 width: -moz-available; /* XXX */
             }
