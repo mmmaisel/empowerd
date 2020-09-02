@@ -2,6 +2,7 @@
 pub struct Valve {
     pub id: i32,
     pub open: bool,
+    pub name: String,
 }
 
 #[derive(juniper::GraphQLInputObject)]

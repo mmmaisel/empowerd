@@ -16,6 +16,7 @@ pub struct Settings {
     pub username: String,
     pub hashed_pw: String,
     pub pins: Vec<i64>,
+    pub pin_names: Vec<String>,
 }
 
 impl Settings {
@@ -32,6 +33,7 @@ impl Settings {
         config.set_default("username", "water")?;
         config.set_default("hashed_pw", "!")?;
         config.set_default("pins", Vec::<i64>::new())?;
+        config.set_default("pin_names", Vec::<String>::new())?;
 
         config.merge(File::with_name(&filename).format(FileFormat::Toml))?;
 

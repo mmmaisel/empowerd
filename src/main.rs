@@ -130,7 +130,8 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
             return 2;
         }
     };
-    let water_switch = match WaterSwitch::new(settings.pins) {
+    let water_switch = match WaterSwitch::new(settings.pins, settings.pin_names)
+    {
         Ok(x) => x,
         Err(e) => {
             error!(logger, "Could not create water switch: {}", e);

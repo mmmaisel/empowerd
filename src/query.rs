@@ -14,10 +14,12 @@ impl Query {
             Ok(x) => x
                 .iter()
                 .enumerate()
-                .map(|(idx, val)| {
+                .zip(ctx.globals.water_switch.get_names())
+                .map(|((idx, val), name)| {
                     return Ok(Valve {
                         id: idx as i32,
                         open: *val,
+                        name: name,
                     });
                 })
                 .collect(),

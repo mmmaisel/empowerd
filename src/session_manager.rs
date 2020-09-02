@@ -62,6 +62,7 @@ macro_rules! auth_error(
 pub struct SessionManager {
     rand: SystemRandom,
     lifetime: u64,
+    // TODO: trace content of sessions
     sessions: Mutex<HashMap<String, Session>>,
     key: Hmac<Sha256>,
 }

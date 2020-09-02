@@ -54,6 +54,11 @@ impl Mutation {
             Err(e) => return Err(e.into()),
         };
 
+        let name = match ctx.globals.water_switch.get_name(channel) {
+            Ok(x) => x,
+            Err(e) => return Err(e.into()),
+        };
+
         if let Err(e) = ctx.globals.water_switch.set_open(channel, valve.open) {
             return Err(e.into());
         }
@@ -61,6 +66,7 @@ impl Mutation {
         return Ok(Valve {
             id: valve.id,
             open: valve.open,
+            name: name,
         });
     }
 }
