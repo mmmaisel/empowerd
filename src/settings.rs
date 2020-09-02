@@ -58,6 +58,10 @@ impl Settings {
         let mut settings =
             Settings::load_from_file(cfg_path).map_err(|e| e.to_string())?;
 
+        if settings.pins.len() != settings.pin_names.len() {
+            return Err("'pins' and 'pin_names' must be of same size!".into());
+        }
+
         if matches.opt_present("d") {
             settings.daemonize = true;
         }
