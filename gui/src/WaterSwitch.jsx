@@ -974,14 +974,14 @@ class WaterSwitch extends Component {
                     transform="rotate(-90)"
                     x="-38"
                     y="28.5"
-                    font-family="sans-serif"
-                    font-size="6px"
+                    fontFamily="sans-serif"
+                    fontSize="6px"
                     stroke="#FFFFFF"
                     filter="url(#filterTextShadow)"
-                    pointer-events="none"
-                    stroke-width=".5"
+                    pointerEvents="none"
+                    strokeWidth=".5"
                     text-align="end"
-                    text-anchor="end"
+                    textAnchor="end"
                 >
                     {text}
                 </text>
@@ -990,12 +990,12 @@ class WaterSwitch extends Component {
                     transform="rotate(-90)"
                     x="-38"
                     y="28.5"
-                    font-family="sans-serif"
-                    font-size="6px"
-                    pointer-events="none"
-                    stroke-width=".25"
+                    fontFamily="sans-serif"
+                    fontSize="6px"
+                    pointerEvents="none"
+                    strokeWidth=".25"
                     text-align="end"
-                    text-anchor="end"
+                    textAnchor="end"
                 >
                     {text}
                 </text>
