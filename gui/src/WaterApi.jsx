@@ -73,6 +73,10 @@ class WaterApi {
             }
         );
     };
+
+    valves = (on_success, on_error) => {
+        this.query("valves{id,name,open}", on_success, on_error);
+    };
 }
 
 export default WaterApi;

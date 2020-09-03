@@ -4,20 +4,10 @@ import WaterSwitch from "./WaterSwitch.jsx";
 // TODO: use React.fragment everywhere where possible
 
 class Status extends Component {
-    static channel_count = 6;
-    static labels = [
-        "Channel 1",
-        "Channel 2",
-        "Channel 3",
-        "Something",
-        "bla bla bla",
-        "anderer channel",
-    ];
-
     constructor(props) {
         super(props);
         this.state = {
-            valves: Array(Status.labels.length),
+            valves: [],
         };
     }
 
@@ -25,8 +15,8 @@ class Status extends Component {
         // TODO: post state change
         // TODO: then read state from server and update gui
         let valves = this.state.valves;
-        if (valves[channel] === true) valves[channel] = false;
-        else valves[channel] = true;
+        if (valves[channel].open === true) valves[channel].open = false;
+        else valves[channel].open = true;
 
         this.setState({ valves: valves });
     };
@@ -35,13 +25,23 @@ class Status extends Component {
     // TODO: show remaining active time
     // TODO: show channel name
 
+    componentDidMount() {
+        this.props.api.valves(
+            (response) => {
+                this.setState({ valves: response.valves });
+            },
+            (error) => {
+                console.log(error);
+            }
+        );
+    }
+
     render() {
         // TODO: server time, manual trigger, next event
         return (
             <div className="mainframe">
                 <WaterSwitch
-                    labels={Status.labels}
-                    states={this.state.valves}
+                    valves={this.state.valves}
                     onClick={this.onValve}
                 />
             </div>

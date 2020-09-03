@@ -6,7 +6,7 @@ class WaterSwitch extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            hovered: Array(this.props.labels.length),
+            hovered: Array(this.props.valves.length),
         };
     }
 
@@ -436,7 +436,7 @@ class WaterSwitch extends Component {
     }
 
     shadow() {
-        let count = this.props.labels.length;
+        let count = this.props.valves.length;
         let pipe_shadow_h = (
             <rect
                 x="2.1167"
@@ -469,7 +469,7 @@ class WaterSwitch extends Component {
     }
 
     pipes() {
-        let count = this.props.labels.length;
+        let count = this.props.valves.length;
         let pipe_h = (
             <rect
                 x="4.2333"
@@ -548,7 +548,8 @@ class WaterSwitch extends Component {
 
         let pipes_v = Array(count);
         for (let i = 0; i < count; i++) {
-            if (this.props.states[i] === true) pipes_v[i] = this.open_pipe(i);
+            if (this.props.valves[i].open === true)
+                pipes_v[i] = this.open_pipe(i);
             else pipes_v[i] = this.closed_pipe(i);
         }
 
@@ -679,7 +680,7 @@ class WaterSwitch extends Component {
     }
 
     valves() {
-        let count = this.props.labels.length;
+        let count = this.props.valves.length;
         let valves = Array(count);
         for (let i = 0; i < count; i++) {
             valves[i] = this.valve_ctrl(i);
@@ -695,7 +696,7 @@ class WaterSwitch extends Component {
             valve_button = this.button_hovered(pos);
         else valve_button = this.button(pos);
 
-        if (this.props.states[pos] === true) valve = this.open_valve(pos);
+        if (this.props.valves[pos].open === true) valve = this.open_valve(pos);
         else valve = this.closed_valve(pos);
 
         return (
@@ -1004,10 +1005,10 @@ class WaterSwitch extends Component {
     }
 
     labels() {
-        let count = this.props.labels.length;
+        let count = this.props.valves.length;
         let labels = Array(count);
         for (let i = 0; i < count; i++) {
-            labels[i] = this.label(i, this.props.labels[i]);
+            labels[i] = this.label(i, this.props.valves[i].name);
         }
         return labels;
     }
