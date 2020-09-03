@@ -13,7 +13,7 @@ class WaterApi {
 
         fetch("graphql", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: headers,
             body: JSON.stringify({
                 query: query,
             }),
@@ -62,7 +62,7 @@ class WaterApi {
 
     logout = (on_success, on_error) => {
         this.mutation(
-            "logout()",
+            "logout",
             (data) => {
                 // TODO: check response
                 this.#token = "";

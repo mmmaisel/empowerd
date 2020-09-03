@@ -20,12 +20,18 @@ class App extends Component {
 
     onLogin = () => {
         this.setState({ logged_in: true });
-        // TODO: real login logic
     };
 
     onLogout = () => {
-        this.setState({ logged_in: false });
-        // TODO: real logout logic
+        this.api.logout(
+            (response) => {
+                this.setState({ logged_in: false });
+            },
+            (error) => {
+                console.log(error);
+                alert("Logout failed");
+            }
+        );
     };
 
     onTab = (which) => {
@@ -49,7 +55,6 @@ class App extends Component {
             return (
                 <div>
                     <Navbar
-                        api={this.api}
                         items={this.items}
                         onTab={this.onTab}
                         active_tab={this.state.active_tab}
