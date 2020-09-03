@@ -30,6 +30,12 @@ class LoginForm extends Component {
         );
     };
 
+    onKeyDown = (event) => {
+        if (event.keyCode == 13) {
+            this.onLogin();
+        }
+    };
+
     onUsernameChanged = (event) => {
         this.setState({ username: event.target.value });
     };
@@ -73,6 +79,7 @@ class LoginForm extends Component {
                             value={this.state.username}
                             placeholder="username"
                             onChange={this.onUsernameChanged}
+                            onKeyDown={this.onKeyDown}
                         />
                         <span style={labelCol}> Password: </span>
                         <input
@@ -80,6 +87,7 @@ class LoginForm extends Component {
                             type="password"
                             value={this.state.password}
                             onChange={this.onPasswordChanged}
+                            onKeyDown={this.onKeyDown}
                         />
                     </div>
                     {this.loginState()}
