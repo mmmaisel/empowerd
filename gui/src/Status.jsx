@@ -12,18 +12,29 @@ class Status extends Component {
     }
 
     onValve = (channel) => {
-        // TODO: post state change
-        // TODO: then read state from server and update gui
-        let valves = this.state.valves;
-        if (valves[channel].open === true) valves[channel].open = false;
-        else valves[channel].open = true;
+        let id = this.state.valves[channel].id;
+        let open = this.state.valves[channel].open;
 
-        this.setState({ valves: valves });
+        if (open === true) open = false;
+        else open = true;
+
+        this.props.api.setValve(
+            id,
+            open,
+            (response) => {
+                let valves = this.state.valves;
+                valves[channel].open = response.setValve.open;
+                this.setState({ valves: valves });
+            },
+            (error) => {
+                alert("Setting valve failed");
+                console.log(error);
+            }
+        );
     };
 
     // TODO: show if it is automatically activated
     // TODO: show remaining active time
-    // TODO: show channel name
 
     componentDidMount() {
         this.props.api.valves(
