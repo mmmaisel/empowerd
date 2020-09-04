@@ -1,0 +1,17 @@
+[Unit]
+Description=water switch api service
+After=multi-user.target network-online.target
+
+[Service]
+Type=forking
+User=waterd
+RuntimeDirectory=waterd
+RuntimeDirectoryMode=0750
+PIDFile=/var/run/waterd/pid
+WorkingDirectory=/
+ExecStart=/bin/waterd
+ExecStop=/bin/kill -s TERM $MAINPID
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target
