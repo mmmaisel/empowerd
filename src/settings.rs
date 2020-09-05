@@ -24,7 +24,7 @@ impl Settings {
         let mut config = Config::new();
 
         config.set_default("daemonize", false)?;
-        config.set_default("pid_file", "/var/run/water/pid")?;
+        config.set_default("pid_file", "/run/waterd/pid")?;
         config.set_default("wrk_dir", "/")?;
         config.set_default("logfile", "/var/log/waterd.log")?;
         config.set_default("listen_address", "127.0.0.1")?;
@@ -52,7 +52,7 @@ impl Settings {
 
         let cfg_path = match matches.opt_str("c") {
             Some(x) => x,
-            None => "/etc/water/water.conf".into(),
+            None => "/etc/waterd/waterd.conf".into(),
         };
 
         let mut settings =

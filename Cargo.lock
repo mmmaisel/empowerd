@@ -2013,10 +2013,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93b162580e34310e5931c4b792560108b10fd14d64915d7fff8ff00180e70092"
 
 [[package]]
-name = "water"
+name = "waterd"
 version = "0.1.0"
 dependencies = [
- "base64 0.12.3",
+ "base64 0.11.0",
  "config",
  "daemonize",
  "getopts",
