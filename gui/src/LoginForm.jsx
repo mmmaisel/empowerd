@@ -31,7 +31,7 @@ class LoginForm extends Component {
     };
 
     onKeyDown = (event) => {
-        if (event.keyCode == 13) {
+        if (event.keyCode === 13) {
             this.onLogin();
         }
     };

@@ -1,8 +1,9 @@
 class WaterApi {
     #token;
 
-    constructor() {
+    constructor(location) {
         this.#token = "";
+        this.api_location = `${location}graphql`;
     }
 
     execute(query, on_success, on_error) {
@@ -11,7 +12,7 @@ class WaterApi {
             headers["Authorization"] = `Bearer ${this.#token}`;
         }
 
-        fetch("graphql", {
+        fetch(this.api_location, {
             method: "POST",
             headers: headers,
             body: JSON.stringify({

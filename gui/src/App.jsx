@@ -10,8 +10,14 @@ import WaterApi from "./WaterApi.jsx";
 class App extends Component {
     constructor(props) {
         super(props);
+
+        let location = window.location
+            .toString()
+            .replace(/^https?\/\/[^/]+(?::\d+)?\//, "/")
+            .replace(/[^/]*$/, "");
+
         this.items = ["Status", "Config", "Logout"];
-        this.api = new WaterApi();
+        this.api = new WaterApi(location);
         this.state = {
             logged_in: false,
             active_tab: this.items[0],

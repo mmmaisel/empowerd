@@ -2,6 +2,7 @@
   "name": "gui",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@svgr/cli": "^4.3.3",
     "node-sass": "^4.14.1",
