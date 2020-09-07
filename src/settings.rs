@@ -19,6 +19,7 @@ pub struct Settings
     pub sma_pw: String,
     pub meter_device: String,
     pub meter_baud: u32,
+    pub battery_addr: String,
     pub db_url: String,
     pub db_name: String,
     pub db_user: String,
@@ -26,6 +27,7 @@ pub struct Settings
     // TODO: polling should be 300s aligned
     pub dachs_poll_interval: i64,
     pub sma_poll_interval: i64,
+    pub battery_poll_interval: i64,
     pub meter_poll_interval: i64,
     pub weather_poll_interval: i64,
     pub import: String
@@ -46,6 +48,7 @@ impl Settings
         config.set_default("log_level", 5)?;
         config.set_default("dachs_poll_interval", 300)?;
         config.set_default("sma_poll_interval", 3600)?;
+        config.set_default("battery_poll_interval", 300)?;
         config.set_default("meter_poll_interval", 300)?;
         config.set_default("weather_poll_interval", 300)?;
         config.set_default("import", "none")?;

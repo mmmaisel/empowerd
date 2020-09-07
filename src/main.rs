@@ -167,6 +167,7 @@ fn daemon_main(settings: Settings, logger: Logger)
     const SMA_TASK_ID: u32 = 2;
     const METER_TASK_ID: u32 = 3;
     const WEATHER_TASK_ID: u32 = 4;
+    const BATTERY_TASK_ID: u32 = 5;
 
     let (mut intpipe_r, mut intpipe_w) = match UnixStream::pair()
     {
@@ -232,6 +233,7 @@ fn daemon_main(settings: Settings, logger: Logger)
         scheduler.add_task(SMA_TASK_ID, settings.sma_poll_interval);
         scheduler.add_task(METER_TASK_ID, settings.meter_poll_interval);
         scheduler.add_task(WEATHER_TASK_ID, settings.weather_poll_interval);
+        scheduler.add_task(BATTERY_TASK_ID, settings.battery_poll_interval);
         let result = scheduler.run(condition_child, &child_logger,
             |id, now, _interval|
         {
@@ -252,6 +254,10 @@ fn daemon_main(settings: Settings, logger: Logger)
                 WEATHER_TASK_ID =>
                 {
                     miner.mine_weather_data(now);
+                }
+                BATTERY_TASK_ID =>
+                {
+                    miner.mine_battery_data(now);
                 }
                 _ =>
                 {

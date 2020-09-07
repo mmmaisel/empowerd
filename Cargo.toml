@@ -11,7 +11,8 @@ members = [
     "lib/slog-daemon",
     "lib/sma-client",
     "lib/sml-client",
-    "lib/bresser6in1-usb" ]
+    "lib/bresser6in1-usb",
+    "lib/battery-client" ]
 
 [dependencies]
 dachs-client = { version = "*", path = "lib/dachs-client/" }
@@ -20,6 +21,7 @@ slog-daemon = { version = "*", path = "lib/slog-daemon" }
 sma-client = { version = "*", path = "lib/sma-client/" }
 sml-client = { version = "*", path = "lib/sml-client/" }
 bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
+battery-client = { version = "*", path = "lib/battery-client/" }
 
 bytes = "*"
 chrono = "*"

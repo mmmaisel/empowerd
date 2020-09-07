@@ -3,12 +3,14 @@ use slog::Logger;
 use influx_db_client::Client;
 
 extern crate bresser6in1_usb;
+extern crate battery_client;
 extern crate dachs_client;
 extern crate sma_client;
 extern crate sml_client;
 
 use bresser6in1_usb::{Client as BresserClient, Data as BresserData};
 use dachs_client::*;
+use battery_client::{BatteryClient};
 use sma_client::*;
 use sml_client::*;
 use sml_client::*;
@@ -22,6 +24,7 @@ pub struct StromMiner
     bresser_client: BresserClient,
     dachs_client: DachsClient,
     sma_client: SmaClient,
+    battery_client: BatteryClient,
     sml_client: SmlClient,
     sma_pw: String,
     sma_addr: net::SocketAddr,
@@ -39,6 +42,7 @@ impl StromMiner
         let dachs_client = DachsClient::new(
             s.dachs_addr, s.dachs_pw, Some(logger.new(o!())));
         let sma_client = SmaClient::new(Some(logger.new(o!())))?;
+        let battery_client = BatteryClient::new(s.battery_addr, Some(logger.new(o!())));
         let sml_client = SmlClient::new(
             s.meter_device, s.meter_baud, Some(logger.new(o!())));
         let sma_addr = SmaClient::sma_sock_addr(s.sma_addr)?;
@@ -49,6 +53,7 @@ impl StromMiner
             bresser_client: bresser_client,
             dachs_client: dachs_client,
             sma_client: sma_client,
+            battery_client: battery_client,
             sml_client: sml_client,
             sma_pw: s.sma_pw,
             sma_addr: sma_addr,
@@ -414,6 +419,65 @@ impl StromMiner
         if let Err(e) = model.save(&self.influx_conn)
         {
             error!(self.logger, "Save WeatherData failed, {}", e);
+        }
+        else
+        {
+            trace!(self.logger, "Wrote {:?} to database", model);
+        }
+    }
+
+    pub fn mine_battery_data(&mut self, now: i64)
+    {
+        let (wh_in, wh_out, charge) = match self.battery_client.get_in_out_charge() {
+            Ok((x, y, z)) => (x, y, z),
+            Err(e) => {
+                error!(self.logger, "Get battery data failed: {}", e);
+                return;
+            }
+        };
+
+        self.save_battery_data(now, wh_in as f64, wh_out as f64, (charge as f64) / 100.0);
+    }
+
+    pub fn save_battery_data(&self, timestamp: i64, wh_in: f64, wh_out: f64, charge: f64)
+    {
+        // TODO: deduplicate this
+        let last_record = match BatteryData::last(&self.influx_conn)
+        {
+            Ok(x) => x,
+            Err(e) =>
+            {
+                if e.series_exists()
+                {
+                    error!(self.logger, "Query error {}", e);
+                }
+                else
+                {
+                    let model = BatteryData::new(timestamp, wh_in, wh_out, charge, 0.0);
+                    if let Err(e) = model.save(&self.influx_conn)
+                    {
+                        error!(self.logger, "Save BatteryData failed, {}", e);
+                    }
+                    else
+                    {
+                        trace!(self.logger, "Wrote {:?} to database", model);
+                    }
+                }
+                return;
+            }
+        };
+        trace!(self.logger, "Read {:?} from database", last_record);
+
+        let power = 3600.0 * (
+            wh_in - last_record.energy_in -
+            (wh_out - last_record.energy_out) ) /
+            ((timestamp - last_record.timestamp) as f64);
+
+        // TODO: everywhere: only use f64 where necessary
+        let model = BatteryData::new(timestamp, wh_in, wh_out, charge, power);
+        if let Err(e) = model.save(&self.influx_conn)
+        {
+            error!(self.logger, "Save BatteryData failed, {}", e);
         }
         else
         {

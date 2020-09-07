@@ -1,0 +1,13 @@
+[package]
+name = "battery-client"
+version = "0.1.0"
+authors = ["max"]
+edition = "2018"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+modbus = "*"
+slog = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
+
