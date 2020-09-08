@@ -9,6 +9,8 @@ pub struct Mutation;
 
 #[juniper::object(Context = Context)]
 impl Mutation {
+    /// Login into API with username and password. Creates a session token.
+    /// Session tokens must be send as "Bearer" in the "authorization" header.
     async fn login(
         ctx: &Context,
         username: String,
@@ -34,6 +36,7 @@ impl Mutation {
         return Err("Incorrect user or password!".into());
     }
 
+    /// Logout and invalidate used session token.
     async fn logout(ctx: &Context) -> juniper::FieldResult<String> {
         return match ctx.globals.session_manager.destroy(&ctx.token) {
             Ok(()) => Ok("Logged out".into()),
@@ -41,6 +44,7 @@ impl Mutation {
         };
     }
 
+    /// Open or close a valve.
     async fn set_valve(
         ctx: &Context,
         valve: InputValve,

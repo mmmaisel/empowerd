@@ -8,6 +8,7 @@ pub struct Query;
 
 #[juniper::object(Context = Context)]
 impl Query {
+    /// Get the current state of the valves.
     async fn valves(ctx: &Context) -> juniper::FieldResult<Vec<Valve>> {
         if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
             return Err(e.to_string(&ctx.globals.logger).into());
