@@ -31,6 +31,8 @@ pub struct WeatherData
     pub humidity_x1: f64,
     pub temperature_x2: f64,
     pub humidity_x2: f64,
+    pub temperature_x3: f64,
+    pub humidity_x3: f64,
 }
 
 impl WeatherData
@@ -57,6 +59,16 @@ impl WeatherData
             None => return Err(format!(
                 "humidity_x2 is None in given {:?}", data)),
         };
+        let temperature_x3 = match data.temperature_x3 {
+            Some(x) => x,
+            None => return Err(format!(
+                "temperature_x3 is None in given {:?}", data)),
+        };
+        let humidity_x3 = match data.humidity_x3 {
+            Some(x) => x,
+            None => return Err(format!(
+                "humidity_x3 is None in given {:?}", data)),
+        };
 
         return Ok(WeatherData
         {
@@ -78,6 +90,8 @@ impl WeatherData
             humidity_x1: humidity_x1 as f64,
             temperature_x2: temperature_x2 as f64,
             humidity_x2: humidity_x2 as f64,
+            temperature_x3: temperature_x3 as f64,
+            humidity_x3: humidity_x3 as f64,
         });
     }
 }

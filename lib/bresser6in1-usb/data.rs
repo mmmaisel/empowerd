@@ -22,6 +22,8 @@ pub struct Data
     pub humidity_x1: Option<u8>,
     pub temperature_x2: Option<f32>,
     pub humidity_x2: Option<u8>,
+    pub temperature_x3: Option<f32>,
+    pub humidity_x3: Option<u8>,
 }
 
 impl Data {
@@ -227,7 +229,27 @@ impl Data {
             None => return Err("Unexpected end of data found.".to_string())
         };
 
-        for _ in 0..10 {
+        let temperature_x3 = match tokens.next() {
+            Some(x) => {
+                match x.parse::<f32>() {
+                    Ok(y) => Some(y),
+                    Err(_) => None,
+                }
+            }
+            None => return Err("Unexpected end of data found.".to_string())
+        };
+
+        let humidity_x3 = match tokens.next() {
+            Some(x) => {
+                match x.parse::<u8>() {
+                    Ok(y) => Some(y),
+                    Err(_) => None,
+                }
+            }
+            None => return Err("Unexpected end of data found.".to_string())
+        };
+
+        for _ in 0..8 {
             if let None = tokens.next() {
                 return Err("Unexpected end of data found.".to_string())
             }
@@ -256,6 +278,8 @@ impl Data {
             humidity_x1: humidity_x1,
             temperature_x2: temperature_x2,
             humidity_x2: humidity_x2,
+            temperature_x3: temperature_x3,
+            humidity_x3: humidity_x3,
         });
     }
 }
