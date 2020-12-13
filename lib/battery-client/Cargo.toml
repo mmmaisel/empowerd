@@ -7,7 +7,12 @@ edition = "2018"
 [lib]
 path = "lib.rs"
 
+[[bin]]
+name = "battery-cli"
+path = "battery-cli.rs"
+
 [dependencies]
+clap = "*"
 modbus = "*"
 slog = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
 
