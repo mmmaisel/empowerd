@@ -106,7 +106,7 @@ fn main() {
     }
 
     match Runtime::new() {
-        Ok(mut rt) => {
+        Ok(rt) => {
             let retval = rt.block_on(tokio_main(settings, root_logger.clone()));
             drop(root_logger);
             process::exit(retval);
