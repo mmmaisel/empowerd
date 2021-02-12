@@ -6,37 +6,35 @@ edition = "2018"
 
 [workspace]
 members = [
-    "lib/dachs-client",
-    "lib/influx-derive",
-    "lib/slog-daemon",
-    "lib/sma-client",
-    "lib/sml-client",
-    "lib/bresser6in1-usb",
-    "lib/battery-client" ]
+#    "lib/dachs-client",
+#    "lib/influx-derive",
+#    "lib/sma-client",
+#    "lib/sml-client",
+#    "lib/bresser6in1-usb",
+#    "lib/battery-client"
+]
 
 [dependencies]
-dachs-client = { version = "*", path = "lib/dachs-client/" }
-influx-derive = { version = "*", path = "lib/influx-derive" }
-slog-daemon = { version = "*", path = "lib/slog-daemon" }
-sma-client = { version = "*", path = "lib/sma-client/" }
-sml-client = { version = "*", path = "lib/sml-client/" }
-bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
-battery-client = { version = "*", path = "lib/battery-client/" }
+#dachs-client = { version = "*", path = "lib/dachs-client/" }
+#sma-client = { version = "*", path = "lib/sma-client/" }
+#sml-client = { version = "*", path = "lib/sml-client/" }
+#bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
+#battery-client = { version = "*", path = "lib/battery-client/" }
+
+tokio = { version=">=1.0", features=["full"] }
+slog = { version="*", features=["max_level_trace"] }
+sloggers = { version="*", default_features=false }
 
 bytes = "*"
 chrono = "*"
-config = { version = "*", features = ["hjson"] }
-csv = "*"
-daemonize = "*"
-influx_db_client = "*"
 lazy_static = "*"
-libc = "*"
 regex = "*"
 reqwest = { version = "*", default-features = false }
-serde = { version = "*", features = ["derive"] }
-serde_json = "*"
-signal-hook = "*"
-slog = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
-slog-term = "*"
+
+daemonize = "*"
+config = { version="*", default-features=false, features=["toml"] }
+getopts = "*"
+serde = { version = ">=1.0", features = ["derive"] }
+serde_json = ">=1.0"
 
 #slog-async = "*"

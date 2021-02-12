@@ -1,17 +1,16 @@
+use serde::Deserialize;
 use std::env;
 
-extern crate config;
 use config::{Config, ConfigError, File, FileFormat};
+use getopts::Options;
 
-// https://github.com/mehcode/config-rs/blob/master/examples/hierarchical-env/src/settings.rs
 #[derive(Clone, Debug, Deserialize)]
-pub struct Settings
-{
+pub struct Settings {
     pub daemonize: bool,
     pub pid_file: String,
     pub wrk_dir: String,
     pub one_shot: bool,
-    pub log_filename: String,
+    pub logfile: String,
     pub log_level: u8,
     pub dachs_addr: String,
     pub dachs_pw: String,
@@ -24,65 +23,63 @@ pub struct Settings
     pub db_name: String,
     pub db_user: String,
     pub db_pw: String,
-    // TODO: polling should be 300s aligned
-    pub dachs_poll_interval: i64,
-    pub sma_poll_interval: i64,
-    pub battery_poll_interval: i64,
-    pub meter_poll_interval: i64,
-    pub weather_poll_interval: i64,
-    pub import: String
+    pub dachs_poll_interval: u64,
+    pub sma_poll_interval: u64,
+    pub battery_poll_interval: u64,
+    pub meter_poll_interval: u64,
+    pub weather_poll_interval: u64,
 }
 
-impl Settings
-{
-    pub fn load_config(filename: String)
-        -> Result<Settings, ConfigError>
-    {
+impl Settings {
+    fn load_from_file(filename: String) -> Result<Settings, ConfigError> {
         let mut config = Config::new();
 
-        config.set_default("daemonize", true)?;
-        config.set_default("pid_file", "/var/run/stromd/pid")?;
+        config.set_default("daemonize", false)?;
+        config.set_default("pid_file", "/run/stromd/pid")?;
         config.set_default("wrk_dir", "/")?;
         config.set_default("one_shot", false)?;
-        config.set_default("log_filename", "/var/log/stromd.log")?;
-        config.set_default("log_level", 5)?;
+        config.set_default("logfile", "/var/log/stromd.log")?;
+        config.set_default("log_level", 0)?;
+        config.set_default("db_url", "127.0.0.1:8086")?;
+        config.set_default("db_name", "stromd")?;
+        config.set_default("db_user", "stromd")?;
         config.set_default("dachs_poll_interval", 300)?;
         config.set_default("sma_poll_interval", 3600)?;
         config.set_default("battery_poll_interval", 300)?;
         config.set_default("meter_poll_interval", 300)?;
         config.set_default("weather_poll_interval", 300)?;
-        config.set_default("import", "none")?;
 
-        config.merge(File::with_name(&filename).
-            format(FileFormat::Hjson))?;
+        config.merge(File::with_name(&filename).format(FileFormat::Toml))?;
 
-        let mut settings: Settings = config.try_into()?;
+        return config.try_into();
+    }
 
-        if settings.meter_poll_interval < 5
-        {
-            return Err(ConfigError::Message(
-                "meter_poll_interval must be >= 5".to_string()));
+    pub fn load() -> Result<Settings, String> {
+        let mut options = Options::new();
+        options.optopt("c", "", "config filename", "NAME").optflag(
+            "d",
+            "",
+            "daemonize",
+        );
+
+        let matches = options.parse(env::args()).map_err(|e| e.to_string())?;
+
+        let cfg_path = match matches.opt_str("c") {
+            Some(x) => x,
+            None => "/etc/stromd/stromd.conf".into(),
+        };
+
+        let mut settings =
+            Settings::load_from_file(cfg_path).map_err(|e| e.to_string())?;
+
+        if settings.meter_poll_interval < 5 {
+            return Err("meter_poll_interval must be >= 5".into());
         }
 
-        let mut found_import = false;
-        for arg in env::args()
-        {
-            // TODO: add nodaemonize
-            if arg == "-d"
-            {
-                settings.daemonize = true;
-            }
-
-            if arg == "--import"
-            {
-                found_import = true;
-            }
-            else if found_import == true
-            {
-                settings.import = arg;
-                found_import = false;
-            }
+        if matches.opt_present("d") {
+            settings.daemonize = true;
         }
+
         return Ok(settings);
     }
 }
