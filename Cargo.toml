@@ -21,12 +21,12 @@ members = [
 #bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
 #battery-client = { version = "*", path = "lib/battery-client/" }
 
+futures = "*"
 tokio = { version=">=1.0", features=["full"] }
 slog = { version="*", features=["max_level_trace"] }
 sloggers = { version="*", default_features=false }
 
 bytes = "*"
-chrono = "*"
 lazy_static = "*"
 regex = "*"
 reqwest = { version = "*", default-features = false }

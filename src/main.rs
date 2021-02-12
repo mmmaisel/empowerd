@@ -15,13 +15,11 @@ use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::signal;
 
+mod miner;
 mod settings;
 
-use settings::*;
-
-struct Globals {
-    logger: Logger,
-}
+use miner::Miner;
+use settings::Settings;
 
 fn main() {
     let settings = match Settings::load() {
@@ -81,11 +79,7 @@ fn main() {
 }
 
 async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
-    let globals = Arc::new(Globals {
-        logger: logger.clone(),
-    });
-
-/*    let address = format!("{}:{}", settings.listen_address, settings.port);
+    /*    let address = format!("{}:{}", settings.listen_address, settings.port);
     let address = match address.parse::<net::SocketAddr>() {
         Ok(x) => x,
         Err(_) => {
@@ -94,10 +88,27 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         }
     };*/
 
-    tokio::select! {
-        _ = signal::ctrl_c() => {
-            info!(logger, "Received SIGINT, exit.");
+    let mut miner: Miner = match Miner::new(logger.clone(), &settings) {
+        Ok(x) => x,
+        Err(e) => {
+            error!(logger, "Initializing miner failed: {}", e);
             return 0;
         }
+    };
+
+    tokio::select! {
+        _ = miner.run() => {
+            info!(logger, "Task X failed, exit.");
+            //return 0;
+        }
+        _ = signal::ctrl_c() => {
+            info!(logger, "Received SIGINT, exit.");
+            //return 0;
+        }
     }
+
+    info!(logger, "EXIT");
+    miner.run().await;
+    // TODO: now set cancel bit and join all again
+    return 0;
 }
