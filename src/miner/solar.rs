@@ -1,9 +1,11 @@
-use super::Miner;
+use super::{Miner, MinerResult, MinerState};
 use slog::{debug, error, info, Logger};
 use std::time::Duration;
+use tokio::sync::watch;
 
 pub struct SolarMiner {
     logger: Logger,
+    canceled: watch::Receiver<MinerState>,
     //influx_conn: Client,
     interval: Duration,
     //sma_client: SmaClient,
@@ -14,19 +16,37 @@ pub struct SolarMiner {
 impl SolarMiner {
     pub fn new(
         interval: Duration,
+        canceled: watch::Receiver<MinerState>,
         logger: Logger,
     ) -> Result<SolarMiner, String> {
         return Ok(SolarMiner {
             logger: logger,
+            canceled: canceled,
             interval: interval,
         });
     }
 
-    pub async fn mine(&self) -> Result<String, String> {
-        if let Err(e) = Miner::sleep_aligned(self.interval, &self.logger).await
+    // TODO: dedup
+    pub async fn mine(&mut self) -> MinerResult {
+        match Miner::sleep_aligned(
+            self.interval,
+            &mut self.canceled,
+            &self.logger,
+        )
+        .await
         {
-            return Err(format!("sleep_aligned failed in SolarMiner: {}", e));
+            Err(e) => {
+                return MinerResult::Err(format!(
+                    "sleep_aligned failed in SolarMiner: {}",
+                    e
+                ));
+            }
+            Ok(state) => {
+                if let MinerState::Canceled = state {
+                    return MinerResult::Canceled;
+                }
+            }
         }
-        return Err("solar not implemented yet".into());
+        return MinerResult::Err("solar not implemented yet".into());
     }
 }

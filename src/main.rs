@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use daemonize::Daemonize;
-use slog::{debug, error, info, Logger};
+use slog::{debug, error, info, trace, Logger};
 use sloggers::{
     file::FileLoggerBuilder,
     terminal::{Destination, TerminalLoggerBuilder},
@@ -64,18 +64,16 @@ fn main() {
         }
     }
 
-    match Runtime::new() {
-        Ok(rt) => {
-            let retval = rt.block_on(tokio_main(settings, root_logger.clone()));
-            drop(root_logger);
-            process::exit(retval);
-        }
+    let retval = match Runtime::new() {
+        Ok(rt) => rt.block_on(tokio_main(settings, root_logger.clone())),
         Err(e) => {
             error!(root_logger, "Failed to create tokio runtime: {}", e);
-            drop(root_logger);
-            process::exit(1);
+            1
         }
     };
+    trace!(root_logger, "Exiting with result {}", retval);
+    drop(root_logger);
+    process::exit(retval);
 }
 
 async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
@@ -96,19 +94,26 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         }
     };
 
-    tokio::select! {
-        _ = miner.run() => {
-            info!(logger, "Task X failed, exit.");
-            //return 0;
+    let retval = tokio::select! {
+        x = miner.run() => {
+            info!(logger, "Some task failed, exit.");
+            match x {
+                Ok(_) => 0,
+                Err(_) => 1,
+            }
         }
         _ = signal::ctrl_c() => {
             info!(logger, "Received SIGINT, exit.");
-            //return 0;
+            0
         }
-    }
+    };
 
-    info!(logger, "EXIT");
-    miner.run().await;
-    // TODO: now set cancel bit and join all again
-    return 0;
+    if let Err(e) = miner.cancel() {
+        error!(logger, "Canceling miner failed: {}", e);
+        return 2;
+    }
+    if let Err(_) = miner.run().await {
+        error!(logger, "Error occured during miner shutdown");
+    }
+    return retval;
 }
