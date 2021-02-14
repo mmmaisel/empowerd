@@ -1,7 +1,7 @@
 [package]
 name = "stromd"
-version = "0.1.0"
-authors = ["max"]
+version = "0.2.0"
+authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
 
 [workspace]
@@ -21,8 +21,8 @@ members = [
 #battery-client = { version = "*", path = "lib/battery-client/" }
 
 futures = "*"
-slog = { version="*", features=["max_level_trace"] }
-sloggers = { version="*", default_features=false }
+slog = { version=">=2.7", features=["max_level_trace", "release_max_level_debug"] }
+sloggers = { version=">=1.0", default_features=false }
 tokio = { version=">=1.0", features=["full"] }
 
 chrono = "*"
