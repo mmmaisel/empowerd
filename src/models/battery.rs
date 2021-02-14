@@ -1,35 +1,36 @@
-extern crate influx_db_client;
-extern crate serde_json;
+use super::InfluxObject;
+use chrono::{DateTime, Utc};
+use influxdb::InfluxDbWriteable;
+use serde::Deserialize;
 
-use influx_db_client::Points;
-
-use super::*;
-use influx_derive::InfluxData;
-
-#[derive(Debug, InfluxData)]
-#[influx(measurement_name = "battery")]
-pub struct BatteryData {
-    pub timestamp: i64,
+#[derive(Deserialize, Debug, InfluxDbWriteable)]
+pub struct Battery {
+    pub time: DateTime<Utc>,
+    pub charge: f64,
     pub energy_in: f64,
     pub energy_out: f64,
-    pub charge: f64,
     pub power: f64,
 }
 
-impl BatteryData {
+impl Battery {
     pub fn new(
-        timestamp: i64,
+        time: DateTime<Utc>,
+        charge: f64,
         energy_in: f64,
         energy_out: f64,
-        charge: f64,
-        power: f64,
-    ) -> BatteryData {
-        return BatteryData {
-            timestamp: timestamp,
+        power: f64, // TODO: remove, use derivative query
+    ) -> Battery {
+        return Battery {
+            time: time,
+            charge: charge,
             energy_in: energy_in,
             energy_out: energy_out,
-            charge: charge,
             power: power,
         };
     }
+}
+
+impl InfluxObject<Battery> for Battery {
+    const FIELDS: &'static str = "charge, energy_in, energy_out, power";
+    const MEASUREMENT: &'static str = "battery";
 }

@@ -1,91 +1,49 @@
-extern crate influx_db_client;
-extern crate serde_json;
+use influxdb::{
+    integrations::serde_integration::DatabaseQueryResult, Error, Query,
+    ReadQuery,
+};
 
-use std::fmt;
-
-use influx_db_client::{Client, Precision, Series};
+pub mod battery;
 pub mod dachs;
-pub mod gas;
 pub mod meter;
 pub mod solar;
-pub mod battery;
-pub mod water;
 pub mod weather;
 
-pub use dachs::*;
-pub use gas::*;
-pub use meter::*;
-pub use solar::*;
-pub use battery::*;
-pub use water::*;
-pub use weather::*;
+pub use battery::Battery;
+pub use dachs::Dachs;
+pub use meter::Meter;
+pub use solar::Solar;
+pub use weather::Weather;
 
-pub struct LoadError
-{
-    series_exists: bool,
-    message: String
-}
+trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>> {
+    const FIELDS: &'static str;
+    const MEASUREMENT: &'static str;
 
-impl LoadError
-{
-    fn new(msg: String) -> LoadError
-    {
-        return LoadError
-        {
-            series_exists: true,
-            message: msg
-        };
+    fn query_last() -> ReadQuery {
+        return Query::raw_read_query(format!(
+            "SELECT time, {} FROM {} ORDER BY DESC LIMIT 1",
+            Self::FIELDS,
+            Self::MEASUREMENT
+        ));
     }
 
-    fn no_series() -> LoadError
-    {
-        return LoadError
-        {
-            series_exists: false,
-            message: String::new()
-        };
+    fn query_first() -> ReadQuery {
+        return Query::raw_read_query(format!(
+            "SELECT time, {} FROM {} ORDER BY ASC LIMIT 1",
+            Self::FIELDS,
+            Self::MEASUREMENT
+        ));
     }
 
-    pub fn series_exists(&self) -> bool
-    {
-        return self.series_exists;
+    fn into_single(result: Result<DatabaseQueryResult, Error>) -> T {
+        let mut data = result
+            .unwrap() // TODO: don't unwrap!!!
+            .deserialize_next::<T>()
+            .unwrap() // TODO: don't unwrap!!!
+            .series
+            .pop()
+            .unwrap() // TODO: don't unwrap!!!
+            .values;
+        return data.pop().unwrap();
     }
-}
-
-impl fmt::Display for LoadError
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-    {
-        return write!(f, "{}", self.message);
-    }
-}
-
-fn load_series(conn: &Client, query: String) -> Result<Series, LoadError>
-{
-    let mut queried = match conn.query(&query,
-        Some(Precision::Seconds))
-    {
-        Ok(x) => match x
-        {
-            None => return Err(LoadError::new("nothing received".to_string())),
-            Some(x) => x
-        },
-        Err(e) => return Err(LoadError::new(format!("{}", e)))
-    };
-
-    // TODO: this is ugly, use and_then?
-    let series = match queried.pop()
-    {
-        None => return Err(LoadError::new("no results".to_string())),
-        Some(x) => match x.series
-        {
-            None => return Err(LoadError::no_series()),
-            Some(mut x) => match x.pop()
-            {
-                None => return Err(LoadError::no_series()),
-                Some(x) => x
-            }
-        }
-    };
-    return Ok(series);
 }

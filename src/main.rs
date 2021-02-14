@@ -16,6 +16,7 @@ use tokio::runtime::Runtime;
 use tokio::signal;
 
 mod miner;
+mod models;
 mod settings;
 
 use miner::Miner;
