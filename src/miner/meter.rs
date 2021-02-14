@@ -4,23 +4,25 @@ use std::time::Duration;
 use tokio::sync::watch;
 
 pub struct MeterMiner {
-    logger: Logger,
     canceled: watch::Receiver<MinerState>,
-    //influx_conn: Client,
+    influx: influxdb::Client,
     interval: Duration,
+    logger: Logger,
     //sml_client: SmlClient,
 }
 
 impl MeterMiner {
     pub fn new(
-        interval: Duration,
         canceled: watch::Receiver<MinerState>,
+        influx: influxdb::Client,
+        interval: Duration,
         logger: Logger,
     ) -> Result<MeterMiner, String> {
         return Ok(MeterMiner {
-            logger: logger,
             canceled: canceled,
+            influx: influx,
             interval: interval,
+            logger: logger,
         });
     }
 

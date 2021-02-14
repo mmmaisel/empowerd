@@ -35,29 +35,40 @@ impl Miner {
         let miners = FuturesUnordered::new();
         let (tx, rx) = watch::channel(MinerState::Running);
 
+        let influx_client = influxdb::Client::new(
+            format!("http://{}", &settings.db_url),
+            &settings.db_name,
+        )
+        .with_auth(&settings.db_user, &settings.db_pw);
+
         let mut battery = battery::BatteryMiner::new(
-            Duration::from_secs(settings.battery_poll_interval),
             rx.clone(),
+            influx_client.clone(),
+            Duration::from_secs(settings.battery_poll_interval),
             logger.clone(),
         )?;
         let mut dachs = dachs::DachsMiner::new(
-            Duration::from_secs(settings.dachs_poll_interval),
             rx.clone(),
+            influx_client.clone(),
+            Duration::from_secs(settings.dachs_poll_interval),
             logger.clone(),
         )?;
         let mut meter = meter::MeterMiner::new(
-            Duration::from_secs(settings.meter_poll_interval),
             rx.clone(),
+            influx_client.clone(),
+            Duration::from_secs(settings.meter_poll_interval),
             logger.clone(),
         )?;
         let mut solar = solar::SolarMiner::new(
-            Duration::from_secs(settings.sma_poll_interval),
             rx.clone(),
+            influx_client.clone(),
+            Duration::from_secs(settings.sma_poll_interval),
             logger.clone(),
         )?;
         let mut weather = weather::WeatherMiner::new(
-            Duration::from_secs(settings.weather_poll_interval),
             rx.clone(),
+            influx_client.clone(),
+            Duration::from_secs(settings.weather_poll_interval),
             logger.clone(),
         )?;
 

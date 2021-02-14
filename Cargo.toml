@@ -26,10 +26,11 @@ tokio = { version=">=1.0", features=["full"] }
 slog = { version="*", features=["max_level_trace"] }
 sloggers = { version="*", default_features=false }
 
-bytes = "*"
 lazy_static = "*"
 regex = "*"
 reqwest = { version = "*", default-features = false }
+influxdb = { version = ">=0.3.0", features = ["derive", "h1-client", "use-serde"], default-features = false }
+http-client = "6.2.0" # dependency, pin version because newer one is broken.
 
 daemonize = "*"
 config = { version="*", default-features=false, features=["toml"] }

@@ -4,10 +4,10 @@ use std::time::Duration;
 use tokio::sync::watch;
 
 pub struct SolarMiner {
-    logger: Logger,
     canceled: watch::Receiver<MinerState>,
-    //influx_conn: Client,
+    influx: influxdb::Client,
     interval: Duration,
+    logger: Logger,
     //sma_client: SmaClient,
     //sma_pw: String,
     //sma_addr: net::SocketAddr,
@@ -15,14 +15,16 @@ pub struct SolarMiner {
 
 impl SolarMiner {
     pub fn new(
-        interval: Duration,
         canceled: watch::Receiver<MinerState>,
+        influx: influxdb::Client,
+        interval: Duration,
         logger: Logger,
     ) -> Result<SolarMiner, String> {
         return Ok(SolarMiner {
-            logger: logger,
             canceled: canceled,
+            influx: influx,
             interval: interval,
+            logger: logger,
         });
     }
 

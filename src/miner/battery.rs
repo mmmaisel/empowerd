@@ -4,23 +4,25 @@ use std::time::Duration;
 use tokio::sync::watch;
 
 pub struct BatteryMiner {
-    logger: Logger,
     canceled: watch::Receiver<MinerState>,
-    //influx_conn: Client,
+    influx: influxdb::Client,
     interval: Duration,
+    logger: Logger,
     //battery_client: BatteryClient,
 }
 
 impl BatteryMiner {
     pub fn new(
-        interval: Duration,
         canceled: watch::Receiver<MinerState>,
+        influx: influxdb::Client,
+        interval: Duration,
         logger: Logger,
     ) -> Result<BatteryMiner, String> {
         return Ok(BatteryMiner {
-            logger: logger,
             canceled: canceled,
+            influx: influx,
             interval: interval,
+            logger: logger,
         });
     }
 

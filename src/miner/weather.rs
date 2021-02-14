@@ -4,23 +4,25 @@ use std::time::Duration;
 use tokio::sync::watch;
 
 pub struct WeatherMiner {
-    logger: Logger,
     canceled: watch::Receiver<MinerState>,
-    //influx_conn: Client,
+    influx: influxdb::Client,
     interval: Duration,
+    logger: Logger,
     //bresser_client: BresserClient,
 }
 
 impl WeatherMiner {
     pub fn new(
-        interval: Duration,
         canceled: watch::Receiver<MinerState>,
+        influx: influxdb::Client,
+        interval: Duration,
         logger: Logger,
     ) -> Result<WeatherMiner, String> {
         return Ok(WeatherMiner {
-            logger: logger,
             canceled: canceled,
+            influx: influx,
             interval: interval,
+            logger: logger,
         });
     }
 
