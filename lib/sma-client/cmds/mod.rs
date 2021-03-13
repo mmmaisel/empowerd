@@ -82,7 +82,7 @@ impl SmaPacketHeader {
         buffer.put_u16(self.protocol_id);
     }
 
-    fn deserialize(buffer: &mut Buf) -> SmaPacketHeader {
+    fn deserialize(buffer: &mut dyn Buf) -> SmaPacketHeader {
         return SmaPacketHeader {
             //sma_fourcc: buffer.get_u32_le(),
             hdr_len: buffer.get_u16(),
@@ -139,7 +139,7 @@ impl SmaEndpoint {
         buffer.put_u16(self.ctrl);
     }
 
-    fn deserialize(buffer: &mut Buf) -> SmaEndpoint {
+    fn deserialize(buffer: &mut dyn Buf) -> SmaEndpoint {
         return SmaEndpoint {
             susy_id: buffer.get_u16(),
             serial: buffer.get_u32(),
@@ -194,7 +194,7 @@ impl SmaDataHeader {
         buffer.put_u16_le(self.packet_id);
     }
 
-    fn deserialize(buffer: &mut Buf) -> SmaDataHeader {
+    fn deserialize(buffer: &mut dyn Buf) -> SmaDataHeader {
         return SmaDataHeader {
             wordcount: buffer.get_u8(),
             class: buffer.get_u8(),
@@ -232,7 +232,7 @@ impl SmaCmdWord {
         buffer.put_u32_le(self.word);
     }
 
-    fn deserialize(buffer: &mut Buf) -> SmaCmdWord {
+    fn deserialize(buffer: &mut dyn Buf) -> SmaCmdWord {
         return SmaCmdWord {
             word: buffer.get_u32_le(),
         };
@@ -267,7 +267,7 @@ impl SmaEndToken {
         buffer.put_u32_le(self.end);
     }
 
-    pub fn deserialize(buffer: &mut Buf) -> SmaEndToken {
+    pub fn deserialize(buffer: &mut dyn Buf) -> SmaEndToken {
         if buffer.remaining() >= 4 {
             let _end = buffer.get_u32_le();
         } else {
@@ -286,10 +286,10 @@ impl SmaEndToken {
 }
 
 pub fn parse_response(
-    mut buffer: &mut Buf,
+    mut buffer: &mut dyn Buf,
     logger: &Option<Logger>,
-) -> Result<Vec<Box<SmaResponse>>, String> {
-    let mut data: Vec<Box<SmaResponse>> = Vec::new();
+) -> Result<Vec<Box<dyn SmaResponse>>, String> {
+    let mut data: Vec<Box<dyn SmaResponse>> = Vec::new();
 
     while buffer.has_remaining() {
         if buffer.remaining() >= 4 {
@@ -320,9 +320,9 @@ pub fn parse_response(
 }
 
 fn parse_command(
-    buffer: &mut Buf,
+    buffer: &mut dyn Buf,
     logger: &Option<Logger>,
-) -> Result<Box<SmaResponse>, String> {
+) -> Result<Box<dyn SmaResponse>, String> {
     let pkt_header = SmaPacketHeader::deserialize(buffer);
     let data_header = SmaDataHeader::deserialize(buffer);
 
@@ -332,7 +332,7 @@ fn parse_command(
         None => (),
     }
 
-    let packet: Box<SmaResponse>;
+    let packet: Box<dyn SmaResponse>;
     match cmd_word.opcode() {
         SmaCmdIdentify::OPCODE => {
             if buffer.remaining() < SmaPayloadIdentify::LENGTH {

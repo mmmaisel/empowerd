@@ -92,7 +92,7 @@ impl SmaPayloadLogin {
     pub const LENGTH_MIN: usize = 16;
     pub const LENGTH_MAX: usize = 28;
 
-    pub fn deserialize(buffer: &mut Buf) -> SmaPayloadLogin {
+    pub fn deserialize(buffer: &mut dyn Buf) -> SmaPayloadLogin {
         let user_group = buffer.get_u32_le();
         let timeout = buffer.get_u32_le();
         let timestamp = buffer.get_u32_le();

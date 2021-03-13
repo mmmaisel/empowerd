@@ -87,7 +87,7 @@ impl SmaClient {
 
     fn issue_command(
         &mut self,
-        cmd: &SmaCmd,
+        cmd: &dyn SmaCmd,
         dst_addr: net::SocketAddr,
     ) -> Result<SmaData, String> {
         self.buffer.clear();

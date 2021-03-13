@@ -66,7 +66,7 @@ impl SmaDayDataRecord {
         };
     }
 
-    fn deserialize(buffer: &mut Buf) -> SmaDayDataRecord {
+    fn deserialize(buffer: &mut dyn Buf) -> SmaDayDataRecord {
         let timestamp = buffer.get_u32_le();
         let energy = buffer.get_u32_le();
         if buffer.remaining() > 4 {
@@ -93,7 +93,7 @@ impl SmaPayloadGetDayData {
 
     // TODO: handle 0xFFFFFFFF values (NaN)
     pub fn deserialize(
-        mut buffer: &mut Buf,
+        mut buffer: &mut dyn Buf,
         length: u16,
     ) -> SmaPayloadGetDayData {
         let mut padding: [u8; 8] = [0; 8];

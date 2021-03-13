@@ -54,7 +54,7 @@ pub struct SmaPayloadIdentify {
 impl SmaPayloadIdentify {
     pub const LENGTH: usize = 48;
 
-    pub fn deserialize(buffer: &mut Buf) -> SmaPayloadIdentify {
+    pub fn deserialize(buffer: &mut dyn Buf) -> SmaPayloadIdentify {
         let mut unknown: [u8; 48] = [0; 48];
         buffer.copy_to_slice(&mut unknown);
 
