@@ -15,7 +15,7 @@ pub use identify::{SmaCmdIdentify, SmaPayloadIdentify, SmaResponseIdentify};
 pub use login::{SmaCmdLogin, SmaPayloadLogin, SmaResponseLogin};
 pub use logout::SmaCmdLogout;
 
-pub trait SmaCmd {
+pub trait SmaCmd: Sync {
     fn serialize(&self, buffer: &mut BytesMut);
     fn opcode(&self) -> u32;
 }
