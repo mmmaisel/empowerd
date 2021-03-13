@@ -1,7 +1,8 @@
 extern crate bytes;
-#[macro_use] extern crate slog;
+#[macro_use]
+extern crate slog;
 
-use bytes::{BytesMut, Buf};
+use bytes::{Buf, BytesMut};
 use slog::Logger;
 
 use std::net;
@@ -12,126 +13,123 @@ use crate::cmds::*;
 pub use cmds::SmaData;
 pub use cmds::TimestampedInt;
 
-pub struct SmaClient
-{
+pub struct SmaClient {
     socket: net::UdpSocket,
     buffer: BytesMut,
     packet_id: u16,
     dst_addr: net::SocketAddr,
     dst_susy_id: u16,
     dst_serial: u32,
-    logger: Option<Logger>
+    logger: Option<Logger>,
 }
 
-impl SmaClient
-{
+impl SmaClient {
     const BUFFER_SIZE: usize = 1024;
 
-    pub fn new(logger: Option<Logger>) -> Result<SmaClient, String>
-    {
-        let multicast_addr = net::SocketAddrV4::new(
-            net::Ipv4Addr::new(238,12,255,254), 0);
-        let local_addr = net::SocketAddrV4::new(
-            net::Ipv4Addr::new(0,0,0,0), 0);
-        let socket = match net::UdpSocket::bind(local_addr)
-        {
+    pub fn new(logger: Option<Logger>) -> Result<SmaClient, String> {
+        let multicast_addr =
+            net::SocketAddrV4::new(net::Ipv4Addr::new(238, 12, 255, 254), 0);
+        let local_addr =
+            net::SocketAddrV4::new(net::Ipv4Addr::new(0, 0, 0, 0), 0);
+        let socket = match net::UdpSocket::bind(local_addr) {
             Ok(x) => x,
-            Err(e) => return Err(format!(
-                "Binding socket failed, error: {}", e))
+            Err(e) => {
+                return Err(format!("Binding socket failed, error: {}", e))
+            }
         };
-        if let Err(e) = socket.set_read_timeout(Some(
-            <std::time::Duration>::new(5, 0)))
+        if let Err(e) =
+            socket.set_read_timeout(Some(<std::time::Duration>::new(5, 0)))
         {
             return Err(format!("Set socket timeout failed, error: {}", e));
         }
         // TODO: multicast stuff seems to be unneccessary
-        if let Err(e) = socket.set_multicast_loop_v4(false)
-        {
+        if let Err(e) = socket.set_multicast_loop_v4(false) {
             return Err(format!("Disable multicast loop failed, error: {}", e));
         }
-        if let Err(e) = socket.join_multicast_v4(&multicast_addr.ip(),
-            &local_addr.ip())
+        if let Err(e) =
+            socket.join_multicast_v4(&multicast_addr.ip(), &local_addr.ip())
         {
             return Err(format!("Join multicast group failed, error: {}", e));
         }
         let buffer = BytesMut::with_capacity(SmaClient::BUFFER_SIZE);
 
-        return Ok(SmaClient
-        {
+        return Ok(SmaClient {
             socket: socket,
             buffer: buffer,
             packet_id: 0,
-            dst_addr: net::SocketAddr::new(net::IpAddr::V4(
-                net::Ipv4Addr::new(0,0,0,0)), 0),
+            dst_addr: net::SocketAddr::new(
+                net::IpAddr::V4(net::Ipv4Addr::new(0, 0, 0, 0)),
+                0,
+            ),
             dst_susy_id: 0,
             dst_serial: 0,
-            logger: logger
+            logger: logger,
         });
     }
 
     // TODO: don't panic
-    fn merge_rx_data(&self, data: &mut SmaData, mut new_data: SmaData)
-    {
-        match data
-        {
-            SmaData::None() =>
-            {
+    fn merge_rx_data(&self, data: &mut SmaData, mut new_data: SmaData) {
+        match data {
+            SmaData::None() => {
                 std::mem::swap(data, &mut new_data);
                 return;
             }
-            _ => ()
+            _ => (),
         }
-        match (data, new_data)
-        {
-            (SmaData::IntTimeSeries(ref mut x),
-             SmaData::IntTimeSeries(ref mut y)) => x.append(y),
-            _ => panic!("💩️")
+        match (data, new_data) {
+            (
+                SmaData::IntTimeSeries(ref mut x),
+                SmaData::IntTimeSeries(ref mut y),
+            ) => x.append(y),
+            _ => panic!("💩️"),
         }
     }
 
-    fn issue_command(&mut self, cmd: &SmaCmd, dst_addr: net::SocketAddr)
-        -> Result<SmaData, String>
-    {
+    fn issue_command(
+        &mut self,
+        cmd: &SmaCmd,
+        dst_addr: net::SocketAddr,
+    ) -> Result<SmaData, String> {
         self.buffer.clear();
         cmd.serialize(&mut self.buffer);
         self.write(dst_addr)?;
         let mut data: SmaData = SmaData::None();
         let mut fragment_count = 1;
-        while fragment_count != 0
-        {
+        while fragment_count != 0 {
             self.read(dst_addr)?;
-            let mut buf = std::io::Cursor::new(
-                &self.buffer[0..self.buffer.len()]);
+            let mut buf =
+                std::io::Cursor::new(&self.buffer[0..self.buffer.len()]);
 
-            let responses = match parse_response(&mut buf, &self.logger)
-            {
+            let responses = match parse_response(&mut buf, &self.logger) {
                 Err(e) => return Err(e),
-                Ok(x) => x
+                Ok(x) => x,
             };
-            for response in responses.into_iter()
-            {
-                match &self.logger
-                {
-                    Some(x) =>
-                    {
-                        trace!(x, "Received packet {}, fragment {}",
-                        response.packet_id() & 0x7FFF,
-                        response.fragment_id());
+            for response in responses.into_iter() {
+                match &self.logger {
+                    Some(x) => {
+                        trace!(
+                            x,
+                            "Received packet {}, fragment {}",
+                            response.packet_id() & 0x7FFF,
+                            response.fragment_id()
+                        );
                     }
-                    None => ()
+                    None => (),
                 }
 
-                if response.packet_id() & 0x7FFF != self.packet_id - 1
-                {
-                    return Err(
-                        format!("💩️ received packet ID {:X}, expected {:X}",
-                        response.packet_id() & 0x7FFF, self.packet_id - 1));
+                if response.packet_id() & 0x7FFF != self.packet_id - 1 {
+                    return Err(format!(
+                        "💩️ received packet ID {:X}, expected {:X}",
+                        response.packet_id() & 0x7FFF,
+                        self.packet_id - 1
+                    ));
                 }
-                if response.opcode() != cmd.opcode()
-                {
-                    return Err(
-                        format!("💩️ received opcode {:X}, expected {:X}",
-                        response.opcode(), cmd.opcode()));
+                if response.opcode() != cmd.opcode() {
+                    return Err(format!(
+                        "💩️ received opcode {:X}, expected {:X}",
+                        response.opcode(),
+                        cmd.opcode()
+                    ));
                 }
                 // TODO: handle ordering issues
                 fragment_count = response.fragment_id();
@@ -142,23 +140,21 @@ impl SmaClient
         return Ok(data);
     }
 
-    fn init_cmd_data_header(&mut self, header: &mut SmaDataHeader,
-        broadcast: bool)
-    {
+    fn init_cmd_data_header(
+        &mut self,
+        header: &mut SmaDataHeader,
+        broadcast: bool,
+    ) {
         header.packet_id = self.packet_id | 0x8000;
         self.packet_id += 1;
-        if self.packet_id >= 0x8000
-        {
+        if self.packet_id >= 0x8000 {
             self.packet_id = 0;
         }
 
-        if broadcast
-        {
+        if broadcast {
             header.dst.susy_id = 0xFFFF;
             header.dst.serial = 0xFFFFFFFF;
-        }
-        else
-        {
+        } else {
             header.dst.susy_id = self.dst_susy_id;
             header.dst.serial = self.dst_serial;
         }
@@ -166,81 +162,65 @@ impl SmaClient
         header.app.serial = 0xDEADBEEA;
     }
 
-    pub fn sma_sock_addr(addr: String) -> Result<net::SocketAddr, String>
-    {
+    pub fn sma_sock_addr(addr: String) -> Result<net::SocketAddr, String> {
         let dst_addr = format!("{}:9522", addr).parse::<net::SocketAddr>();
-        match dst_addr
-        {
+        match dst_addr {
             Ok(x) => return Ok(x),
-            Err(_) => return Err(
-                format!("💩️ {} is not an IP address", addr))
+            Err(_) => return Err(format!("💩️ {} is not an IP address", addr)),
         }
     }
 
-    pub fn set_dst(&mut self, addr: net::SocketAddr, susy_id: u16,
-        serial: u32)
-    {
+    pub fn set_dst(
+        &mut self,
+        addr: net::SocketAddr,
+        susy_id: u16,
+        serial: u32,
+    ) {
         self.dst_addr = addr;
         self.dst_susy_id = susy_id;
         self.dst_serial = serial;
     }
 
-    pub fn identify(&mut self, dst_addr: net::SocketAddr)
-        -> Result<SmaEndpoint, String>
-    {
-        match &self.logger
-        {
+    pub fn identify(
+        &mut self,
+        dst_addr: net::SocketAddr,
+    ) -> Result<SmaEndpoint, String> {
+        match &self.logger {
             Some(x) => trace!(x, "Identify"),
-            None => ()
+            None => (),
         }
         let mut cmd = SmaCmdIdentify::new();
         self.init_cmd_data_header(&mut cmd.data_header, true);
-        match self.issue_command(&cmd, dst_addr)
-        {
-            Ok(x) =>
-            {
-                match x
-                {
-                    SmaData::Endpoint(x) => return Ok(x),
-                    _ => return Err(
-                        "💩️ received unexpected data type".to_string())
-                }
-            }
-            Err(e) => return Err(e)
+        match self.issue_command(&cmd, dst_addr) {
+            Ok(x) => match x {
+                SmaData::Endpoint(x) => return Ok(x),
+                _ => return Err("💩️ received unexpected data type".to_string()),
+            },
+            Err(e) => return Err(e),
         }
     }
 
-    pub fn login(&mut self, passwd: &String) -> Result<(), String>
-    {
-        match &self.logger
-        {
+    pub fn login(&mut self, passwd: &String) -> Result<(), String> {
+        match &self.logger {
             Some(x) => trace!(x, "Login"),
-            None => ()
+            None => (),
         }
         let mut cmd = SmaCmdLogin::new(&self.logger);
         self.init_cmd_data_header(&mut cmd.data_header, true);
         cmd.set_password(passwd);
-        match self.issue_command(&cmd, self.dst_addr)
-        {
-            Ok(x) =>
-            {
-                match x
-                {
-                    SmaData::None() => return Ok(()),
-                    _ => return Err(
-                        "💩️ received unexpected data type".to_string())
-                }
-            }
-            Err(e) => return Err(e)
+        match self.issue_command(&cmd, self.dst_addr) {
+            Ok(x) => match x {
+                SmaData::None() => return Ok(()),
+                _ => return Err("💩️ received unexpected data type".to_string()),
+            },
+            Err(e) => return Err(e),
         }
     }
 
-    pub fn logout(&mut self) -> Result<(), String>
-    {
-        match &self.logger
-        {
+    pub fn logout(&mut self) -> Result<(), String> {
+        match &self.logger {
             Some(x) => trace!(x, "Logout"),
-            None => ()
+            None => (),
         }
         let mut cmd = SmaCmdLogout::new();
         self.init_cmd_data_header(&mut cmd.data_header, true);
@@ -250,70 +230,67 @@ impl SmaClient
         return Ok(());
     }
 
-    pub fn get_day_data(&mut self, start_time: u32, end_time: u32)
-        -> Result<Vec<TimestampedInt>, String>
-    {
-        match &self.logger
-        {
+    pub fn get_day_data(
+        &mut self,
+        start_time: u32,
+        end_time: u32,
+    ) -> Result<Vec<TimestampedInt>, String> {
+        match &self.logger {
             Some(x) => trace!(x, "GetDayData"),
-            None => ()
+            None => (),
         }
         let mut cmd = SmaCmdGetDayData::new();
         self.init_cmd_data_header(&mut cmd.data_header, false);
         cmd.start_time = start_time;
         cmd.end_time = end_time;
-        match self.issue_command(&cmd, self.dst_addr)
-        {
-            Ok(x) =>
-            {
-                match x
-                {
-                    SmaData::IntTimeSeries(x) => return Ok(x),
-                    _ => return Err(
-                        "💩️ received unexpected data type".to_string())
-                }
-            }
-            Err(e) => return Err(e)
+        match self.issue_command(&cmd, self.dst_addr) {
+            Ok(x) => match x {
+                SmaData::IntTimeSeries(x) => return Ok(x),
+                _ => return Err("💩️ received unexpected data type".to_string()),
+            },
+            Err(e) => return Err(e),
         }
     }
 
-    fn read(&mut self, dst_addr: net::SocketAddr)
-        -> Result<usize, String>
-    {
+    fn read(&mut self, dst_addr: net::SocketAddr) -> Result<usize, String> {
         self.buffer.clear();
-        match &self.logger
-        {
-            Some(x) =>
-            {
-                trace!(x, "Cap: {}, Len: {}", self.buffer.capacity(),
-                    self.buffer.len());
+        match &self.logger {
+            Some(x) => {
+                trace!(
+                    x,
+                    "Cap: {}, Len: {}",
+                    self.buffer.capacity(),
+                    self.buffer.len()
+                );
             }
-            None => ()
+            None => (),
         }
-        unsafe { self.buffer.set_len(SmaClient::BUFFER_SIZE); }
-        let (num_recv, src_addr) = match
-            self.socket.recv_from(&mut self.buffer)
+        unsafe {
+            self.buffer.set_len(SmaClient::BUFFER_SIZE);
+        }
+        let (num_recv, src_addr) = match self.socket.recv_from(&mut self.buffer)
         {
             // TODO: output socket error
             Err(e) => return Err("💩️ Nothing received".to_string()),
-            Ok(x) => x
+            Ok(x) => x,
         };
-        unsafe { self.buffer.set_len(num_recv); }
-        if src_addr != dst_addr
-        {
-            return Err(format!("💩️ received data from {}, expected {}",
-                src_addr, self.dst_addr));
+        unsafe {
+            self.buffer.set_len(num_recv);
+        }
+        if src_addr != dst_addr {
+            return Err(format!(
+                "💩️ received data from {}, expected {}",
+                src_addr, self.dst_addr
+            ));
         }
         return Ok(num_recv);
     }
 
-    fn write(&mut self, dst_addr: net::SocketAddr) -> Result<(), String>
-    {
-        return match self.socket.send_to(self.buffer.as_ref(), dst_addr)
-        {
+    fn write(&mut self, dst_addr: net::SocketAddr) -> Result<(), String> {
+        return match self.socket.send_to(self.buffer.as_ref(), dst_addr) {
             // TODO: output socket error
             Err(e) => Err("💩️ send data failed".to_string()),
-            Ok(_) => Ok(())
+            Ok(_) => Ok(()),
         };
     }
 }
