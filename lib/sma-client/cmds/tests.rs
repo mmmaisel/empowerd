@@ -6,6 +6,7 @@ use std::io::Cursor;
 use super::*;
 
 const BUFFER_SIZE: usize = 128;
+const SMA_FOURCC: u32 = 0x534d4100;
 
 fn setup_header(header: &mut SmaDataHeader)
 {
@@ -41,7 +42,7 @@ fn serialize_identify()
 }
 
 #[test]
-fn dererialize_identify()
+fn deserialize_identify()
 {
     let mut input_buffer = Cursor::new(vec!
     [
@@ -59,6 +60,8 @@ fn dererialize_identify()
         0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00
     ]);
+    let fourcc = input_buffer.get_u32();
+    assert_eq!(SMA_FOURCC, fourcc);
     let response = parse_command(&mut input_buffer, &None);
     let response = match response
     {
@@ -118,6 +121,8 @@ fn deserialize_login()
         0xb8, 0xb8, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
         0x88, 0x88, 0x00, 0x00, 0x00, 0x00
     ]);
+    let fourcc = input_buffer.get_u32();
+    assert_eq!(SMA_FOURCC, fourcc);
     let response = parse_command(&mut input_buffer, &None);
     let response = match response
     {
@@ -146,6 +151,8 @@ fn deserialize_login2()
         0xD4, 0x5E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00
     ]);
+    let fourcc = input_buffer.get_u32();
+    assert_eq!(SMA_FOURCC, fourcc);
     let response = parse_command(&mut input_buffer, &None);
     let response = match response
     {
@@ -248,6 +255,8 @@ fn deserialize_get_day_data()
         0xc2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00
     ]);
+    let fourcc = input_buffer.get_u32();
+    assert_eq!(SMA_FOURCC, fourcc);
     let response = parse_command(&mut input_buffer, &None);
     let response = match response
     {

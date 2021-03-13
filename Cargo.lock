@@ -1915,6 +1915,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sma-client"
+version = "0.2.0"
+dependencies = [
+ "bytes",
+ "slog",
+ "tokio",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2019,6 +2028,7 @@ dependencies = [
  "serde_json",
  "slog",
  "sloggers",
+ "sma-client",
  "tokio",
 ]
 

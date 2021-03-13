@@ -1,8 +1,5 @@
 extern crate bytes;
 use bytes::{BufMut, BytesMut};
-use bytes::ByteOrder;
-extern crate byteorder;
-use byteorder::{LittleEndian};
 
 // TODO: get rid of big endian values
 
@@ -52,7 +49,7 @@ pub trait SmaResponse
 
 pub struct SmaPacketHeader
 {
-    pub sma_fourcc: u32,
+    //pub sma_fourcc: u32,
     pub hdr_len: u16,
     pub magic: u16,
     pub group: u32,
@@ -74,7 +71,6 @@ impl SmaPacketHeader
     {
         return SmaPacketHeader
         {
-            sma_fourcc: SmaPacketHeader::SMA_FOURCC,
             hdr_len: SmaPacketHeader::LENGTH / 4,
             magic: SmaPacketHeader::SMA_MAGIC,
             group: SmaPacketHeader::SMA_GROUP,
@@ -86,35 +82,34 @@ impl SmaPacketHeader
 
     fn serialize(&self, buffer: &mut BytesMut)
     {
-        buffer.put_u32_le(self.sma_fourcc);
-        buffer.put_u16_be(self.hdr_len);
-        buffer.put_u16_be(self.magic);
-        buffer.put_u32_be(self.group);
-        buffer.put_u16_be(self.data_len);
-        buffer.put_u16_be(self.version);
-        buffer.put_u16_be(self.protocol_id);
+        buffer.put_u32_le(SmaPacketHeader::SMA_FOURCC);
+        buffer.put_u16(self.hdr_len);
+        buffer.put_u16(self.magic);
+        buffer.put_u32(self.group);
+        buffer.put_u16(self.data_len);
+        buffer.put_u16(self.version);
+        buffer.put_u16(self.protocol_id);
     }
 
     fn deserialize(buffer: &mut Buf) -> SmaPacketHeader
     {
         return SmaPacketHeader
         {
-            sma_fourcc: buffer.get_u32_le(),
-            hdr_len: buffer.get_u16_be(),
-            magic: buffer.get_u16_be(),
-            group: buffer.get_u32_be(),
-            data_len: buffer.get_u16_be(),
-            version: buffer.get_u16_be(),
-            protocol_id: buffer.get_u16_be()
+            //sma_fourcc: buffer.get_u32_le(),
+            hdr_len: buffer.get_u16(),
+            magic: buffer.get_u16(),
+            group: buffer.get_u32(),
+            data_len: buffer.get_u16(),
+            version: buffer.get_u16(),
+            protocol_id: buffer.get_u16()
         }
     }
 
     fn validate(&self) -> Result<(), String>
     {
-        if self.sma_fourcc != SmaPacketHeader::SMA_FOURCC
-        {
+        /*if self.sma_fourcc != SmaPacketHeader::SMA_FOURCC {
             return Err("Invalid packet FOURCC".to_string());
-        }
+        }*/
         if self.hdr_len != SmaPacketHeader::LENGTH / 4
         {
             return Err("Invalid header len".to_string());
@@ -161,18 +156,18 @@ impl SmaEndpoint
 
     fn serialize(&self, buffer: &mut BytesMut)
     {
-        buffer.put_u16_be(self.susy_id);
-        buffer.put_u32_be(self.serial);
-        buffer.put_u16_be(self.ctrl);
+        buffer.put_u16(self.susy_id);
+        buffer.put_u32(self.serial);
+        buffer.put_u16(self.ctrl);
     }
 
     fn deserialize(buffer: &mut Buf) -> SmaEndpoint
     {
         return SmaEndpoint
         {
-            susy_id: buffer.get_u16_be(),
-            serial: buffer.get_u32_be(),
-            ctrl: buffer.get_u16_be()
+            susy_id: buffer.get_u16(),
+            serial: buffer.get_u32(),
+            ctrl: buffer.get_u16()
         }
     }
 
@@ -225,8 +220,8 @@ impl SmaDataHeader
         buffer.put_u8(self.class);
         self.dst.serialize(buffer);
         self.app.serialize(buffer);
-        buffer.put_u16_be(self.error_code);
-        buffer.put_u16_be(self.fragment_id);
+        buffer.put_u16(self.error_code);
+        buffer.put_u16(self.fragment_id);
         buffer.put_u16_le(self.packet_id);
     }
 
@@ -238,7 +233,7 @@ impl SmaDataHeader
             class: buffer.get_u8(),
             dst: SmaEndpoint::deserialize(buffer),
             app: SmaEndpoint::deserialize(buffer),
-            error_code: buffer.get_u16_be(),
+            error_code: buffer.get_u16(),
             fragment_id: buffer.get_u16_le(),
             packet_id: buffer.get_u16_le()
         };
@@ -357,7 +352,7 @@ pub fn parse_response(mut buffer: &mut Buf, logger: &Option<Logger>)
     {
         if buffer.remaining() >= 4
         {
-            let word = LittleEndian::read_u32(&buffer.bytes()[0..4]);
+            let word = buffer.get_u32_le();
             if word == 0x00000000
             {
                 // discard superflous end tokens
