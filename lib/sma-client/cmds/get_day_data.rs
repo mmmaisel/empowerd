@@ -1,7 +1,5 @@
-extern crate bytes;
-use bytes::{Buf, BufMut, BytesMut};
-
 use super::*;
+use bytes::{Buf, BufMut, BytesMut};
 
 pub struct SmaCmdGetDayData {
     pub pkt_header: SmaPacketHeader,

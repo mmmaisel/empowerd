@@ -1,7 +1,5 @@
-extern crate bytes;
-use bytes::{BufMut, BytesMut};
-
 use super::*;
+use bytes::{BufMut, BytesMut};
 
 pub struct SmaCmdLogout {
     pub pkt_header: SmaPacketHeader,

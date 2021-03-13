@@ -1,17 +1,11 @@
-extern crate bytes;
-#[macro_use]
-extern crate slog;
-
 use bytes::{Buf, BytesMut};
-use slog::Logger;
-
+use slog::{trace, Logger};
 use std::net;
 
 mod cmds;
 
 use crate::cmds::*;
-pub use cmds::SmaData;
-pub use cmds::TimestampedInt;
+pub use cmds::{SmaData, TimestampedInt};
 
 pub struct SmaClient {
     socket: net::UdpSocket,

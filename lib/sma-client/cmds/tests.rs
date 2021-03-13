@@ -1,9 +1,6 @@
-extern crate bytes;
-use bytes::BytesMut;
-
-use std::io::Cursor;
-
 use super::*;
+use bytes::BytesMut;
+use std::io::Cursor;
 
 const BUFFER_SIZE: usize = 128;
 const SMA_FOURCC: u32 = 0x534d4100;

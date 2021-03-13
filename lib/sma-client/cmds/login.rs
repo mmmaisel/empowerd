@@ -1,8 +1,6 @@
-extern crate bytes;
+use super::*;
 use bytes::{Buf, BufMut, BytesMut};
 use std::time;
-
-use super::*;
 
 pub struct SmaCmdLogin {
     pub pkt_header: SmaPacketHeader,
