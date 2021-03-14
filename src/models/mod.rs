@@ -15,7 +15,7 @@ pub use meter::Meter;
 pub use solar::Solar;
 pub use weather::Weather;
 
-trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>> {
+pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>> {
     const FIELDS: &'static str;
     const MEASUREMENT: &'static str;
 

@@ -2,12 +2,14 @@ use crate::Settings;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use slog::{debug, error, info, trace, Logger};
+use std::net::SocketAddr;
 use std::time::{Duration, SystemTime};
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
 #[derive(Debug)]
 pub enum MinerResult {
+    Running,
     Canceled,
     Err(String),
 }
@@ -41,6 +43,11 @@ impl Miner {
         )
         .with_auth(&settings.db_user, &settings.db_pw);
 
+        let sma_socket_addr: SocketAddr = match settings.sma_addr.parse() {
+            Ok(x) => x,
+            Err(e) => return Err(format!("Could not parse sma_addr: {}", e)),
+        };
+
         let mut battery = battery::BatteryMiner::new(
             rx.clone(),
             influx_client.clone(),
@@ -63,6 +70,8 @@ impl Miner {
             rx.clone(),
             influx_client.clone(),
             Duration::from_secs(settings.sma_poll_interval),
+            settings.sma_pw.clone(),
+            sma_socket_addr,
             logger.clone(),
         )?;
         let mut weather = weather::WeatherMiner::new(
@@ -96,6 +105,8 @@ impl Miner {
             };
 
             match result {
+                MinerResult::Running => {
+                }
                 MinerResult::Canceled => {
                     debug!(self.logger, "Task was canceled");
                 }
@@ -132,7 +143,7 @@ impl Miner {
         let interval_s = interval.as_secs();
         let sleep_time =
             Duration::from_secs(interval_s * (now.as_secs() % interval_s));
-        debug!(logger, "sleep unitl {:?}", sleep_time);
+        debug!(logger, "sleep until {:?}", sleep_time);
         tokio::select! {
             _ = canceled.changed() => {
                 trace!(logger, "sleep was canceled");
