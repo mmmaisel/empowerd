@@ -58,6 +58,8 @@ impl Miner {
             rx.clone(),
             influx_client.clone(),
             Duration::from_secs(settings.dachs_poll_interval),
+            settings.dachs_addr.clone(),
+            settings.dachs_pw.clone(),
             logger.clone(),
         )?;
         let mut meter = meter::MeterMiner::new(
