@@ -16,7 +16,7 @@ pub enum MinerResult {
 
 #[derive(Debug)]
 pub enum MinerState {
-    Running,
+    Running(u64),
     Canceled,
 }
 
@@ -35,7 +35,7 @@ pub struct Miner {
 impl Miner {
     pub fn new(logger: Logger, settings: &Settings) -> Result<Miner, String> {
         let miners = FuturesUnordered::new();
-        let (tx, rx) = watch::channel(MinerState::Running);
+        let (tx, rx) = watch::channel(MinerState::Running(0));
 
         let influx_client = influxdb::Client::new(
             format!("http://{}", &settings.db_url),
@@ -105,8 +105,7 @@ impl Miner {
             };
 
             match result {
-                MinerResult::Running => {
-                }
+                MinerResult::Running => {}
                 MinerResult::Canceled => {
                     debug!(self.logger, "Task was canceled");
                 }
@@ -151,7 +150,12 @@ impl Miner {
             }
             _ = tokio::time::sleep(sleep_time) => {
                 trace!(logger, "wokeup");
-                return Ok(MinerState::Running);
+                let now = SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .map_err(|e| {
+                        format!("System time is {:?} seconds before UNIX epoch", e)
+                    })?.as_secs();
+                return Ok(MinerState::Running(now));
             }
             else => {
                 return Err("sleep_aligned returned".into());

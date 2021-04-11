@@ -41,7 +41,7 @@ impl SolarMiner {
     // TODO: dedup
     // XXX: this function is much too long
     pub async fn mine(&mut self) -> MinerResult {
-        match Miner::sleep_aligned(
+        let now = match Miner::sleep_aligned(
             self.interval,
             &mut self.canceled,
             &self.logger,
@@ -54,12 +54,11 @@ impl SolarMiner {
                     e
                 ));
             }
-            Ok(state) => {
-                if let MinerState::Canceled = state {
-                    return MinerResult::Canceled;
-                }
-            }
-        }
+            Ok(state) => match state {
+                MinerState::Canceled => return MinerResult::Canceled,
+                MinerState::Running(x) => x,
+            },
+        };
 
         // TODO: error handling
         let last_record = Solar::into_single(
@@ -103,17 +102,6 @@ impl SolarMiner {
             error!(self.logger, "Login failed: {}", e);
             return MinerResult::Running;
         }
-
-        let now = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)
-        {
-            Ok(x) => x.as_secs(),
-            Err(e) => {
-                return MinerResult::Err(format!(
-                    "System time is {:?} seconds before UNIX epoch",
-                    e
-                ))
-            }
-        };
 
         trace!(
             self.logger,
