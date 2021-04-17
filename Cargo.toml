@@ -10,7 +10,7 @@ members = [
     "lib/sma-client",
 #    "lib/sml-client",
 #    "lib/bresser6in1-usb",
-#    "lib/battery-client"
+    "lib/battery-client"
 ]
 
 [dependencies]
@@ -18,7 +18,7 @@ dachs-client = { version = "*", path = "lib/dachs-client/" }
 sma-client = { version = "*", path = "lib/sma-client/" }
 #sml-client = { version = "*", path = "lib/sml-client/" }
 #bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
-#battery-client = { version = "*", path = "lib/battery-client/" }
+battery-client = { version = "*", path = "lib/battery-client/" }
 
 futures = "*"
 slog = { version=">=2.7", features=["max_level_trace", "release_max_level_debug"] }

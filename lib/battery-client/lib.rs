@@ -1,10 +1,13 @@
-use modbus::Client;
+#![forbid(unsafe_code)]
+
 use slog::{trace, Logger};
-use std::time::Duration;
+use std::io::Error;
+use std::net::SocketAddr;
+use tokio_modbus::client::tcp::connect_slave;
+use tokio_modbus::prelude::Reader;
 
 pub struct BatteryClient {
-    config: modbus::tcp::Config,
-    addr: String,
+    addr: SocketAddr,
     logger: Option<Logger>,
 }
 
@@ -13,26 +16,26 @@ impl BatteryClient {
     const METERING_WH_IN: u16 = 30595;
     const METERING_WH_OUT: u16 = 30597;
 
-    pub fn new(addr: String, logger: Option<Logger>) -> BatteryClient {
-        let config = modbus::tcp::Config {
-            tcp_port: 502,
-            tcp_connect_timeout: Some(Duration::from_secs(5)),
-            tcp_read_timeout: Some(Duration::from_secs(10)),
-            tcp_write_timeout: Some(Duration::from_secs(10)),
-            modbus_uid: 3,
+    pub fn new(
+        addr: String,
+        port: u16,
+        logger: Option<Logger>,
+    ) -> Result<BatteryClient, String> {
+        let addr: SocketAddr = match format!("{}:{}", addr, port).parse() {
+            Ok(x) => x,
+            Err(e) => return Err(e.to_string()),
         };
 
-        return BatteryClient {
-            config: config,
+        return Ok(BatteryClient {
             addr: addr,
             logger: logger,
-        };
+        });
     }
 
     fn validate_result(
         &self,
         which: &str,
-        res: Result<Vec<u16>, modbus::Error>,
+        res: Result<Vec<u16>, Error>,
     ) -> Result<u32, String> {
         match res {
             Err(e) => return Err(e.to_string()),
@@ -51,21 +54,27 @@ impl BatteryClient {
         };
     }
 
-    pub fn get_in_out_charge(&self) -> Result<(u32, u32, u32), String> {
-        let mut client =
-            modbus::tcp::Transport::new_with_cfg(&self.addr, self.config)
-                .map_err(|e| e.to_string())?;
+    pub async fn get_in_out_charge(&self) -> Result<(u32, u32, u32), String> {
+        let mut client = connect_slave(self.addr, 3.into())
+            .await
+            .map_err(|e| format!("Coult not connect to battery: {}", e))?;
         let wh_in = self.validate_result(
             "METERING_WH_IN",
-            client.read_input_registers(BatteryClient::METERING_WH_IN, 2),
+            client
+                .read_input_registers(BatteryClient::METERING_WH_IN, 2)
+                .await,
         )?;
         let wh_out = self.validate_result(
             "METERING_WH_OUT",
-            client.read_input_registers(BatteryClient::METERING_WH_OUT, 2),
+            client
+                .read_input_registers(BatteryClient::METERING_WH_OUT, 2)
+                .await,
         )?;
         let charge = self.validate_result(
             "BAT_CHA_STT",
-            client.read_input_registers(BatteryClient::BAT_CHA_STT, 2),
+            client
+                .read_input_registers(BatteryClient::BAT_CHA_STT, 2)
+                .await,
         )?;
 
         if charge == 0 {
@@ -76,21 +85,11 @@ impl BatteryClient {
     }
 }
 
-#[test]
-fn test_battery_client() {
-    let client = BatteryClient {
-        config: modbus::tcp::Config {
-            tcp_port: 1502,
-            tcp_connect_timeout: Some(Duration::from_secs(5)),
-            tcp_read_timeout: Some(Duration::from_secs(10)),
-            tcp_write_timeout: Some(Duration::from_secs(10)),
-            modbus_uid: 3,
-        },
-        addr: "127.0.0.1".into(),
-        logger: None,
-    };
+#[tokio::test]
+async fn test_battery_client() {
+    let client = BatteryClient::new("127.0.0.1".into(), 1502, None).unwrap();
 
-    match client.get_in_out_charge() {
+    match client.get_in_out_charge().await {
         Ok((wh_in, wh_out, charge)) => {
             println!("in: {}, out: {}, charge: {}", wh_in, wh_out, charge);
         }

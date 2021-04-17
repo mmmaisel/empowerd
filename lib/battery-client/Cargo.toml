@@ -1,18 +1,18 @@
 [package]
 name = "battery-client"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["max"]
 edition = "2018"
 
 [lib]
 path = "lib.rs"
 
-[[bin]]
-name = "battery-cli"
-path = "battery-cli.rs"
+#[[bin]]
+#name = "battery-cli"
+#path = "battery-cli.rs"
 
 [dependencies]
-clap = "*"
-modbus = "*"
+#clap = "*"
 slog = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
-
+tokio = { version=">=1.0", features=["full"] }
+tokio-modbus = { git = "https://github.com/ivoisbelongtous/tokio-modbus.git", branch = "tokio1", features = ["tcp"], default-features = false }

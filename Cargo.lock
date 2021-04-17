@@ -292,6 +292,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
+name = "battery-client"
+version = "0.2.0"
+dependencies = [
+ "slog",
+ "tokio",
+ "tokio-modbus",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -352,6 +361,12 @@ dependencies = [
  "crossbeam-queue 0.2.3",
  "stable_deref_trait",
 ]
+
+[[package]]
+name = "byteorder"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "bytes"
@@ -2040,6 +2055,7 @@ checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 name = "stromd"
 version = "0.2.0"
 dependencies = [
+ "battery-client",
  "chrono",
  "config",
  "dachs-client",
@@ -2247,6 +2263,20 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "tokio-modbus"
+version = "0.4.0"
+source = "git+https://github.com/ivoisbelongtous/tokio-modbus.git?branch=tokio1#aa2014bbff84e266119e9b9c742e18ff447d6297"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "futures-util",
+ "log",
+ "smallvec",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]
