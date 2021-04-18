@@ -3,7 +3,7 @@ use crate::models::{Dachs, InfluxObject};
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
 use influxdb::InfluxDbWriteable;
-use slog::{debug, error, info, trace, Logger};
+use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 

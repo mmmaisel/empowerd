@@ -1,6 +1,10 @@
 use super::{Miner, MinerResult, MinerState};
-use slog::{debug, error, info, Logger};
-use std::time::Duration;
+use crate::models::{Battery, InfluxObject};
+use battery_client::BatteryClient;
+use chrono::{DateTime, Utc};
+use influxdb::InfluxDbWriteable;
+use slog::{error, trace, Logger};
+use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct BatteryMiner {
@@ -8,7 +12,7 @@ pub struct BatteryMiner {
     influx: influxdb::Client,
     interval: Duration,
     logger: Logger,
-    //battery_client: BatteryClient,
+    battery_client: BatteryClient,
 }
 
 impl BatteryMiner {
@@ -16,19 +20,23 @@ impl BatteryMiner {
         canceled: watch::Receiver<MinerState>,
         influx: influxdb::Client,
         interval: Duration,
+        battery_addr: String,
         logger: Logger,
     ) -> Result<BatteryMiner, String> {
+        let battery_client =
+            BatteryClient::new(battery_addr, 502, Some(logger.clone()))?;
         return Ok(BatteryMiner {
             canceled: canceled,
             influx: influx,
             interval: interval,
             logger: logger,
+            battery_client: battery_client,
         });
     }
 
     // TODO: dedup
     pub async fn mine(&mut self) -> MinerResult {
-        match Miner::sleep_aligned(
+        let now = match Miner::sleep_aligned(
             self.interval,
             &mut self.canceled,
             &self.logger,
@@ -41,12 +49,46 @@ impl BatteryMiner {
                     e
                 ));
             }
-            Ok(state) => {
-                if let MinerState::Canceled = state {
-                    return MinerResult::Canceled;
+            Ok(state) => match state {
+                MinerState::Canceled => return MinerResult::Canceled,
+                MinerState::Running(x) => x,
+            },
+        };
+
+        let (wh_in, wh_out, charge) =
+            match self.battery_client.get_in_out_charge().await {
+                Ok((x, y, z)) => (x as f64, y as f64, z),
+                Err(e) => {
+                    error!(self.logger, "Get battery data failed: {}", e);
+                    return MinerResult::Running;
                 }
-            }
+            };
+
+        // TODO: error handling
+        let last_record = Battery::into_single(
+            self.influx.json_query(Battery::query_last()).await,
+        );
+
+        let power = 3600.0
+            * (wh_in
+                - last_record.energy_in
+                - (wh_out - last_record.energy_out))
+            / ((now - last_record.time.timestamp() as u64) as f64);
+
+        let battery = Battery::new(
+            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
+            wh_in,
+            wh_out,
+            charge.into(),
+            power,
+        );
+
+        trace!(self.logger, "Writing {:?} to database", &battery);
+        // XXX: extract save method
+        if let Err(e) = self.influx.query(&battery.into_query("battery")).await
+        {
+            error!(self.logger, "Save BatteryData failed, {}", e);
         }
-        return MinerResult::Err("battery not implemented yet".into());
+        return MinerResult::Running;
     }
 }

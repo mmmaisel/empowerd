@@ -52,6 +52,7 @@ impl Miner {
             rx.clone(),
             influx_client.clone(),
             Duration::from_secs(settings.battery_poll_interval),
+            settings.battery_addr.clone(),
             logger.clone(),
         )?;
         let mut dachs = dachs::DachsMiner::new(
