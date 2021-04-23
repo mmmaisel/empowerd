@@ -9,7 +9,7 @@ pub struct SmlCloseResponse
 
 impl SmlCloseResponse
 {
-    pub fn deserialize(buffer: &mut SmlBuf)
+    pub fn deserialize(buffer: &mut dyn SmlBuf)
         -> Result<SmlCloseResponse, String>
     {
         let tl = buffer.get_sml_tl();

@@ -19,7 +19,7 @@ impl SmlBody
     const CLOSE_RESPONSE_ID: u16 = 0x0201;
     const GET_LIST_RESPONSE_ID: u16 = 0x0701;
 
-    pub fn deserialize(mut buffer: &mut SmlBuf)
+    pub fn deserialize(mut buffer: &mut dyn SmlBuf)
         -> Result<SmlBody, String>
     {
         let tl = buffer.get_sml_tl();
@@ -70,7 +70,7 @@ pub struct SmlMessage
 impl SmlMessage
 {
     // TODO: dont panic, validate all lengths, best already in SmlFile
-    pub fn deserialize(mut buffer: &mut SmlBuf)
+    pub fn deserialize(mut buffer: &mut dyn SmlBuf)
         -> Result<SmlMessage, String>
     {
         let tl = buffer.get_sml_tl();

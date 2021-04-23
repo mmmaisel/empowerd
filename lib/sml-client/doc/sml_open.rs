@@ -15,7 +15,7 @@ pub struct SmlOpenResponse
 
 impl SmlOpenResponse
 {
-    pub fn deserialize(mut buffer: &mut SmlBuf)
+    pub fn deserialize(mut buffer: &mut dyn SmlBuf)
         -> Result<SmlOpenResponse, String>
     {
         let tl = buffer.get_sml_tl();

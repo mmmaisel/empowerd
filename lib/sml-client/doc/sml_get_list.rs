@@ -16,7 +16,7 @@ pub struct SmlListEntry
 
 impl SmlListEntry
 {
-    pub fn deserialize(mut buffer: &mut SmlBuf)
+    pub fn deserialize(mut buffer: &mut dyn SmlBuf)
         -> Result<SmlListEntry, String>
     {
         let tl = buffer.get_sml_tl();
@@ -87,7 +87,7 @@ pub struct SmlGetListResponse
 
 impl SmlGetListResponse
 {
-    pub fn deserialize(mut buffer: &mut SmlBuf)
+    pub fn deserialize(mut buffer: &mut dyn SmlBuf)
         -> Result<SmlGetListResponse, String>
     {
         let tl = buffer.get_sml_tl();

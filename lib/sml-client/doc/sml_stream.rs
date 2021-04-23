@@ -17,7 +17,7 @@ pub struct SmlStream
 
 impl SmlStream
 {
-    pub fn deserialize(buffer: &mut SmlBuf)
+    pub fn deserialize(buffer: &mut dyn SmlBuf)
         -> Result<Vec<SmlStream>, String>
     {
         let mut streams: Vec<SmlStream> = Vec::new();
