@@ -14,6 +14,12 @@ use doc::SmlBody;
 use doc::SmlFile;
 use doc::SmlStream;
 
+#[cfg(test)]
+mod tests;
+
+// XXX: serialport implement custom poll buffer, do not clear buffer if last message was
+// incomplete.
+//
 pub struct SmlClient {
     settings: SerialPortBuilder,
     buffer: BytesMut,
@@ -144,6 +150,3 @@ impl SmlClient {
         return SmlClient::extract_produced_consumed(data);
     }
 }
-
-#[cfg(test)]
-mod tests;

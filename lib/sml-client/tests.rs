@@ -59,3 +59,15 @@ fn extract_meter_data() {
         Err(e) => panic!("Error {} occured", e),
     }
 }
+
+#[tokio::test]
+async fn read_from_device() {
+    let mut client = SmlClient::new("/dev/ttyUSB0".into(), 9600, None);
+    let file = match client.get_sml_file().await {
+        Ok(x) => x,
+        Err(e) => panic!("Reading SMLFile failed: {}", e),
+    };
+    if let Err(e) = SmlClient::extract_produced_consumed(file) {
+        panic!("Received file could not be parsed: {}", e);
+    }
+}
