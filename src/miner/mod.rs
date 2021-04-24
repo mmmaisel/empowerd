@@ -67,6 +67,8 @@ impl Miner {
             rx.clone(),
             influx_client.clone(),
             Duration::from_secs(settings.meter_poll_interval),
+            settings.meter_device.clone(),
+            settings.meter_baud,
             logger.clone(),
         )?;
         let mut solar = solar::SolarMiner::new(
