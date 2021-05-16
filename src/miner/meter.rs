@@ -1,7 +1,6 @@
 use super::{Miner, MinerResult, MinerState};
 use crate::models::{InfluxObject, InfluxResult, Meter};
 use chrono::{DateTime, Utc};
-use influxdb::InfluxDbWriteable;
 use slog::{error, trace, Logger};
 use sml_client::SmlClient;
 use std::time::{Duration, UNIX_EPOCH};
@@ -102,8 +101,7 @@ impl MeterMiner {
             consumed,
         );
         trace!(self.logger, "Writing {:?} to database", &meter);
-        // XXX: extract save method
-        if let Err(e) = self.influx.query(&meter.into_query("meter")).await {
+        if let Err(e) = self.influx.query(&meter.save_query()).await {
             error!(self.logger, "Save MeterData failed, {}", e);
         }
         return MinerResult::Running;

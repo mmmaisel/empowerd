@@ -1,7 +1,6 @@
 use super::{Miner, MinerResult, MinerState};
 use crate::models::{InfluxObject, InfluxResult, Solar};
 use chrono::{DateTime, Utc};
-use influxdb::InfluxDbWriteable;
 use slog::{debug, error, trace, Logger};
 use sma_client::{SmaClient, TimestampedInt};
 use std::net::SocketAddr;
@@ -181,8 +180,7 @@ impl SolarMiner {
             last_energy = point.value as f64;
             last_timestamp = point.timestamp as i64;
 
-            if let Err(e) = self.influx.query(&solar.into_query("solar")).await
-            {
+            if let Err(e) = self.influx.query(&solar.save_query()).await {
                 error!(self.logger, "Save SolarData failed, {}", e);
                 return MinerResult::Running;
             }

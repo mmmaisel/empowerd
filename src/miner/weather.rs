@@ -1,7 +1,6 @@
 use super::{Miner, MinerResult, MinerState};
-use crate::models::Weather;
+use crate::models::{InfluxObject, Weather};
 use bresser6in1_usb::Client as BresserClient;
-use influxdb::InfluxDbWriteable;
 use slog::{error, trace, Logger};
 use std::time::Duration;
 use tokio::sync::watch;
@@ -92,9 +91,7 @@ impl WeatherMiner {
 
         let weather = Weather::new(weather_data);
         trace!(self.logger, "Writing {:?} to database", &weather);
-        // XXX: extract save method
-        if let Err(e) = self.influx.query(&weather.into_query("weather")).await
-        {
+        if let Err(e) = self.influx.query(&weather.save_query()).await {
             error!(self.logger, "Save WeatherData failed, {}", e);
         }
         return MinerResult::Running;

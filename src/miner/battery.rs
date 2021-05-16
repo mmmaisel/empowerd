@@ -2,7 +2,6 @@ use super::{Miner, MinerResult, MinerState};
 use crate::models::{Battery, InfluxObject, InfluxResult};
 use battery_client::BatteryClient;
 use chrono::{DateTime, Utc};
-use influxdb::InfluxDbWriteable;
 use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
@@ -90,9 +89,7 @@ impl BatteryMiner {
         );
 
         trace!(self.logger, "Writing {:?} to database", &battery);
-        // XXX: extract save method
-        if let Err(e) = self.influx.query(&battery.into_query("battery")).await
-        {
+        if let Err(e) = self.influx.query(&battery.save_query()).await {
             error!(self.logger, "Save BatteryData failed, {}", e);
         }
         return MinerResult::Running;

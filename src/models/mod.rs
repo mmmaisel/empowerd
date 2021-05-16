@@ -1,6 +1,6 @@
 use influxdb::{
-    integrations::serde_integration::DatabaseQueryResult, Error, Query,
-    ReadQuery,
+    integrations::serde_integration::DatabaseQueryResult, Error,
+    InfluxDbWriteable, Query, ReadQuery, WriteQuery,
 };
 
 pub mod battery;
@@ -21,7 +21,9 @@ pub enum InfluxResult<T> {
     Err(String),
 }
 
-pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>> {
+pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
+    InfluxDbWriteable
+{
     const FIELDS: &'static str;
     const MEASUREMENT: &'static str;
 
@@ -39,6 +41,13 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>> {
             Self::FIELDS,
             Self::MEASUREMENT
         ));
+    }
+
+    fn save_query(self) -> WriteQuery
+    where
+        Self: Sized,
+    {
+        return self.into_query(Self::MEASUREMENT);
     }
 
     fn into_single(

@@ -2,7 +2,6 @@ use super::{Miner, MinerResult, MinerState};
 use crate::models::{Dachs, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
-use influxdb::InfluxDbWriteable;
 use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
@@ -101,8 +100,7 @@ impl DachsMiner {
         );
 
         trace!(self.logger, "Writing {:?} to database", &dachs);
-        // XXX: extract save method
-        if let Err(e) = self.influx.query(&dachs.into_query("dachs")).await {
+        if let Err(e) = self.influx.query(&dachs.save_query()).await {
             error!(self.logger, "Save DachsData failed, {}", e);
         }
         return MinerResult::Running;
