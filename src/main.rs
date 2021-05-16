@@ -8,10 +8,7 @@ use sloggers::{
     types::{OverflowStrategy, Severity},
     Build,
 };
-use std::convert::Infallible;
-use std::net;
 use std::process;
-use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::signal;
 

@@ -1,5 +1,5 @@
 use super::{Miner, MinerResult, MinerState};
-use crate::models::{Battery, InfluxObject};
+use crate::models::{Battery, InfluxObject, InfluxResult};
 use battery_client::BatteryClient;
 use chrono::{DateTime, Utc};
 use influxdb::InfluxDbWriteable;
@@ -64,16 +64,22 @@ impl BatteryMiner {
                 }
             };
 
-        // TODO: error handling
-        let last_record = Battery::into_single(
+        let power = match Battery::into_single(
             self.influx.json_query(Battery::query_last()).await,
-        );
-
-        let power = 3600.0
-            * (wh_in
-                - last_record.energy_in
-                - (wh_out - last_record.energy_out))
-            / ((now - last_record.time.timestamp() as u64) as f64);
+        ) {
+            InfluxResult::Some(last_record) => {
+                3600.0
+                    * (wh_in
+                        - last_record.energy_in
+                        - (wh_out - last_record.energy_out))
+                    / ((now - last_record.time.timestamp() as u64) as f64)
+            }
+            InfluxResult::None => 0.0,
+            InfluxResult::Err(e) => {
+                error!(self.logger, "Query battery database failed: {}", e);
+                return MinerResult::Running;
+            }
+        };
 
         let battery = Battery::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),

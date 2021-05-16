@@ -1,5 +1,5 @@
 use super::{Miner, MinerResult, MinerState};
-use crate::models::{Dachs, InfluxObject};
+use crate::models::{Dachs, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
 use influxdb::InfluxDbWriteable;
@@ -75,16 +75,22 @@ impl DachsMiner {
             }
         };
 
-        // TODO: error handling
-        let last_record = Dachs::into_single(
+        let power = match Dachs::into_single(
             self.influx.json_query(Dachs::query_last()).await,
-        );
-
-        // TODO: derive nonlinear power from delta timestamp and delta runtime
-        let power: f64 = if dachs_runtime != last_record.runtime as i32 {
-            800.0
-        } else {
-            0.0
+        ) {
+            InfluxResult::Some(last_record) => {
+                // TODO: derive nonlinear power from delta timestamp and delta runtime
+                if dachs_runtime != last_record.runtime as i32 {
+                    800.0
+                } else {
+                    0.0
+                }
+            }
+            InfluxResult::None => 0.0,
+            InfluxResult::Err(e) => {
+                error!(self.logger, "Query dachs database failed: {}", e);
+                return MinerResult::Running;
+            }
         };
 
         let dachs = Dachs::new(

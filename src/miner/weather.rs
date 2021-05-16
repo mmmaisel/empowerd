@@ -1,10 +1,9 @@
 use super::{Miner, MinerResult, MinerState};
-use crate::models::{InfluxObject, Weather};
-use bresser6in1_usb::{Client as BresserClient, Data as BresserData};
-use chrono::{DateTime, Utc};
+use crate::models::Weather;
+use bresser6in1_usb::Client as BresserClient;
 use influxdb::InfluxDbWriteable;
-use slog::{debug, error, info, trace, Logger};
-use std::time::{Duration, UNIX_EPOCH};
+use slog::{error, trace, Logger};
+use std::time::Duration;
 use tokio::sync::watch;
 
 pub struct WeatherMiner {

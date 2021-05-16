@@ -1,8 +1,8 @@
 use super::{Miner, MinerResult, MinerState};
-use crate::models::{InfluxObject, Meter};
+use crate::models::{InfluxObject, InfluxResult, Meter};
 use chrono::{DateTime, Utc};
 use influxdb::InfluxDbWriteable;
-use slog::{debug, error, info, trace, warn, Logger};
+use slog::{error, trace, Logger};
 use sml_client::SmlClient;
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
@@ -77,17 +77,23 @@ impl MeterMiner {
             }
         };
 
-        // TODO: error handling, create first record
-        let last_record = Meter::into_single(
+        let power = match Meter::into_single(
             self.influx.json_query(Meter::query_last()).await,
-        );
-        trace!(self.logger, "Read {:?} from database", last_record);
-
-        let power = 3600.0
-            * (consumed
-                - last_record.energy_consumed
-                - (produced - last_record.energy_produced))
-            / ((now - last_record.time.timestamp() as u64) as f64);
+        ) {
+            InfluxResult::Some(last_record) => {
+                trace!(self.logger, "Read {:?} from database", last_record);
+                3600.0
+                    * (consumed
+                        - last_record.energy_consumed
+                        - (produced - last_record.energy_produced))
+                    / ((now - last_record.time.timestamp() as u64) as f64)
+            }
+            InfluxResult::None => 0.0,
+            InfluxResult::Err(e) => {
+                error!(self.logger, "Query dachs database failed: {}", e);
+                return MinerResult::Running;
+            }
+        };
 
         let meter = Meter::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),

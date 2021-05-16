@@ -1,11 +1,11 @@
 use super::{Miner, MinerResult, MinerState};
-use crate::models::{InfluxObject, Solar};
+use crate::models::{InfluxObject, InfluxResult, Solar};
 use chrono::{DateTime, Utc};
 use influxdb::InfluxDbWriteable;
-use slog::{debug, error, info, trace, warn, Logger};
+use slog::{debug, error, trace, Logger};
 use sma_client::{SmaClient, TimestampedInt};
 use std::net::SocketAddr;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct SolarMiner {
@@ -60,10 +60,18 @@ impl SolarMiner {
             },
         };
 
-        // TODO: error handling
-        let last_record = Solar::into_single(
+        let last_record = match Solar::into_single(
             self.influx.json_query(Solar::query_last()).await,
-        );
+        ) {
+            InfluxResult::Some(x) => x,
+            InfluxResult::None => {
+                Solar::new(DateTime::<Utc>::from(UNIX_EPOCH), 0.0, 0.0)
+            }
+            InfluxResult::Err(e) => {
+                error!(self.logger, "Query solar database failed: {}", e);
+                return MinerResult::Running;
+            }
+        };
         let session = match self.sma_client.open().await {
             Ok(x) => x,
             Err(e) => {
