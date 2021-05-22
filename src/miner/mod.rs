@@ -127,6 +127,10 @@ impl Miner {
         };
     }
 
+    fn sleep_duration(interval: u64, now: u64) -> Duration {
+        return Duration::from_secs(interval - (now % interval));
+    }
+
     pub async fn sleep_aligned(
         interval: Duration,
         canceled: &mut watch::Receiver<MinerState>,
@@ -139,8 +143,7 @@ impl Miner {
             })?;
 
         let interval_s = interval.as_secs();
-        let sleep_time =
-            Duration::from_secs(interval_s * (now.as_secs() % interval_s));
+        let sleep_time = Self::sleep_duration(interval_s, now.as_secs());
         debug!(logger, "sleep until {:?}", sleep_time);
         tokio::select! {
             _ = canceled.changed() => {
@@ -161,4 +164,16 @@ impl Miner {
             }
         }
     }
+}
+
+#[test]
+fn test_sleep_duration() {
+    assert_eq!(
+        Duration::from_secs(57),
+        Miner::sleep_duration(300, 1621753443)
+    );
+    assert_eq!(
+        Duration::from_secs(30),
+        Miner::sleep_duration(60, 1621754070)
+    );
 }
