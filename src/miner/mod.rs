@@ -2,7 +2,6 @@ use crate::Settings;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use slog::{debug, error, info, trace, Logger};
-use std::net::SocketAddr;
 use std::time::{Duration, SystemTime};
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
@@ -43,11 +42,6 @@ impl Miner {
         )
         .with_auth(&settings.db_user, &settings.db_pw);
 
-        let sma_socket_addr: SocketAddr = match settings.sma_addr.parse() {
-            Ok(x) => x,
-            Err(e) => return Err(format!("Could not parse sma_addr: {}", e)),
-        };
-
         let mut battery = battery::BatteryMiner::new(
             rx.clone(),
             influx_client.clone(),
@@ -76,7 +70,7 @@ impl Miner {
             influx_client.clone(),
             Duration::from_secs(settings.sma_poll_interval),
             settings.sma_pw.clone(),
-            sma_socket_addr,
+            settings.sma_addr.clone(),
             logger.clone(),
         )?;
         let mut weather = weather::WeatherMiner::new(

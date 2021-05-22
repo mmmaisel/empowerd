@@ -23,9 +23,17 @@ impl SolarMiner {
         influx: influxdb::Client,
         interval: Duration,
         sma_pw: String,
-        sma_addr: SocketAddr,
+        sma_addr: String,
         logger: Logger,
     ) -> Result<SolarMiner, String> {
+        let sma_socket_addr: SocketAddr =
+            match SmaClient::sma_sock_addr(sma_addr) {
+                Ok(x) => x,
+                Err(e) => {
+                    return Err(format!("Could not parse sma_addr: {}", e))
+                }
+            };
+
         return Ok(SolarMiner {
             canceled: canceled,
             influx: influx,
@@ -33,7 +41,7 @@ impl SolarMiner {
             logger: logger.clone(),
             sma_client: SmaClient::new(Some(logger)),
             sma_pw: sma_pw,
-            sma_addr: sma_addr,
+            sma_addr: sma_socket_addr,
         });
     }
 
