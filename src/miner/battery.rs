@@ -82,9 +82,9 @@ impl BatteryMiner {
 
         let battery = Battery::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
+            (charge as f64) / 100.0,
             wh_in,
             wh_out,
-            charge.into(),
             power,
         );
 

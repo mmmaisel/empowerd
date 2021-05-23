@@ -96,9 +96,9 @@ impl MeterMiner {
 
         let meter = Meter::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
-            power,
-            produced,
             consumed,
+            produced,
+            power,
         );
         trace!(self.logger, "Writing {:?} to database", &meter);
         if let Err(e) = self.influx.query(&meter.save_query()).await {
