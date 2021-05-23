@@ -52,6 +52,7 @@ impl SolarMiner {
             self.interval,
             &mut self.canceled,
             &self.logger,
+            "Solar",
         )
         .await
         {

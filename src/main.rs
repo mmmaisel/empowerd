@@ -94,10 +94,15 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
 
     let retval = tokio::select! {
         x = miner.run() => {
-            info!(logger, "Some task failed, exit.");
             match x {
-                Ok(_) => 0,
-                Err(_) => 1,
+                Ok(_) => {
+                    info!(logger, "Some task finished, exit.");
+                    0
+                },
+                Err(_) => {
+                    info!(logger, "Some task failed, exit.");
+                    1
+                }
             }
         }
         _ = signal::ctrl_c() => {

@@ -31,6 +31,20 @@ pub struct Miner {
     cancel: watch::Sender<MinerState>,
 }
 
+macro_rules! miner_task {
+    ($miner:expr) => {
+        tokio::task::spawn(async move {
+            loop {
+                let result = $miner.mine().await;
+                if let MinerResult::Running = result {
+                    continue;
+                }
+                return result;
+            }
+        })
+    };
+}
+
 impl Miner {
     pub fn new(logger: Logger, settings: &Settings) -> Result<Miner, String> {
         let miners = FuturesUnordered::new();
@@ -80,11 +94,11 @@ impl Miner {
             logger.clone(),
         )?;
 
-        miners.push(tokio::task::spawn(async move { battery.mine().await }));
-        miners.push(tokio::task::spawn(async move { dachs.mine().await }));
-        miners.push(tokio::task::spawn(async move { meter.mine().await }));
-        miners.push(tokio::task::spawn(async move { solar.mine().await }));
-        miners.push(tokio::task::spawn(async move { weather.mine().await }));
+        miners.push(miner_task!(battery));
+        miners.push(miner_task!(dachs));
+        miners.push(miner_task!(meter));
+        miners.push(miner_task!(solar));
+        miners.push(miner_task!(weather));
 
         return Ok(Miner {
             logger: logger,
@@ -106,6 +120,7 @@ impl Miner {
             match result {
                 MinerResult::Running => {}
                 MinerResult::Canceled => {
+                    // XXX: print task name here
                     debug!(self.logger, "Task was canceled");
                 }
                 MinerResult::Err(e) => {
@@ -135,6 +150,7 @@ impl Miner {
         interval: Duration,
         canceled: &mut watch::Receiver<MinerState>,
         logger: &Logger,
+        ty: &str,
     ) -> Result<MinerState, String> {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -144,7 +160,7 @@ impl Miner {
 
         let interval_s = interval.as_secs();
         let sleep_time = Self::sleep_duration(interval_s, now.as_secs());
-        debug!(logger, "sleep until {:?}", sleep_time);
+        debug!(logger, "{}: sleep until {:?}", ty, sleep_time);
         tokio::select! {
             _ = canceled.changed() => {
                 trace!(logger, "sleep was canceled");

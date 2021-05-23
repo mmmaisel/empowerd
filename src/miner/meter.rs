@@ -38,6 +38,7 @@ impl MeterMiner {
             self.interval,
             &mut self.canceled,
             &self.logger,
+            "Meter",
         )
         .await
         {

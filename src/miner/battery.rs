@@ -39,6 +39,7 @@ impl BatteryMiner {
             self.interval,
             &mut self.canceled,
             &self.logger,
+            "Battery",
         )
         .await
         {
