@@ -12,6 +12,7 @@ use bytes::Bytes;
 use bytes::BytesMut;
 use bytes::Buf;
 use bytes::BufMut;
+use chrono::{Local, TimeZone, Offset};
 
 struct FakeReader {
     pos: usize
@@ -138,11 +139,14 @@ fn parse_fake_data() {
                     "- --.- -- --.- -- --.- --"), payload);
                 message_was_parsed = true;
 
+                let local_utc_offset = Local::now().date().offset().fix().
+                    local_minus_utc() as u32;
+
                 let data = Data::from_string(payload);
                 match data {
                     Ok(x) => {
                         println!("Parsed data: {:?}", x);
-                        assert_eq!(1579282200, x.timestamp);
+                        assert_eq!(1579282200 - local_utc_offset, x.timestamp);
                         assert_eq!(20.4, x.temperature_in);
                         assert_eq!(49, x.humidity_in);
                         assert_eq!(6.0, x.temperature_out);

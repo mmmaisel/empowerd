@@ -18,7 +18,6 @@ mod parser;
 use parser::*;
 
 mod data;
-use data::*;
 pub use data::Data;
 
 pub struct Client {

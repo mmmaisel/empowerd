@@ -30,7 +30,7 @@ impl WeatherMiner {
 
     // TODO: dedup
     pub async fn mine(&mut self) -> MinerResult {
-        match Miner::sleep_aligned(
+        let now = match Miner::sleep_aligned(
             self.interval,
             &mut self.canceled,
             &self.logger,
@@ -46,7 +46,7 @@ impl WeatherMiner {
             }
             Ok(state) => match state {
                 MinerState::Canceled => return MinerResult::Canceled,
-                MinerState::Running(_) => (),
+                MinerState::Running(x) => x,
             },
         };
 
@@ -79,7 +79,7 @@ impl WeatherMiner {
                 return MinerResult::Running;
             }
         };
-        let weather_data = match weather_data {
+        let mut weather_data = match weather_data {
             Ok(x) => x,
             Err(e) => {
                 error!(
@@ -89,6 +89,7 @@ impl WeatherMiner {
                 return MinerResult::Running;
             }
         };
+        weather_data.timestamp = now as u32;
 
         let weather = Weather::new(weather_data);
         trace!(self.logger, "Writing {:?} to database", &weather);
