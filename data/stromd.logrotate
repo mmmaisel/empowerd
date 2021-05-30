@@ -5,7 +5,4 @@
   missingok
   notifempty
   sharedscripts
-  postrotate
-    /bin/kill -HUP `cat /var/run/stromd/pid 2> /dev/null` 2> /dev/null || true
-  endscript
 }
