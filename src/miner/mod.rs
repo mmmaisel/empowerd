@@ -56,49 +56,66 @@ impl Miner {
         )
         .with_auth(&settings.db_user, &settings.db_pw);
 
-        let mut battery = battery::BatteryMiner::new(
-            rx.clone(),
-            influx_client.clone(),
-            Duration::from_secs(settings.battery_poll_interval),
-            settings.battery_addr.clone(),
-            logger.clone(),
-        )?;
-        let mut dachs = dachs::DachsMiner::new(
-            rx.clone(),
-            influx_client.clone(),
-            Duration::from_secs(settings.dachs_poll_interval),
-            settings.dachs_addr.clone(),
-            settings.dachs_pw.clone(),
-            logger.clone(),
-        )?;
-        let mut meter = meter::MeterMiner::new(
-            rx.clone(),
-            influx_client.clone(),
-            Duration::from_secs(settings.meter_poll_interval),
-            settings.meter_device.clone(),
-            settings.meter_baud,
-            logger.clone(),
-        )?;
-        let mut solar = solar::SolarMiner::new(
-            rx.clone(),
-            influx_client.clone(),
-            Duration::from_secs(settings.sma_poll_interval),
-            settings.sma_pw.clone(),
-            settings.sma_addr.clone(),
-            logger.clone(),
-        )?;
-        let mut weather = weather::WeatherMiner::new(
-            rx.clone(),
-            influx_client.clone(),
-            Duration::from_secs(settings.weather_poll_interval),
-            logger.clone(),
-        )?;
+        if settings.enable_battery {
+            let mut battery = battery::BatteryMiner::new(
+                rx.clone(),
+                influx_client.clone(),
+                Duration::from_secs(settings.battery_poll_interval),
+                settings.battery_addr.clone(),
+                logger.clone(),
+            )?;
+            miners.push(miner_task!(battery));
+        }
 
-        miners.push(miner_task!(battery));
-        miners.push(miner_task!(dachs));
-        miners.push(miner_task!(meter));
-        miners.push(miner_task!(solar));
-        miners.push(miner_task!(weather));
+        if settings.enable_dachs {
+            let mut dachs = dachs::DachsMiner::new(
+                rx.clone(),
+                influx_client.clone(),
+                Duration::from_secs(settings.dachs_poll_interval),
+                settings.dachs_addr.clone(),
+                settings.dachs_pw.clone(),
+                logger.clone(),
+            )?;
+            miners.push(miner_task!(dachs));
+        }
+
+        if settings.enable_meter {
+            let mut meter = meter::MeterMiner::new(
+                rx.clone(),
+                influx_client.clone(),
+                Duration::from_secs(settings.meter_poll_interval),
+                settings.meter_device.clone(),
+                settings.meter_baud,
+                logger.clone(),
+            )?;
+            miners.push(miner_task!(meter));
+        }
+
+        if settings.enable_solar {
+            let mut solar = solar::SolarMiner::new(
+                rx.clone(),
+                influx_client.clone(),
+                Duration::from_secs(settings.sma_poll_interval),
+                settings.sma_pw.clone(),
+                settings.sma_addr.clone(),
+                logger.clone(),
+            )?;
+            miners.push(miner_task!(solar));
+        }
+
+        if settings.enable_weather {
+            let mut weather = weather::WeatherMiner::new(
+                rx.clone(),
+                influx_client.clone(),
+                Duration::from_secs(settings.weather_poll_interval),
+                logger.clone(),
+            )?;
+            miners.push(miner_task!(weather));
+        }
+
+        if miners.is_empty() {
+            return Err("No miners are enabled".into());
+        }
 
         return Ok(Miner {
             logger: logger,
@@ -133,10 +150,13 @@ impl Miner {
     }
 
     pub fn cancel(&mut self) -> Result<(), String> {
+        if self.cancel.is_closed() {
+            return Ok(());
+        }
         return match self.cancel.send(MinerState::Canceled) {
-            Ok(x) => {
+            Ok(_) => {
                 info!(self.logger, "Miner canceled");
-                Ok(x)
+                Ok(())
             }
             Err(e) => Err(e.to_string()),
         };

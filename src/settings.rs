@@ -12,21 +12,31 @@ pub struct Settings {
     pub one_shot: bool,
     pub logfile: String,
     pub log_level: u8,
-    pub dachs_addr: String,
-    pub dachs_pw: String,
-    pub sma_addr: String,
-    pub sma_pw: String,
-    pub meter_device: String,
-    pub meter_baud: u32,
-    pub battery_addr: String,
     pub db_url: String,
     pub db_name: String,
     pub db_user: String,
     pub db_pw: String,
-    pub dachs_poll_interval: u64,
-    pub sma_poll_interval: u64,
+
+    pub enable_battery: bool,
+    pub battery_addr: String,
     pub battery_poll_interval: u64,
+
+    pub enable_dachs: bool,
+    pub dachs_addr: String,
+    pub dachs_pw: String,
+    pub dachs_poll_interval: u64,
+
+    pub enable_meter: bool,
+    pub meter_device: String,
+    pub meter_baud: u32,
     pub meter_poll_interval: u64,
+
+    pub enable_solar: bool,
+    pub sma_addr: String,
+    pub sma_pw: String,
+    pub sma_poll_interval: u64,
+
+    pub enable_weather: bool,
     pub weather_poll_interval: u64,
 }
 
@@ -40,13 +50,24 @@ impl Settings {
         config.set_default("one_shot", false)?;
         config.set_default("logfile", "/var/log/stromd.log")?;
         config.set_default("log_level", 0)?;
+
         config.set_default("db_url", "127.0.0.1:8086")?;
         config.set_default("db_name", "stromd")?;
         config.set_default("db_user", "stromd")?;
-        config.set_default("dachs_poll_interval", 300)?;
-        config.set_default("sma_poll_interval", 3600)?;
+
+        config.set_default("enable_battery", false)?;
         config.set_default("battery_poll_interval", 300)?;
+
+        config.set_default("enable_dachs", false)?;
+        config.set_default("dachs_poll_interval", 300)?;
+
+        config.set_default("enable_meter", false)?;
         config.set_default("meter_poll_interval", 300)?;
+
+        config.set_default("enable_solar", false)?;
+        config.set_default("sma_poll_interval", 3600)?;
+
+        config.set_default("enable_weather", false)?;
         config.set_default("weather_poll_interval", 300)?;
 
         config.merge(File::with_name(&filename).format(FileFormat::Toml))?;
