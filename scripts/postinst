@@ -5,4 +5,6 @@ chown stromd /etc/stromd/stromd.conf
 mkdir -p /var/log/stromd
 chown stromd /var/log/stromd
 
+deb-systemd-helper restart logrotate.service >/dev/null || true
+
 #DEBHELPER#

@@ -10,7 +10,7 @@ edition = "2018"
 assets = [
     ["target/release/stromd", "bin/", "755"],
     ["data/stromd.conf", "etc/stromd/", "600"],
-    ["data/stromd.logrotate", "etc/logrotate/", "644"],
+    ["data/stromd.logrotate", "etc/logrotate.d/", "644"],
 ]
 maintainer-scripts = "scripts/"
 
