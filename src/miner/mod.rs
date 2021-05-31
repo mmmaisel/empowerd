@@ -22,7 +22,7 @@ pub enum MinerState {
 mod battery;
 mod dachs;
 mod meter;
-mod solar;
+mod solar_sma;
 mod weather;
 
 pub struct Miner {
@@ -92,15 +92,22 @@ impl Miner {
         }
 
         if settings.enable_solar {
-            let mut solar = solar::SolarMiner::new(
-                rx.clone(),
-                influx_client.clone(),
-                Duration::from_secs(settings.sma_poll_interval),
-                settings.sma_pw.clone(),
-                settings.sma_addr.clone(),
-                logger.clone(),
-            )?;
-            miners.push(miner_task!(solar));
+            if settings.solar_type == "SMA" {
+                let mut solar = solar_sma::SolarMiner::new(
+                    rx.clone(),
+                    influx_client.clone(),
+                    Duration::from_secs(settings.solar_poll_interval),
+                    settings.solar_pw.clone(),
+                    settings.solar_addr.clone(),
+                    logger.clone(),
+                )?;
+                miners.push(miner_task!(solar));
+            } else {
+                return Err(format!(
+                    "Found unknown solar type '{}'",
+                    settings.solar_type
+                ));
+            }
         }
 
         if settings.enable_weather {

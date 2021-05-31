@@ -32,9 +32,10 @@ pub struct Settings {
     pub meter_poll_interval: u64,
 
     pub enable_solar: bool,
-    pub sma_addr: String,
-    pub sma_pw: String,
-    pub sma_poll_interval: u64,
+    pub solar_type: String,
+    pub solar_addr: String,
+    pub solar_pw: String,
+    pub solar_poll_interval: u64,
 
     pub enable_weather: bool,
     pub weather_poll_interval: u64,
@@ -65,7 +66,7 @@ impl Settings {
         config.set_default("meter_poll_interval", 300)?;
 
         config.set_default("enable_solar", false)?;
-        config.set_default("sma_poll_interval", 3600)?;
+        config.set_default("solar_poll_interval", 3600)?;
 
         config.set_default("enable_weather", false)?;
         config.set_default("weather_poll_interval", 300)?;
