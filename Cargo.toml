@@ -12,6 +12,9 @@ assets = [
     ["data/stromd.conf", "etc/stromd/", "600"],
     ["data/stromd.logrotate", "etc/logrotate.d/", "644"],
 ]
+conf-files = [
+    "etc/stromd/stromd.conf"
+]
 maintainer-scripts = "scripts/"
 
 [package.metadata.deb.systemd-units]
