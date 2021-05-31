@@ -1,7 +1,7 @@
 [package]
 name = "stromd"
 version = "0.2.0"
-license = "GPL"
+license = "GPL-3+"
 description = "stromd data logger service"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
@@ -15,6 +15,7 @@ assets = [
 conf-files = [
     "etc/stromd/stromd.conf"
 ]
+changelog = "ChangeLog"
 maintainer-scripts = "scripts/"
 
 [package.metadata.deb.systemd-units]

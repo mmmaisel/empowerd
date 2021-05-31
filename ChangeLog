@@ -1,0 +1,5 @@
+stromd (0.2.0) buster; urgency=low
+
+  * Initial Debian package release.
+
+ -- Max Maisel <max.maisel@posteo.de> Mon, 31 May 2021 15:34:11 +0200
