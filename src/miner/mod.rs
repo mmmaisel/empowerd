@@ -51,70 +51,70 @@ impl Miner {
         let (tx, rx) = watch::channel(MinerState::Running(0));
 
         let influx_client = influxdb::Client::new(
-            format!("http://{}", &settings.db_url),
-            &settings.db_name,
+            format!("http://{}", &settings.database.url),
+            &settings.database.name,
         )
-        .with_auth(&settings.db_user, &settings.db_pw);
+        .with_auth(&settings.database.user, &settings.database.password);
 
-        if settings.enable_battery {
+        if let Some(settings) = &settings.battery {
             let mut battery = battery::BatteryMiner::new(
                 rx.clone(),
                 influx_client.clone(),
-                Duration::from_secs(settings.battery_poll_interval),
-                settings.battery_addr.clone(),
+                Duration::from_secs(settings.poll_interval),
+                settings.address.clone(),
                 logger.clone(),
             )?;
             miners.push(miner_task!(battery));
         }
 
-        if settings.enable_dachs {
+        if let Some(settings) = &settings.dachs {
             let mut dachs = dachs::DachsMiner::new(
                 rx.clone(),
                 influx_client.clone(),
-                Duration::from_secs(settings.dachs_poll_interval),
-                settings.dachs_addr.clone(),
-                settings.dachs_pw.clone(),
+                Duration::from_secs(settings.poll_interval),
+                settings.address.clone(),
+                settings.password.clone(),
                 logger.clone(),
             )?;
             miners.push(miner_task!(dachs));
         }
 
-        if settings.enable_meter {
+        if let Some(settings) = &settings.meter {
             let mut meter = meter::MeterMiner::new(
                 rx.clone(),
                 influx_client.clone(),
-                Duration::from_secs(settings.meter_poll_interval),
-                settings.meter_device.clone(),
-                settings.meter_baud,
+                Duration::from_secs(settings.poll_interval),
+                settings.device.clone(),
+                settings.baud,
                 logger.clone(),
             )?;
             miners.push(miner_task!(meter));
         }
 
-        if settings.enable_solar {
-            if settings.solar_type == "SMA" {
+        if let Some(settings) = &settings.solar {
+            if settings.r#type == "SMA" {
                 let mut solar = solar_sma::SolarMiner::new(
                     rx.clone(),
                     influx_client.clone(),
-                    Duration::from_secs(settings.solar_poll_interval),
-                    settings.solar_pw.clone(),
-                    settings.solar_addr.clone(),
+                    Duration::from_secs(settings.poll_interval),
+                    settings.password.clone(),
+                    settings.address.clone(),
                     logger.clone(),
                 )?;
                 miners.push(miner_task!(solar));
             } else {
                 return Err(format!(
                     "Found unknown solar type '{}'",
-                    settings.solar_type
+                    settings.r#type
                 ));
             }
         }
 
-        if settings.enable_weather {
+        if let Some(settings) = &settings.weather {
             let mut weather = weather::WeatherMiner::new(
                 rx.clone(),
                 influx_client.clone(),
-                Duration::from_secs(settings.weather_poll_interval),
+                Duration::from_secs(settings.poll_interval),
                 logger.clone(),
             )?;
             miners.push(miner_task!(weather));
