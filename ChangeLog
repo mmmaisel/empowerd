@@ -1,0 +1,5 @@
+waterd (0.1.0) buster; urgency=low
+
+  * Initial Debian package release.
+
+ -- Max Maisel <max.maisel@posteo.de> Tue, 1 Jun 2021 14:03:05 +0200

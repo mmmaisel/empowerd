@@ -1,0 +1,12 @@
+#!/bin/sh
+
+adduser --system waterd
+usermod -a -G gpio waterd
+
+chown waterd /etc/waterd/waterd.conf
+mkdir -p /var/log/waterd
+chown waterd /var/log/waterd
+
+deb-systemd-helper restart logrotate.service >/dev/null || true
+
+#DEBHELPER#
