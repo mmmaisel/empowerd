@@ -1,6 +1,6 @@
 [package]
 name = "stromd"
-version = "0.2.0"
+version = "0.2.1"
 license = "GPL-3+"
 description = "stromd data logger service"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
@@ -11,6 +11,7 @@ assets = [
     ["target/release/stromd", "bin/", "755"],
     ["data/stromd.conf", "etc/stromd/", "600"],
     ["data/stromd.logrotate", "etc/logrotate.d/", "644"],
+    ["lib/bresser6in1-usb/bresser6in1.rules", "etc/udev/rules.d/", "644"],
 ]
 conf-files = [
     "etc/stromd/stromd.conf"
