@@ -1,7 +1,7 @@
 [package]
 name = "battery-client"
 version = "0.2.0"
-license = "GPL-3+"
+license = "AGPL-3+"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
 

@@ -1,7 +1,8 @@
 [package]
 name = "bresser6in1-usb"
 version = "0.1.0"
-authors = ["jm3"]
+license = "AGPL-3+"
+authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
 
 [lib]

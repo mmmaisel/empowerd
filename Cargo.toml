@@ -1,7 +1,7 @@
 [package]
 name = "stromd"
 version = "0.2.1"
-license = "GPL-3+"
+license = "AGPL-3+"
 description = "stromd data logger service"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
