@@ -3,6 +3,7 @@ name = "stromd"
 version = "0.2.1"
 license = "AGPL-3+"
 description = "stromd data logger service"
+readme = "README.md"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
 
@@ -40,6 +41,7 @@ battery-client = { version = "*", path = "lib/battery-client/" }
 futures = "*"
 slog = { version=">=2.7", features=["max_level_trace", "release_max_level_debug"] }
 sloggers = { version=">=1.0", default_features=false }
+#slog-async = "*"
 tokio = { version=">=1.0", features=["full"] }
 
 chrono = "*"
@@ -59,7 +61,13 @@ juniper = { git = "https://github.com/engylemure/juniper.git", branch = "tokio1"
 hyper = { version = ">=0.14", features = ["server", "runtime"] }
 juniper_hyper = { git = "https://github.com/engylemure/juniper.git", branch = "tokio1" }
 
-#slog-async = "*"
+jwt = "0.10.0"
+hmac = "0.8.1"
+sha2 = "*"
+ring = "*"
+base64 = "*"
+rust-argon2 = "*"
+sysfs_gpio = "*"
 
 [patch.crates-io]
 mio-serial = { git = "https://github.com/berkowski/mio-serial.git", branch = "v4.0" }

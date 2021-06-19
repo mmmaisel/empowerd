@@ -50,7 +50,6 @@ pub struct Settings {
     pub daemonize: bool,
     pub pid_file: String,
     pub wrk_dir: String,
-    pub one_shot: bool,
     pub logfile: String,
     pub log_level: u8,
     pub database: Database,
@@ -60,6 +59,16 @@ pub struct Settings {
     pub meter: Option<Meter>,
     pub solar: Option<Solar>,
     pub weather: Option<Weather>,
+
+/*
+    pub listen_address: String,
+    pub port: u16,
+    pub session_timeout: u64,
+    pub username: String,
+    pub hashed_pw: String,
+    pub pins: Vec<i64>,
+    pub pin_names: Vec<String>,
+*/
 }
 
 impl Settings {
@@ -69,9 +78,17 @@ impl Settings {
         config.set_default("daemonize", false)?;
         config.set_default("pid_file", "/run/stromd/pid")?;
         config.set_default("wrk_dir", "/")?;
-        config.set_default("one_shot", false)?;
         config.set_default("logfile", "/var/log/stromd.log")?;
         config.set_default("log_level", 0)?;
+/*
+        config.set_default("listen_address", "127.0.0.1")?;
+        config.set_default("port", 3000)?;
+        config.set_default("session_timeout", 300)?;
+        config.set_default("username", "water")?;
+        config.set_default("hashed_pw", "!")?;
+        config.set_default("pins", Vec::<i64>::new())?;
+        config.set_default("pin_names", Vec::<String>::new())?;
+*/
 
         config.merge(File::with_name(&filename).format(FileFormat::Toml))?;
 
@@ -101,6 +118,11 @@ impl Settings {
                 return Err("meter:poll_interval must be >= 5".into());
             }
         }
+/*
+        if settings.pins.len() != settings.pin_names.len() {
+            return Err("'pins' and 'pin_names' must be of same size!".into());
+        }
+*/
 
         if matches.opt_present("d") {
             settings.daemonize = true;

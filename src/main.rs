@@ -8,21 +8,63 @@ use sloggers::{
     types::{OverflowStrategy, Severity},
     Build,
 };
-use std::process;
-use std::sync::Arc;
-use tokio::runtime::Runtime;
-use tokio::signal;
-use hyper::{server::Server, Body, Method, Response, StatusCode, service::{make_service_fn, service_fn}};
-use core::convert::Infallible;
-use juniper::{EmptyMutation, EmptySubscription, RootNode};
-use std::net;
+
+use juniper::{
+    http::{
+        graphiql::graphiql_source,
+        GraphQLRequest,
+    },
+    EmptySubscription,
+    RootNode,
+};
+use std::{
+    convert::Infallible,
+    net, process,
+    sync::Arc,
+};
+use tokio::{
+    runtime::Runtime,
+    signal,
+};
+use hyper::{
+    server::Server,
+    Body, Method, Response, StatusCode,
+    service::{make_service_fn, service_fn}
+};
 
 mod miner;
 mod models;
 mod settings;
 
+mod mutation;
+mod query;
+mod session_manager;
+mod valve;
+mod water_switch;
+
 use miner::Miner;
 use settings::Settings;
+
+use mutation::*;
+use query::*;
+use session_manager::*;
+use valve::*;
+use water_switch::*;
+
+type Schema = RootNode<'static, Query, Mutation, EmptySubscription>;
+
+pub struct Globals {
+    logger: Logger,
+    username: String,
+    hashed_pw: String,
+    session_manager: SessionManager,
+    water_switch: WaterSwitch,
+}
+
+pub struct Context {
+    globals: Arc<Globals>,
+    token: String,
+}
 
 fn main() {
     let settings = match Settings::load() {
@@ -79,32 +121,33 @@ fn main() {
     process::exit(retval);
 }
 
-pub struct Context;
-impl juniper::Context for Context {}
-pub struct Field {
-    hello: i32,
-}
-
-#[juniper::graphql_object(context = Context)]
-impl Field {
-    fn hello(&self) -> i32 {
-        return 1;
-    }
-}
-
-struct Query;
-
-#[juniper::graphql_object(Context = Context)]
-impl Query {
-    async fn field() -> Field {
-        Field {
-            hello: 1,
-        }
-    }
-}
-
 async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
-    let address = "127.0.0.1:2345";//format!("{}:{}", settings.listen_address, settings.port);
+    let session_manager = match SessionManager::new(5/*settings.session_timeout*/) {
+        Ok(x) => x,
+        Err(e) => {
+            error!(logger, "Creating session manager failed: {}", e);
+            return 2;
+        }
+    };
+    let water_switch = match WaterSwitch::new(vec![], vec![])
+    {
+        Ok(x) => x,
+        Err(e) => {
+            error!(logger, "Could not create water switch: {}", e);
+            return 2;
+        }
+    };
+
+    let globals = Arc::new(Globals {
+        logger: logger.clone(),
+        username: "asdf".into(), /*settings.username*/
+        hashed_pw: "!".into(), /*settings.hashed_pw*/
+        session_manager: session_manager,
+        water_switch: water_switch,
+    });
+
+    //let address = format!("{}:{}", settings.listen_address, settings.port);
+    let address = "127.0.0.1:8080".to_string();
     let address = match address.parse::<net::SocketAddr>() {
         Ok(x) => x,
         Err(_) => {
@@ -118,21 +161,26 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
 
     let root_node = Arc::new(RootNode::new(
         Query {},
-        EmptyMutation::<Context>::new(),
+        Mutation {},
         EmptySubscription::<Context>::new()
     ));
 
     let new_service = make_service_fn(move |_| {
         let root_node = root_node.clone();
+        let globals = globals.clone();
         async {
             Ok::<_, hyper::Error>(service_fn(move |req| {
                 let root_node = root_node.clone();
-                //let ctx = ctx.clone();
+                let globals = globals.clone();
                 async {
                     Ok::<_, Infallible>(match (req.method(), req.uri().path()) {
                         (&Method::GET, "/") => juniper_hyper::graphiql("/graphql", None).await,
                         (&Method::GET, "/graphql") | (&Method::POST, "/graphql") => {
-                            juniper_hyper::graphql(root_node, Arc::new(Context{}), req).await
+                            let context = Arc::new(Context {
+                                globals: globals,
+                                token: "!".into(),
+                            });
+                            juniper_hyper::graphql(root_node, context, req).await
                         }
                         _ => {
                             let mut response = Response::new(Body::empty());

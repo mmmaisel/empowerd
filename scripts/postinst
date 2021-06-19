@@ -1,6 +1,7 @@
 #!/bin/sh
 
 adduser --system stromd
+usermod -a -G gpio stromd
 chown stromd /etc/stromd/stromd.conf
 mkdir -p /var/log/stromd
 chown stromd /var/log/stromd
