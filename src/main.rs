@@ -9,8 +9,13 @@ use sloggers::{
     Build,
 };
 use std::process;
+use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::signal;
+use hyper::{server::Server, Body, Method, Response, StatusCode, service::{make_service_fn, service_fn}};
+use core::convert::Infallible;
+use juniper::{EmptyMutation, EmptySubscription, RootNode};
+use std::net;
 
 mod miner;
 mod models;
@@ -74,15 +79,74 @@ fn main() {
     process::exit(retval);
 }
 
+pub struct Context;
+impl juniper::Context for Context {}
+pub struct Field {
+    hello: i32,
+}
+
+#[juniper::graphql_object(context = Context)]
+impl Field {
+    fn hello(&self) -> i32 {
+        return 1;
+    }
+}
+
+struct Query;
+
+#[juniper::graphql_object(Context = Context)]
+impl Query {
+    async fn field() -> Field {
+        Field {
+            hello: 1,
+        }
+    }
+}
+
 async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
-    /*    let address = format!("{}:{}", settings.listen_address, settings.port);
+    let address = "127.0.0.1:2345";//format!("{}:{}", settings.listen_address, settings.port);
     let address = match address.parse::<net::SocketAddr>() {
         Ok(x) => x,
         Err(_) => {
             error!(logger, "{} is not an IP address", address);
             return 2;
         }
-    };*/
+    };
+
+    // TODO: add graphql API and allow reconfigure settings over it
+    // TODO: integrate graphql API server
+
+    let root_node = Arc::new(RootNode::new(
+        Query {},
+        EmptyMutation::<Context>::new(),
+        EmptySubscription::<Context>::new()
+    ));
+
+    let new_service = make_service_fn(move |_| {
+        let root_node = root_node.clone();
+        async {
+            Ok::<_, hyper::Error>(service_fn(move |req| {
+                let root_node = root_node.clone();
+                //let ctx = ctx.clone();
+                async {
+                    Ok::<_, Infallible>(match (req.method(), req.uri().path()) {
+                        (&Method::GET, "/") => juniper_hyper::graphiql("/graphql", None).await,
+                        (&Method::GET, "/graphql") | (&Method::POST, "/graphql") => {
+                            juniper_hyper::graphql(root_node, Arc::new(Context{}), req).await
+                        }
+                        _ => {
+                            let mut response = Response::new(Body::empty());
+                            *response.status_mut() = StatusCode::NOT_FOUND;
+                            response
+                        }
+                    })
+                }
+            }))
+        }
+    });
+
+    let server = Server::bind(&address).serve(new_service);
+    info!(logger, "Listening on http://{}", address);
 
     let mut miner: Miner = match Miner::new(logger.clone(), &settings) {
         Ok(x) => x,
@@ -104,6 +168,10 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
                     1
                 }
             }
+        }
+        _ = server => {
+            info!(logger, "server!!!");
+            1
         }
         _ = signal::ctrl_c() => {
             info!(logger, "Received SIGINT, exit.");
