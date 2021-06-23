@@ -12,6 +12,7 @@ assets = [
     ["data/stromd.conf", "etc/stromd/", "600"],
     ["data/stromd.logrotate", "etc/logrotate.d/", "644"],
     ["lib/bresser6in1-usb/bresser6in1.rules", "etc/udev/rules.d/", "644"],
+    ["lib/sml-client/ttyusb-meter.rules", "etc/udev/rules.d/", "644"],
 ]
 conf-files = [
     "etc/stromd/stromd.conf"
@@ -27,7 +28,8 @@ members = [
     "lib/sma-client",
     "lib/sml-client",
     "lib/bresser6in1-usb",
-    "lib/battery-client"
+    "lib/battery-client",
+    "lib/usb-reset"
 ]
 
 [dependencies]
@@ -36,6 +38,7 @@ sma-client = { version = "*", path = "lib/sma-client/" }
 sml-client = { version = "*", path = "lib/sml-client/" }
 bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
 battery-client = { version = "*", path = "lib/battery-client/" }
+usb-reset = { version = "*", path = "lib/usb-reset/" }
 
 futures = "*"
 slog = { version=">=2.7", features=["max_level_trace", "release_max_level_debug"] }
