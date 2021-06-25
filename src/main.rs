@@ -28,6 +28,18 @@ fn main() {
         }
     };
 
+    if settings.daemonize {
+        let daemon = Daemonize::new()
+            .pid_file(&settings.pid_file)
+            .chown_pid_file(true)
+            .working_directory(&settings.wrk_dir);
+
+        if let Err(e) = daemon.start() {
+            eprintln!("Daemonize failed: {}", e);
+            process::exit(1);
+        }
+    }
+
     let root_logger = if settings.daemonize {
         // TODO: evaluate log level here
         FileLoggerBuilder::new(&settings.logfile)
@@ -45,22 +57,6 @@ fn main() {
 
     info!(root_logger, "⚡️ Starting stromd");
     debug!(root_logger, "Settings: {:?}", &settings);
-
-    if settings.daemonize {
-        let daemon = Daemonize::new()
-            .pid_file(&settings.pid_file)
-            .chown_pid_file(true)
-            .working_directory(&settings.wrk_dir);
-
-        match daemon.start() {
-            Ok(_) => info!(root_logger, "Daemonized"),
-            Err(e) => {
-                error!(root_logger, "Daemonize failed: {}", e);
-                drop(root_logger);
-                process::exit(1);
-            }
-        }
-    }
 
     let retval = match Runtime::new() {
         Ok(rt) => rt.block_on(tokio_main(settings, root_logger.clone())),
