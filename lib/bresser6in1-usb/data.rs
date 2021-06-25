@@ -1,5 +1,5 @@
 extern crate chrono;
-use chrono::{Local, NaiveDate, NaiveDateTime, NaiveTime, Offset, TimeZone};
+use chrono::{Local, NaiveDate, NaiveDateTime, NaiveTime, Offset};
 
 #[derive(Debug)]
 pub struct Data {

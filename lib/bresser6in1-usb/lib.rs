@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 extern crate bytes;
 extern crate hidapi;
 #[macro_use]
@@ -43,8 +44,8 @@ impl Client {
             Err(e) => return Err(format!("Error initialising hidapi: {}", e)),
         };
 
-        for device in api.devices().into_iter() {
-            if device.vendor_id == 0x1941 && device.product_id == 0x8021 {
+        for device in api.device_list() {
+            if device.vendor_id() == 0x1941 && device.product_id() == 0x8021 {
                 return Ok(format!("Found matching device {:X?}", device));
             }
         }
@@ -65,15 +66,12 @@ impl Client {
 
         for _ in 0..16 {
             self.buffer.clear();
-            // TODO: do this without unsafe
-            unsafe { self.buffer.set_len(Client::BUFFER_SIZE); }
-            //            self.buffer.resize(Client::BUFFER_SIZE, 0);
+            self.buffer.resize(Client::BUFFER_SIZE, 0);
             let num_recv = match device.read(&mut self.buffer) {
                 Ok(x) => x,
                 Err(e) => return Err(format!("Error reading device: {}", e)),
             };
-            unsafe { self.buffer.set_len(num_recv); }
-            //            self.buffer.truncate(num_recv);
+            self.buffer.truncate(num_recv);
             if let Some(logger) = &self.logger {
                 trace!(logger, "Received {} bytes: {}", num_recv,
                     String::from_utf8_lossy(&self.buffer));
