@@ -1,17 +1,9 @@
-use crate::Client;
-use crate::Bresser6in1Buf;
-use crate::Parser;
-use crate::ParserResult;
-use crate::Data;
-
+use crate::{ Client, Bresser6in1Buf, Parser, ParserResult, Data, VID, PID};
 use hidapi::HidApi;
 
 use std::io::Cursor;
 
-use bytes::Bytes;
-use bytes::BytesMut;
-use bytes::Buf;
-use bytes::BufMut;
+use bytes::{Bytes, BytesMut, Buf, BufMut};
 use chrono::{Local, TimeZone, Offset};
 
 struct FakeReader {
@@ -290,7 +282,7 @@ fn read_raw_usb_data() {
         Err(e) => panic!("Error initialising hidapi: {}", e),
     };
 
-    let device = match api.open(0x1941, 0x8021) {
+    let device = match api.open(VID, PID) {
         Ok(x) => x,
         Err(e) => panic!("Error opening device: {}", e),
     };

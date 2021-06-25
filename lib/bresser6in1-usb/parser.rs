@@ -23,12 +23,15 @@ impl Parser {
         };
     }
 
-    pub fn parse_message(&mut self, message: Message)
-        -> Result<ParserResult, ParserError>
-    {
+    pub fn parse_message(
+        &mut self,
+        message: Message,
+    ) -> Result<ParserResult, ParserError> {
         if message.msgtype != 0xFE {
             return Err(ParserError::IgnoredMessage(format!(
-                "Received unknown message type {}.", message.msgtype)));
+                "Received unknown message type {}.",
+                message.msgtype
+            )));
         }
 
         match message.fragment as char {
@@ -37,40 +40,42 @@ impl Parser {
                 self.append_msg(message)?;
                 self.last_fragment = '1' as u8;
                 return Ok(ParserResult::CollectingData);
-            },
+            }
             '2' => {
                 if self.last_fragment != '1' as u8 {
                     return Err(ParserError::IgnoredMessage(
-                        "Wrong fragment order".to_string()))
+                        "Wrong fragment order".to_string(),
+                    ));
                 }
                 self.append_msg(message)?;
                 self.last_fragment = '2' as u8;
                 return Ok(ParserResult::CollectingData);
-            },
+            }
             '3' => {
                 if self.last_fragment != '2' as u8 {
                     return Err(ParserError::IgnoredMessage(
-                        "Wrong fragment order".to_string()));
+                        "Wrong fragment order".to_string(),
+                    ));
                 }
                 self.append_msg(message)?;
                 return Ok(ParserResult::Success(self.buffer.clone()));
-            },
+            }
             _ => {
                 return Err(ParserError::IgnoredMessage(format!(
-                    "Received unknown fragment type {}.", message.fragment)));
+                    "Received unknown fragment type {}.",
+                    message.fragment
+                )));
             }
         }
     }
 
-    fn append_msg(&mut self, message: Message)
-        -> Result<(), ParserError>
-    {
+    fn append_msg(&mut self, message: Message) -> Result<(), ParserError> {
         return match message.to_string() {
             Ok(x) => {
                 self.buffer.push_str(&x);
                 Ok(())
             }
-            Err(e) => Err(ParserError::Error(e.to_string()))
+            Err(e) => Err(ParserError::Error(e.to_string())),
         };
     }
 }

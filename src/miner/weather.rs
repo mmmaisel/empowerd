@@ -1,7 +1,7 @@
 use super::{Miner, MinerResult, MinerState};
 use crate::models::{InfluxObject, Weather};
-use bresser6in1_usb::Client as BresserClient;
-use slog::{error, trace, Logger};
+use bresser6in1_usb::{Client as BresserClient, PID, VID};
+use slog::{error, trace, warn, Logger};
 use std::time::Duration;
 use tokio::sync::watch;
 
@@ -55,8 +55,24 @@ impl WeatherMiner {
             // TODO: move bresser client (allocated buffers, ...) back to Miner struct
             let mut bresser_client = BresserClient::new(Some(logger2.clone()));
             let mut weather_data = bresser_client.read_data();
-            for _ in 1..3 {
+            for i in 1..3u8 {
                 if let Err(e) = weather_data {
+                    if i == 2 {
+                        match usb_reset::reset_vid_pid(VID, PID) {
+                            Ok(()) => {
+                                warn!(logger2, "Reset device {}:{}", VID, PID);
+                            }
+                            Err(e) => {
+                                error!(
+                                    logger2,
+                                    "Reset device {}:{} failed: {}",
+                                    VID,
+                                    PID,
+                                    e
+                                );
+                            }
+                        }
+                    }
                     error!(
                         logger2,
                         "Get weather data failed, {}, retrying...", e

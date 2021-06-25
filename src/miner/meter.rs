@@ -64,7 +64,7 @@ impl MeterMiner {
         for i in 1..3u8 {
             if let Err(e) = meter_data {
                 if i == 2 {
-                    match usb_reset::reset_device(&self.meter_device) {
+                    match usb_reset::reset_path(&self.meter_device) {
                         Ok(()) => {
                             warn!(
                                 self.logger,

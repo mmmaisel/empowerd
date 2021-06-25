@@ -2,8 +2,7 @@ use bytes::Buf;
 
 use super::message::*;
 
-pub trait Bresser6in1Buf: Buf
-{
+pub trait Bresser6in1Buf: Buf {
     // One Msg:  64 Bytes
     // MSG_Type: 0xFE (254)
     // Padding: 4 x 0x00
@@ -12,8 +11,7 @@ pub trait Bresser6in1Buf: Buf
     // Data: 54 Bytes
     // Checksum 2 Bytes
     // Msg-End: 0xFD
-    fn to_message(&mut self) -> Result<Message, String>
-    {
+    fn to_message(&mut self) -> Result<Message, String> {
         if self.remaining() != 64 {
             return Err(format!("Invalid message size: {}", self.remaining()));
         }

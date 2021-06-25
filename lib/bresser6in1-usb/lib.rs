@@ -27,6 +27,9 @@ pub struct Client {
     parser: Parser,
 }
 
+pub const VID: u16 = 0x1941;
+pub const PID: u16 = 0x8021;
+
 impl Client {
     const BUFFER_SIZE: usize = 512;
 
@@ -45,7 +48,7 @@ impl Client {
         };
 
         for device in api.device_list() {
-            if device.vendor_id() == 0x1941 && device.product_id() == 0x8021 {
+            if device.vendor_id() == VID && device.product_id() == PID {
                 return Ok(format!("Found matching device {:X?}", device));
             }
         }
@@ -59,7 +62,7 @@ impl Client {
             Err(e) => return Err(format!("Error initialising hidapi: {}", e)),
         };
 
-        let device = match api.open(0x1941, 0x8021) {
+        let device = match api.open(VID, PID) {
             Ok(x) => x,
             Err(e) => return Err(format!("Error opening device: {}", e)),
         };

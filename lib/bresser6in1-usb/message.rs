@@ -1,8 +1,7 @@
 use std::fmt;
 use std::str::Utf8Error;
 
-pub struct Message
-{
+pub struct Message {
     pub msgtype: u8,
     pub fragment: u8,
     pub length: usize,
