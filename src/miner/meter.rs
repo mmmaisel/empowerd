@@ -1,7 +1,7 @@
 use super::{Miner, MinerResult, MinerState};
 use crate::models::{InfluxObject, InfluxResult, Meter};
 use chrono::{DateTime, Utc};
-use slog::{error, trace, Logger};
+use slog::{error, trace, warn, Logger};
 use sml_client::SmlClient;
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
@@ -12,6 +12,7 @@ pub struct MeterMiner {
     interval: Duration,
     logger: Logger,
     sml_client: SmlClient,
+    meter_device: String,
 }
 
 impl MeterMiner {
@@ -28,7 +29,12 @@ impl MeterMiner {
             influx: influx,
             interval: interval,
             logger: logger.clone(),
-            sml_client: SmlClient::new(meter_device, meter_baud, Some(logger)),
+            sml_client: SmlClient::new(
+                meter_device.clone(),
+                meter_baud,
+                Some(logger),
+            ),
+            meter_device: meter_device,
         });
     }
 
@@ -55,8 +61,26 @@ impl MeterMiner {
         };
 
         let mut meter_data = self.sml_client.get_consumed_produced().await;
-        for _ in 1..3 {
+        for i in 1..3u8 {
             if let Err(e) = meter_data {
+                if i == 2 {
+                    match usb_reset::reset_device(&self.meter_device) {
+                        Ok(()) => {
+                            warn!(
+                                self.logger,
+                                "Reset device {}", &self.meter_device
+                            );
+                        }
+                        Err(e) => {
+                            error!(
+                                self.logger,
+                                "Reset device {} failed: {}",
+                                &self.meter_device,
+                                e
+                            );
+                        }
+                    }
+                }
                 error!(
                     self.logger,
                     "Get electric meter data failed, {}, retrying...", e

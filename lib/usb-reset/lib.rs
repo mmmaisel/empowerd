@@ -13,7 +13,7 @@ const USBDEVFS_RESET: u8 = 20;
 
 ioctl_none!(usbdevfs_reset, USBDEVFS_MAGIC, USBDEVFS_RESET);
 
-pub fn reset_device(path: String) -> Result<(), String> {
+pub fn reset_device(path: &str) -> Result<(), String> {
     let mut enumerator = Enumerator::new().map_err(|e| e.to_string())?;
 
     let mut device = enumerator
