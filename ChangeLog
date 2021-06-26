@@ -1,3 +1,10 @@
+stromd (0.2.1) buster; urgency=medium
+
+  * Reset USB devices on failure.
+  * Fix logging in daemon mode.
+
+ -- Max Maisel <max.maisel@posteo.de> Sat, 26 Jun 2021 11:01:26 +0200
+
 stromd (0.2.0) buster; urgency=low
 
   * Initial Debian package release.
