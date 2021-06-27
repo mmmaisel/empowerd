@@ -1,6 +1,6 @@
 #!/bin/sh
 
-adduser --system stromd
+adduser --system stromd ||:
 chown stromd /etc/stromd/stromd.conf
 mkdir -p /var/log/stromd
 chown stromd /var/log/stromd
