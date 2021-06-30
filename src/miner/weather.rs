@@ -55,17 +55,18 @@ impl WeatherMiner {
             // TODO: move bresser client (allocated buffers, ...) back to Miner struct
             let mut bresser_client = BresserClient::new(Some(logger2.clone()));
             let mut weather_data = bresser_client.read_data();
-            for i in 1..3u8 {
+            for i in 1..4u8 {
                 if let Err(e) = weather_data {
                     if i == 2 {
                         match usb_reset::reset_vid_pid(VID, PID) {
                             Ok(()) => {
-                                warn!(logger2, "Reset device {}:{}", VID, PID);
+                                warn!(logger2, "Reset device {:X}:{:X}", VID, PID);
+                                std::thread::sleep(Duration::from_secs(5));
                             }
                             Err(e) => {
                                 error!(
                                     logger2,
-                                    "Reset device {}:{} failed: {}",
+                                    "Reset device {:X}:{:X} failed: {}",
                                     VID,
                                     PID,
                                     e

@@ -61,7 +61,7 @@ impl MeterMiner {
         };
 
         let mut meter_data = self.sml_client.get_consumed_produced().await;
-        for i in 1..3u8 {
+        for i in 1..4u8 {
             if let Err(e) = meter_data {
                 if i == 2 {
                     match usb_reset::reset_path(&self.meter_device) {
@@ -70,6 +70,7 @@ impl MeterMiner {
                                 self.logger,
                                 "Reset device {}", &self.meter_device
                             );
+                            tokio::time::sleep(Duration::from_secs(5)).await;
                         }
                         Err(e) => {
                             error!(
