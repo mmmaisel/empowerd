@@ -79,9 +79,10 @@ fn reset_device(mut device: Option<Device>) -> Result<(), String> {
                             Ok(())
                         }
                     },
-                    Err(e) => {
-                        Err(format!("Could not open USB device node: {}", e))
-                    }
+                    Err(e) => Err(format!(
+                        "Could not open USB device node \"{}\": {}",
+                        &devnode.display(), e
+                    )),
                 };
             }
         }
