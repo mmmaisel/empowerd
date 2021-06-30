@@ -30,10 +30,19 @@ impl Data {
         let mut tokens = message.split_whitespace();
         let _ = tokens.next();
 
+        // XXX: print whole message on parse error
+
         let date = match tokens.next() {
             Some(x) => match NaiveDate::parse_from_str(x, "%Y-%m-%d") {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'date' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -41,7 +50,14 @@ impl Data {
         let time = match tokens.next() {
             Some(x) => match NaiveTime::parse_from_str(x, "%H:%M") {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'time' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -51,34 +67,60 @@ impl Data {
         let timestamp =
             NaiveDateTime::new(date, time).timestamp() - local_utc_offset;
 
-        let temperature_in = match tokens.next() {
-            Some(x) => match x.parse::<f32>() {
-                Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
-            },
-            None => return Err("Unexpected end of data found.".to_string()),
-        };
+        let temperature_in =
+            match tokens.next() {
+                Some(x) => match x.parse::<f32>() {
+                    Ok(y) => y,
+                    Err(e) => return Err(format!(
+                        "Could not parse 'temperature_in' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    )),
+                },
+                None => return Err("Unexpected end of data found.".to_string()),
+            };
 
         let humidity_in = match tokens.next() {
             Some(x) => match x.parse::<u8>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'humidity_in' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
 
-        let temperature_out = match tokens.next() {
-            Some(x) => match x.parse::<f32>() {
-                Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
-            },
-            None => return Err("Unexpected end of data found.".to_string()),
-        };
+        let temperature_out =
+            match tokens.next() {
+                Some(x) => match x.parse::<f32>() {
+                    Ok(y) => y,
+                    Err(e) => return Err(format!(
+                        "Could not parse 'temperature_out' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    )),
+                },
+                None => return Err("Unexpected end of data found.".to_string()),
+            };
 
         let humidity_out = match tokens.next() {
             Some(x) => match x.parse::<u8>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'humidity_out' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -86,7 +128,14 @@ impl Data {
         let rain_day = match tokens.next() {
             Some(x) => match x.parse::<f32>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'rain_day' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -94,7 +143,14 @@ impl Data {
         let rain_actual = match tokens.next() {
             Some(x) => match x.parse::<f32>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'rain_actual' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -102,7 +158,14 @@ impl Data {
         let wind_actual = match tokens.next() {
             Some(x) => match x.parse::<f32>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'wind_actual' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -110,7 +173,14 @@ impl Data {
         let wind_gust = match tokens.next() {
             Some(x) => match x.parse::<f32>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'wind_gust' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -118,7 +188,14 @@ impl Data {
         let wind_dir = match tokens.next() {
             Some(x) => match x.parse::<u16>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'wind_dir' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -130,7 +207,14 @@ impl Data {
         let baro_sea = match tokens.next() {
             Some(x) => match x.parse::<u16>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'baro_sea' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -138,7 +222,14 @@ impl Data {
         let baro_absolute = match tokens.next() {
             Some(x) => match x.parse::<u16>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'baro_absolute' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -146,7 +237,14 @@ impl Data {
         let uv_index = match tokens.next() {
             Some(x) => match x.parse::<f32>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'uv_index' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -154,7 +252,14 @@ impl Data {
         let dew_point = match tokens.next() {
             Some(x) => match x.parse::<f32>() {
                 Ok(y) => y,
-                Err(e) => return Err(format!("{}, {}", e.to_string(), x)),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not parse 'dew_point' from '{}': {}, {}",
+                        message,
+                        e.to_string(),
+                        x
+                    ))
+                }
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
