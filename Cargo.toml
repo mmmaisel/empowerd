@@ -10,7 +10,7 @@ edition = "2018"
 assets = [
     ["target/release/stromd", "bin/", "755"],
     ["data/stromd.conf", "etc/stromd/", "600"],
-    ["data/stromd.logrotate", "etc/logrotate.d/", "644"],
+    ["data/stromd.logrotate", "etc/logrotate.d/stromd", "644"],
     ["lib/bresser6in1-usb/bresser6in1.rules", "etc/udev/rules.d/", "644"],
     ["lib/sml-client/ttyusb-meter.rules", "etc/udev/rules.d/", "644"],
 ]
