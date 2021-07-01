@@ -4,5 +4,6 @@
   compress
   missingok
   notifempty
+  nocreate
   sharedscripts
 }
