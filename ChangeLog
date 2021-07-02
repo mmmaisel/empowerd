@@ -1,3 +1,11 @@
+stromd (0.2.2) buster; urgency=medium
+
+  * Fix permissions of the included udev rules.
+  * Fix logrotate config so that log keep working after rotation.
+  * Handle missing weather station values.
+
+ -- Max Maisel <max.maisel@posteo.de> Fri, 2 Jul 2021 16:43:00 +0200
+
 stromd (0.2.1) buster; urgency=medium
 
   * Reset USB devices on failure.
