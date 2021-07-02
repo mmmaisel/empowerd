@@ -76,8 +76,12 @@ impl Client {
             };
             self.buffer.truncate(num_recv);
             if let Some(logger) = &self.logger {
-                trace!(logger, "Received {} bytes: {}", num_recv,
-                    String::from_utf8_lossy(&self.buffer));
+                trace!(
+                    logger,
+                    "Received {} bytes: {}",
+                    num_recv,
+                    String::from_utf8_lossy(&self.buffer)
+                );
                 #[cfg(debug_assertions)]
                 trace!(logger, "Buffer capacity is {}", self.buffer.capacity());
             }
@@ -94,13 +98,14 @@ impl Client {
             };
 
             if let ParserResult::Success(payload) = result {
-                return Data::from_string(payload);
+                return Data::from_string(&payload);
             }
         }
 
         return Err(
-            "Did not received valid data after several tries, giving up.".
-            to_string())
+            "Did not received valid data after several tries, giving up."
+                .to_string(),
+        );
     }
 }
 

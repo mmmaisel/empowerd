@@ -6,8 +6,8 @@ pub struct Data {
     pub timestamp: u32,
     pub temperature_in: f32,
     pub humidity_in: u8,
-    pub temperature_out: f32,
-    pub humidity_out: u8,
+    pub temperature_out: Option<f32>,
+    pub humidity_out: Option<u8>,
     pub rain_day: f32,
     pub rain_actual: f32,
     pub wind_actual: f32,
@@ -16,7 +16,7 @@ pub struct Data {
     pub baro_sea: u16,
     pub baro_absolute: u16,
     pub uv_index: f32,
-    pub dew_point: f32,
+    pub dew_point: Option<f32>,
     pub temperature_x1: Option<f32>,
     pub humidity_x1: Option<u8>,
     pub temperature_x2: Option<f32>,
@@ -26,11 +26,9 @@ pub struct Data {
 }
 
 impl Data {
-    pub fn from_string(message: String) -> Result<Data, String> {
+    pub fn from_string(message: &str) -> Result<Data, String> {
         let mut tokens = message.split_whitespace();
         let _ = tokens.next();
-
-        // XXX: print whole message on parse error
 
         let date = match tokens.next() {
             Some(x) => match NaiveDate::parse_from_str(x, "%Y-%m-%d") {
@@ -67,19 +65,20 @@ impl Data {
         let timestamp =
             NaiveDateTime::new(date, time).timestamp() - local_utc_offset;
 
-        let temperature_in =
-            match tokens.next() {
-                Some(x) => match x.parse::<f32>() {
-                    Ok(y) => y,
-                    Err(e) => return Err(format!(
+        let temperature_in = match tokens.next() {
+            Some(x) => match x.parse::<f32>() {
+                Ok(y) => y,
+                Err(e) => {
+                    return Err(format!(
                         "Could not parse 'temperature_in' from '{}': {}, {}",
                         message,
                         e.to_string(),
                         x
-                    )),
-                },
-                None => return Err("Unexpected end of data found.".to_string()),
-            };
+                    ))
+                }
+            },
+            None => return Err("Unexpected end of data found.".to_string()),
+        };
 
         let humidity_in = match tokens.next() {
             Some(x) => match x.parse::<u8>() {
@@ -96,31 +95,18 @@ impl Data {
             None => return Err("Unexpected end of data found.".to_string()),
         };
 
-        let temperature_out =
-            match tokens.next() {
-                Some(x) => match x.parse::<f32>() {
-                    Ok(y) => y,
-                    Err(e) => return Err(format!(
-                        "Could not parse 'temperature_out' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
-                    )),
-                },
-                None => return Err("Unexpected end of data found.".to_string()),
-            };
+        let temperature_out = match tokens.next() {
+            Some(x) => match x.parse::<f32>() {
+                Ok(y) => Some(y),
+                Err(_e) => None,
+            },
+            None => return Err("Unexpected end of data found.".to_string()),
+        };
 
         let humidity_out = match tokens.next() {
             Some(x) => match x.parse::<u8>() {
-                Ok(y) => y,
-                Err(e) => {
-                    return Err(format!(
-                        "Could not parse 'humidity_out' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
-                    ))
-                }
+                Ok(y) => Some(y),
+                Err(_e) => None,
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };
@@ -251,15 +237,8 @@ impl Data {
 
         let dew_point = match tokens.next() {
             Some(x) => match x.parse::<f32>() {
-                Ok(y) => y,
-                Err(e) => {
-                    return Err(format!(
-                        "Could not parse 'dew_point' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
-                    ))
-                }
+                Ok(y) => Some(y),
+                Err(_e) => None,
             },
             None => return Err("Unexpected end of data found.".to_string()),
         };

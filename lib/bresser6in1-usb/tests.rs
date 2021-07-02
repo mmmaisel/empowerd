@@ -1,13 +1,13 @@
-use crate::{ Client, Bresser6in1Buf, Parser, ParserResult, Data, VID, PID};
+use crate::{Bresser6in1Buf, Client, Data, Parser, ParserResult, PID, VID};
 use hidapi::HidApi;
 
 use std::io::Cursor;
 
-use bytes::{Bytes, BytesMut, Buf, BufMut};
-use chrono::{Local, TimeZone, Offset};
+use bytes::{Buf, BufMut, BytesMut};
+use chrono::{Local, Offset};
 
 struct FakeReader {
-    pos: usize
+    pos: usize,
 }
 
 impl FakeReader {
@@ -92,8 +92,8 @@ impl FakeReader {
         buf.put(&FakeReader::FAKE_DATA[self.pos][..]);
         println!(
             "Received 64 bytes: {}",
-            String::from_utf8_lossy(FakeReader::FAKE_DATA[self.pos]
-        ));
+            String::from_utf8_lossy(FakeReader::FAKE_DATA[self.pos])
+        );
         self.pos += 1;
         if self.pos == FakeReader::FAKE_DATA.len() {
             self.pos = 0;
@@ -111,38 +111,40 @@ fn parse_fake_data() {
     let mut message_was_parsed = false;
 
     for _ in 0..12 {
-        if let Err(e) = client.read_data(&mut buf)
-        {
-            panic!(e)
+        if let Err(e) = client.read_data(&mut buf) {
+            panic!("{}", e)
         };
         let mut cursor = Cursor::new(&mut buf);
         let msg = match cursor.to_message() {
             Ok(x) => x,
-            Err(e) => panic!(e)
+            Err(e) => panic!("{}", e),
         };
         println!("Decoded: {:?}", msg);
         assert_eq!(0, cursor.remaining(), "Did not read whole buffer.");
 
         if let Ok(result) = parser.parse_message(msg) {
             if let ParserResult::Success(payload) = result {
-                assert_eq!(concat!(
+                assert_eq!(
+                    concat!(
                     "3 2020-01-17 17:30 20.4 49 6.0 60 0.0 0.0 0.0 0.0 129 ",
                     "SE 1017 954 0 -1.2 --.- 27.3 57 33.4 40 --.- -- --.- -",
-                    "- --.- -- --.- -- --.- --"), payload);
+                    "- --.- -- --.- -- --.- --"),
+                    payload
+                );
                 message_was_parsed = true;
 
-                let local_utc_offset = Local::now().date().offset().fix().
-                    local_minus_utc() as u32;
+                let local_utc_offset =
+                    Local::now().date().offset().fix().local_minus_utc() as u32;
 
-                let data = Data::from_string(payload);
+                let data = Data::from_string(&payload);
                 match data {
                     Ok(x) => {
                         println!("Parsed data: {:?}", x);
                         assert_eq!(1579282200 - local_utc_offset, x.timestamp);
                         assert_eq!(20.4, x.temperature_in);
                         assert_eq!(49, x.humidity_in);
-                        assert_eq!(6.0, x.temperature_out);
-                        assert_eq!(60, x.humidity_out);
+                        assert_eq!(Some(6.0), x.temperature_out);
+                        assert_eq!(Some(60), x.humidity_out);
                         assert_eq!(0.0, x.rain_day);
                         assert_eq!(0.0, x.rain_actual);
                         assert_eq!(0.0, x.wind_actual);
@@ -151,13 +153,15 @@ fn parse_fake_data() {
                         assert_eq!(1017, x.baro_sea);
                         assert_eq!(954, x.baro_absolute);
                         assert_eq!(0.0, x.uv_index);
-                        assert_eq!(-1.2, x.dew_point);
+                        assert_eq!(Some(-1.2), x.dew_point);
                         assert_eq!(Some(27.3), x.temperature_x1);
                         assert_eq!(Some(57), x.humidity_x1);
                         assert_eq!(Some(33.4), x.temperature_x2);
                         assert_eq!(Some(40), x.humidity_x2);
-                    },
-                    Err(e) => panic!(e)
+                        assert_eq!(None, x.temperature_x3);
+                        assert_eq!(None, x.humidity_x3);
+                    }
+                    Err(e) => panic!("{}", e),
                 }
             }
         };
@@ -166,19 +170,58 @@ fn parse_fake_data() {
     assert!(message_was_parsed);
 }
 
+#[test]
+fn parse_data_no_temperature() {
+    let payload = concat!(
+        "53 2021-07-02 16:22 24.4 53 --.- -- 0.0 0.0 0.0 0.0 320 NW 1028 954 ",
+        "6 --.- --.- 24.3 50 25.8 40 24.2 52 --.- -- --.- -- --.- -- --.- --",
+    );
+
+    let local_utc_offset =
+        Local::now().date().offset().fix().local_minus_utc() as u32;
+
+    let data = Data::from_string(payload);
+    match data {
+        Ok(x) => {
+            println!("Parsed data: {:?}", x);
+            assert_eq!(1625242920 - local_utc_offset, x.timestamp);
+            assert_eq!(24.4, x.temperature_in);
+            assert_eq!(53, x.humidity_in);
+            assert_eq!(None, x.temperature_out);
+            assert_eq!(None, x.humidity_out);
+            assert_eq!(0.0, x.rain_day);
+            assert_eq!(0.0, x.rain_actual);
+            assert_eq!(0.0, x.wind_actual);
+            assert_eq!(0.0, x.wind_gust);
+            assert_eq!(320, x.wind_dir);
+            assert_eq!(1028, x.baro_sea);
+            assert_eq!(954, x.baro_absolute);
+            assert_eq!(6.0, x.uv_index);
+            assert_eq!(None, x.dew_point);
+            assert_eq!(Some(24.3), x.temperature_x1);
+            assert_eq!(Some(50), x.humidity_x1);
+            assert_eq!(Some(25.8), x.temperature_x2);
+            assert_eq!(Some(40), x.humidity_x2);
+            assert_eq!(Some(24.2), x.temperature_x3);
+            assert_eq!(Some(52), x.humidity_x3);
+        }
+        Err(e) => panic!("{}", e),
+    }
+}
+
 //#[test]
 fn parse_usb_data() {
     let mut client = Client::new(None);
 
     match client.device_info() {
         Ok(x) => println!("{}", x),
-        Err(e) => panic!(e),
+        Err(e) => panic!("{}", e),
     }
 
     println!("Reading data from USB...");
     match client.read_data() {
         Ok(x) => println!("done: {:?}", x),
-        Err(e) => panic!(e),
+        Err(e) => panic!("{}", e),
     };
 }
 
@@ -294,7 +337,9 @@ fn read_raw_usb_data() {
             Ok(x) => x,
             Err(e) => panic!("Error reading device: {}", e),
         };
-        eprintln!("Received: {:?}", String::from_utf8_lossy(
-            &buffer[..num_recv]));
+        eprintln!(
+            "Received: {:?}",
+            String::from_utf8_lossy(&buffer[..num_recv])
+        );
     }
 }
