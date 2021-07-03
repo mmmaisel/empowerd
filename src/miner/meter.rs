@@ -1,7 +1,7 @@
 use super::{Miner, MinerResult, MinerState};
 use crate::models::{InfluxObject, InfluxResult, Meter};
 use chrono::{DateTime, Utc};
-use slog::{error, trace, warn, Logger};
+use slog::{debug, error, trace, warn, Logger};
 use sml_client::SmlClient;
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
@@ -82,7 +82,7 @@ impl MeterMiner {
                         }
                     }
                 }
-                error!(
+                debug!(
                     self.logger,
                     "Get electric meter data failed, {}, retrying...", e
                 );
