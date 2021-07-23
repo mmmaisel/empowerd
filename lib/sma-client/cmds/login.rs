@@ -88,6 +88,7 @@ pub struct SmaPayloadLogin {
 
 impl SmaPayloadLogin {
     pub const LENGTH_MIN: usize = 16;
+    #[allow(unused)]
     pub const LENGTH_MAX: usize = 28;
 
     pub fn deserialize(buffer: &mut dyn Buf) -> SmaPayloadLogin {

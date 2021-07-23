@@ -240,6 +240,7 @@ impl SmaCmdWord {
         return (self.word & 0xFFFFFF00) >> 8;
     }
 
+    #[allow(unused)]
     pub fn channel(&self) -> u8 {
         return self.word as u8;
     }

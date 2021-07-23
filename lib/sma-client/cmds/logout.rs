@@ -46,14 +46,17 @@ impl SmaCmdLogout {
         return retval;
     }
 
+    #[allow(unused)]
     fn fragment_id(&self) -> u16 {
         return self.data_header.fragment_id;
     }
 
+    #[allow(unused)]
     fn packet_id(&self) -> u16 {
         return self.data_header.packet_id;
     }
 
+    #[allow(unused)]
     fn opcode(&self) -> u32 {
         return self.cmd.opcode();
     }

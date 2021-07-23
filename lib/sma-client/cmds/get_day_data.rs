@@ -171,6 +171,7 @@ impl SmaResponse for SmaResponseGetDayData {
 }
 
 impl SmaResponseGetDayData {
+    #[allow(unused)]
     pub const LENGTH: u16 = 0x004E;
 
     fn record_count(data_len: u16) -> usize {
