@@ -32,5 +32,4 @@ impl Battery {
 
 impl InfluxObject<Battery> for Battery {
     const FIELDS: &'static str = "charge, energy_in, energy_out, power";
-    const MEASUREMENT: &'static str = "battery";
 }

@@ -6,27 +6,33 @@ use sml_client::SmlClient;
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
-pub struct MeterMiner {
+pub struct SmlMeterMiner {
     canceled: watch::Receiver<MinerState>,
     influx: influxdb::Client,
+    name: String,
     interval: Duration,
     logger: Logger,
     sml_client: SmlClient,
     meter_device: String,
 }
 
-impl MeterMiner {
+impl SmlMeterMiner {
     pub fn new(
         canceled: watch::Receiver<MinerState>,
         influx: influxdb::Client,
+        name: String,
         interval: Duration,
         meter_device: String,
         meter_baud: u32,
         logger: Logger,
-    ) -> Result<MeterMiner, String> {
-        return Ok(MeterMiner {
+    ) -> Result<SmlMeterMiner, String> {
+        if interval < Duration::from_secs(5) {
+            return Err("SmlMeterMiner:poll_interval must be >= 5".into());
+        }
+        return Ok(SmlMeterMiner {
             canceled: canceled,
             influx: influx,
+            name: name,
             interval: interval,
             logger: logger.clone(),
             sml_client: SmlClient::new(
@@ -44,13 +50,15 @@ impl MeterMiner {
             self.interval,
             &mut self.canceled,
             &self.logger,
-            "Meter",
+            &self.name,
         )
         .await
         {
             Err(e) => {
                 return MinerResult::Err(format!(
-                    "sleep_aligned failed in MeterMiner: {}",
+                    "sleep_aligned failed in {}:{}: {}",
+                    std::any::type_name::<Self>(),
+                    &self.name,
                     e
                 ));
             }
@@ -103,7 +111,7 @@ impl MeterMiner {
         };
 
         let power = match Meter::into_single(
-            self.influx.json_query(Meter::query_last()).await,
+            self.influx.json_query(Meter::query_last(&self.name)).await,
         ) {
             InfluxResult::Some(last_record) => {
                 trace!(self.logger, "Read {:?} from database", last_record);
@@ -127,7 +135,7 @@ impl MeterMiner {
             power,
         );
         trace!(self.logger, "Writing {:?} to database", &meter);
-        if let Err(e) = self.influx.query(&meter.save_query()).await {
+        if let Err(e) = self.influx.query(&meter.save_query(&self.name)).await {
             error!(self.logger, "Save MeterData failed, {}", e);
         }
         return MinerResult::Running;

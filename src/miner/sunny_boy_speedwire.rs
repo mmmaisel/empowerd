@@ -7,9 +7,10 @@ use std::net::SocketAddr;
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
-pub struct SolarMiner {
+pub struct SunnyBoySpeedwireMiner {
     canceled: watch::Receiver<MinerState>,
     influx: influxdb::Client,
+    name: String,
     interval: Duration,
     logger: Logger,
     sma_client: SmaClient,
@@ -17,15 +18,16 @@ pub struct SolarMiner {
     sma_addr: SocketAddr,
 }
 
-impl SolarMiner {
+impl SunnyBoySpeedwireMiner {
     pub fn new(
         canceled: watch::Receiver<MinerState>,
         influx: influxdb::Client,
+        name: String,
         interval: Duration,
         sma_pw: String,
         sma_addr: String,
         logger: Logger,
-    ) -> Result<SolarMiner, String> {
+    ) -> Result<SunnyBoySpeedwireMiner, String> {
         let sma_socket_addr: SocketAddr =
             match SmaClient::sma_sock_addr(sma_addr) {
                 Ok(x) => x,
@@ -34,9 +36,10 @@ impl SolarMiner {
                 }
             };
 
-        return Ok(SolarMiner {
+        return Ok(SunnyBoySpeedwireMiner {
             canceled: canceled,
             influx: influx,
+            name: name,
             interval: interval,
             logger: logger.clone(),
             sma_client: SmaClient::new(Some(logger)),
@@ -52,13 +55,15 @@ impl SolarMiner {
             self.interval,
             &mut self.canceled,
             &self.logger,
-            "Solar",
+            &self.name,
         )
         .await
         {
             Err(e) => {
                 return MinerResult::Err(format!(
-                    "sleep_aligned failed in SolarMiner: {}",
+                    "sleep_aligned failed in {}:{}: {}",
+                    std::any::type_name::<Self>(),
+                    &self.name,
                     e
                 ));
             }
@@ -69,7 +74,7 @@ impl SolarMiner {
         };
 
         let last_record = match Solar::into_single(
-            self.influx.json_query(Solar::query_last()).await,
+            self.influx.json_query(Solar::query_last(&self.name)).await,
         ) {
             InfluxResult::Some(x) => x,
             InfluxResult::None => {
@@ -189,7 +194,9 @@ impl SolarMiner {
             last_energy = point.value as f64;
             last_timestamp = point.timestamp as i64;
 
-            if let Err(e) = self.influx.query(&solar.save_query()).await {
+            if let Err(e) =
+                self.influx.query(&solar.save_query(&self.name)).await
+            {
                 error!(self.logger, "Save SolarData failed, {}", e);
                 return MinerResult::Running;
             }

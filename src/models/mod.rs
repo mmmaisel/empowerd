@@ -25,29 +25,28 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
     InfluxDbWriteable
 {
     const FIELDS: &'static str;
-    const MEASUREMENT: &'static str;
 
-    fn query_last() -> ReadQuery {
+    fn query_last(measurement: &str) -> ReadQuery {
         return <dyn Query>::raw_read_query(format!(
             "SELECT time, {} FROM {} ORDER BY DESC LIMIT 1",
             Self::FIELDS,
-            Self::MEASUREMENT
+            measurement,
         ));
     }
 
-    fn query_first() -> ReadQuery {
+    fn query_first(measurement: &str) -> ReadQuery {
         return <dyn Query>::raw_read_query(format!(
             "SELECT time, {} FROM {} ORDER BY ASC LIMIT 1",
             Self::FIELDS,
-            Self::MEASUREMENT
+            measurement,
         ));
     }
 
-    fn save_query(self) -> WriteQuery
+    fn save_query(self, measurement: &str) -> WriteQuery
     where
         Self: Sized,
     {
-        return self.into_query(Self::MEASUREMENT);
+        return self.into_query(measurement);
     }
 
     fn into_single(

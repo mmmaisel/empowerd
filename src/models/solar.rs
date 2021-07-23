@@ -26,5 +26,4 @@ impl Solar {
 
 impl InfluxObject<Solar> for Solar {
     const FIELDS: &'static str = "energy, power";
-    const MEASUREMENT: &'static str = "solar";
 }

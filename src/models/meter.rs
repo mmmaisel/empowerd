@@ -29,5 +29,4 @@ impl Meter {
 
 impl InfluxObject<Meter> for Meter {
     const FIELDS: &'static str = "energy_consumed, energy_produced, power";
-    const MEASUREMENT: &'static str = "meter";
 }

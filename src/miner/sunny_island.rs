@@ -6,27 +6,30 @@ use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
-pub struct BatteryMiner {
+pub struct SunnyIslandMiner {
     canceled: watch::Receiver<MinerState>,
     influx: influxdb::Client,
+    name: String,
     interval: Duration,
     logger: Logger,
     battery_client: BatteryClient,
 }
 
-impl BatteryMiner {
+impl SunnyIslandMiner {
     pub fn new(
         canceled: watch::Receiver<MinerState>,
         influx: influxdb::Client,
+        name: String,
         interval: Duration,
         battery_addr: String,
         logger: Logger,
-    ) -> Result<BatteryMiner, String> {
+    ) -> Result<SunnyIslandMiner, String> {
         let battery_client =
             BatteryClient::new(battery_addr, 502, Some(logger.clone()))?;
-        return Ok(BatteryMiner {
+        return Ok(SunnyIslandMiner {
             canceled: canceled,
             influx: influx,
+            name: name,
             interval: interval,
             logger: logger,
             battery_client: battery_client,
@@ -39,13 +42,15 @@ impl BatteryMiner {
             self.interval,
             &mut self.canceled,
             &self.logger,
-            "Battery",
+            &self.name,
         )
         .await
         {
             Err(e) => {
                 return MinerResult::Err(format!(
-                    "sleep_aligned failed in BatteryMiner: {}",
+                    "sleep_aligned failed in {}:{}: {}",
+                    std::any::type_name::<Self>(),
+                    &self.name,
                     e
                 ));
             }
@@ -65,7 +70,9 @@ impl BatteryMiner {
             };
 
         let power = match Battery::into_single(
-            self.influx.json_query(Battery::query_last()).await,
+            self.influx
+                .json_query(Battery::query_last(&self.name))
+                .await,
         ) {
             InfluxResult::Some(last_record) => {
                 3600.0
@@ -90,7 +97,8 @@ impl BatteryMiner {
         );
 
         trace!(self.logger, "Writing {:?} to database", &battery);
-        if let Err(e) = self.influx.query(&battery.save_query()).await {
+        if let Err(e) = self.influx.query(&battery.save_query(&self.name)).await
+        {
             error!(self.logger, "Save BatteryData failed, {}", e);
         }
         return MinerResult::Running;

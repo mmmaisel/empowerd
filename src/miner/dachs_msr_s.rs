@@ -6,26 +6,29 @@ use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
-pub struct DachsMiner {
+pub struct DachsMsrSMiner {
     canceled: watch::Receiver<MinerState>,
     influx: influxdb::Client,
+    name: String,
     interval: Duration,
     logger: Logger,
     dachs_client: DachsClient,
 }
 
-impl DachsMiner {
+impl DachsMsrSMiner {
     pub fn new(
         canceled: watch::Receiver<MinerState>,
         influx: influxdb::Client,
+        name: String,
         interval: Duration,
         dachs_addr: String,
         dachs_pw: String,
         logger: Logger,
-    ) -> Result<DachsMiner, String> {
-        return Ok(DachsMiner {
+    ) -> Result<DachsMsrSMiner, String> {
+        return Ok(DachsMsrSMiner {
             canceled: canceled,
             influx: influx,
+            name: name,
             interval: interval,
             logger: logger.clone(),
             dachs_client: DachsClient::new(dachs_addr, dachs_pw, Some(logger)),
@@ -38,13 +41,15 @@ impl DachsMiner {
             self.interval,
             &mut self.canceled,
             &self.logger,
-            "Dachs",
+            &self.name,
         )
         .await
         {
             Err(e) => {
                 return MinerResult::Err(format!(
-                    "sleep_aligned failed in DachsMiner: {}",
+                    "sleep_aligned failed in {}:{}: {}",
+                    std::any::type_name::<Self>(),
+                    self.name,
                     e
                 ));
             }
@@ -76,7 +81,7 @@ impl DachsMiner {
         };
 
         let power = match Dachs::into_single(
-            self.influx.json_query(Dachs::query_last()).await,
+            self.influx.json_query(Dachs::query_last(&self.name)).await,
         ) {
             InfluxResult::Some(last_record) => {
                 // TODO: derive nonlinear power from delta timestamp and delta runtime
@@ -101,7 +106,7 @@ impl DachsMiner {
         );
 
         trace!(self.logger, "Writing {:?} to database", &dachs);
-        if let Err(e) = self.influx.query(&dachs.save_query()).await {
+        if let Err(e) = self.influx.query(&dachs.save_query(&self.name)).await {
             error!(self.logger, "Save DachsData failed, {}", e);
         }
         return MinerResult::Running;

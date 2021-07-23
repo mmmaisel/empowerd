@@ -13,36 +13,50 @@ pub struct Database {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Battery {
+pub struct SunnyIsland {
+    pub name: String,
     pub address: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Dachs {
+pub struct DachsMsrS {
+    pub name: String,
     pub address: String,
     pub password: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Meter {
+pub struct SmlMeter {
+    pub name: String,
     pub device: String,
     pub baud: u32,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Solar {
-    pub r#type: String,
+pub struct SunnyBoySpeedwire {
+    pub name: String,
     pub address: String,
     pub password: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Weather {
+pub struct Bresser6in1 {
+    pub name: String,
     pub poll_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum Source {
+    SunnyIsland(SunnyIsland),
+    DachsMsrS(DachsMsrS),
+    SmlMeter(SmlMeter),
+    SunnyBoySpeedwire(SunnyBoySpeedwire),
+    Bresser6in1(Bresser6in1),
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -55,11 +69,8 @@ pub struct Settings {
     pub log_level: u8,
     pub database: Database,
 
-    pub battery: Option<Battery>,
-    pub dachs: Option<Dachs>,
-    pub meter: Option<Meter>,
-    pub solar: Option<Solar>,
-    pub weather: Option<Weather>,
+    #[serde(rename = "source")]
+    pub sources: Vec<Source>,
 }
 
 impl Settings {
@@ -95,12 +106,6 @@ impl Settings {
 
         let mut settings =
             Settings::load_from_file(cfg_path).map_err(|e| e.to_string())?;
-
-        if let Some(settings) = &settings.meter {
-            if settings.poll_interval < 5 {
-                return Err("meter:poll_interval must be >= 5".into());
-            }
-        }
 
         if matches.opt_present("d") {
             settings.daemonize = true;

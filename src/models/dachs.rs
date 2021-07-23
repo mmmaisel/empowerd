@@ -29,5 +29,4 @@ impl Dachs {
 
 impl InfluxObject<Dachs> for Dachs {
     const FIELDS: &'static str = "energy, power, runtime";
-    const MEASUREMENT: &'static str = "dachs";
 }

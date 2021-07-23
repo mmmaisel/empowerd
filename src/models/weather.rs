@@ -64,5 +64,4 @@ impl InfluxObject<Weather> for Weather {
         wind_actual, wind_gust, wind_dir, baro_sea, baro_absolute, \
         uv_index, dew_point, temperature_x1, humidity_x1, \
         temperature_x2, humidity_x2, temperature_x3, humidity_x3";
-    const MEASUREMENT: &'static str = "weather";
 }

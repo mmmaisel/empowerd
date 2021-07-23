@@ -1,4 +1,4 @@
-use crate::Settings;
+use crate::settings::{Settings, Source};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use slog::{debug, error, info, trace, Logger};
@@ -19,11 +19,11 @@ pub enum MinerState {
     Canceled,
 }
 
-mod battery;
-mod dachs;
-mod meter;
-mod solar_sma;
-mod weather;
+mod bresser6in1;
+mod dachs_msr_s;
+mod sml_meter;
+mod sunny_boy_speedwire;
+mod sunny_island;
 
 pub struct Miner {
     logger: Logger,
@@ -56,68 +56,67 @@ impl Miner {
         )
         .with_auth(&settings.database.user, &settings.database.password);
 
-        if let Some(settings) = &settings.battery {
-            let mut battery = battery::BatteryMiner::new(
-                rx.clone(),
-                influx_client.clone(),
-                Duration::from_secs(settings.poll_interval),
-                settings.address.clone(),
-                logger.clone(),
-            )?;
-            miners.push(miner_task!(battery));
-        }
-
-        if let Some(settings) = &settings.dachs {
-            let mut dachs = dachs::DachsMiner::new(
-                rx.clone(),
-                influx_client.clone(),
-                Duration::from_secs(settings.poll_interval),
-                settings.address.clone(),
-                settings.password.clone(),
-                logger.clone(),
-            )?;
-            miners.push(miner_task!(dachs));
-        }
-
-        if let Some(settings) = &settings.meter {
-            let mut meter = meter::MeterMiner::new(
-                rx.clone(),
-                influx_client.clone(),
-                Duration::from_secs(settings.poll_interval),
-                settings.device.clone(),
-                settings.baud,
-                logger.clone(),
-            )?;
-            miners.push(miner_task!(meter));
-        }
-
-        if let Some(settings) = &settings.solar {
-            if settings.r#type == "SMA" {
-                let mut solar = solar_sma::SolarMiner::new(
-                    rx.clone(),
-                    influx_client.clone(),
-                    Duration::from_secs(settings.poll_interval),
-                    settings.password.clone(),
-                    settings.address.clone(),
-                    logger.clone(),
-                )?;
-                miners.push(miner_task!(solar));
-            } else {
-                return Err(format!(
-                    "Found unknown solar type '{}'",
-                    settings.r#type
-                ));
+        for source in &settings.sources {
+            match source {
+                Source::SunnyIsland(settings) => {
+                    let mut battery = sunny_island::SunnyIslandMiner::new(
+                        rx.clone(),
+                        influx_client.clone(),
+                        settings.name.clone(),
+                        Duration::from_secs(settings.poll_interval),
+                        settings.address.clone(),
+                        logger.clone(),
+                    )?;
+                    miners.push(miner_task!(battery));
+                }
+                Source::DachsMsrS(settings) => {
+                    let mut dachs = dachs_msr_s::DachsMsrSMiner::new(
+                        rx.clone(),
+                        influx_client.clone(),
+                        settings.name.clone(),
+                        Duration::from_secs(settings.poll_interval),
+                        settings.address.clone(),
+                        settings.password.clone(),
+                        logger.clone(),
+                    )?;
+                    miners.push(miner_task!(dachs));
+                }
+                Source::SmlMeter(settings) => {
+                    let mut meter = sml_meter::SmlMeterMiner::new(
+                        rx.clone(),
+                        influx_client.clone(),
+                        settings.name.clone(),
+                        Duration::from_secs(settings.poll_interval),
+                        settings.device.clone(),
+                        settings.baud,
+                        logger.clone(),
+                    )?;
+                    miners.push(miner_task!(meter));
+                }
+                Source::SunnyBoySpeedwire(settings) => {
+                    let mut solar =
+                        sunny_boy_speedwire::SunnyBoySpeedwireMiner::new(
+                            rx.clone(),
+                            influx_client.clone(),
+                            settings.name.clone(),
+                            Duration::from_secs(settings.poll_interval),
+                            settings.password.clone(),
+                            settings.address.clone(),
+                            logger.clone(),
+                        )?;
+                    miners.push(miner_task!(solar));
+                }
+                Source::Bresser6in1(settings) => {
+                    let mut weather = bresser6in1::Bresser6in1Miner::new(
+                        rx.clone(),
+                        influx_client.clone(),
+                        settings.name.clone(),
+                        Duration::from_secs(settings.poll_interval),
+                        logger.clone(),
+                    )?;
+                    miners.push(miner_task!(weather));
+                }
             }
-        }
-
-        if let Some(settings) = &settings.weather {
-            let mut weather = weather::WeatherMiner::new(
-                rx.clone(),
-                influx_client.clone(),
-                Duration::from_secs(settings.poll_interval),
-                logger.clone(),
-            )?;
-            miners.push(miner_task!(weather));
         }
 
         if miners.is_empty() {

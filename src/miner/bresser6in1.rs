@@ -5,24 +5,27 @@ use slog::{debug, error, trace, warn, Logger};
 use std::time::Duration;
 use tokio::sync::watch;
 
-pub struct WeatherMiner {
+pub struct Bresser6in1Miner {
     canceled: watch::Receiver<MinerState>,
     influx: influxdb::Client,
+    name: String,
     interval: Duration,
     logger: Logger,
     //bresser_client: BresserClient,
 }
 
-impl WeatherMiner {
+impl Bresser6in1Miner {
     pub fn new(
         canceled: watch::Receiver<MinerState>,
         influx: influxdb::Client,
+        name: String,
         interval: Duration,
         logger: Logger,
-    ) -> Result<WeatherMiner, String> {
-        return Ok(WeatherMiner {
+    ) -> Result<Bresser6in1Miner, String> {
+        return Ok(Bresser6in1Miner {
             canceled: canceled,
             influx: influx,
+            name: name,
             interval: interval,
             logger: logger.clone(),
         });
@@ -34,13 +37,15 @@ impl WeatherMiner {
             self.interval,
             &mut self.canceled,
             &self.logger,
-            "Weather",
+            &self.name,
         )
         .await
         {
             Err(e) => {
                 return MinerResult::Err(format!(
-                    "sleep_aligned failed in WeatherMiner: {}",
+                    "sleep_aligned failed in {}:{}: {}",
+                    std::any::type_name::<Self>(),
+                    &self.name,
                     e
                 ));
             }
@@ -113,7 +118,8 @@ impl WeatherMiner {
 
         let weather = Weather::new(weather_data);
         trace!(self.logger, "Writing {:?} to database", &weather);
-        if let Err(e) = self.influx.query(&weather.save_query()).await {
+        if let Err(e) = self.influx.query(&weather.save_query(&self.name)).await
+        {
             error!(self.logger, "Save WeatherData failed, {}", e);
         }
         return MinerResult::Running;
