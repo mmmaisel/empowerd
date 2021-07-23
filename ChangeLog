@@ -1,3 +1,10 @@
+stromd (0.2.3) buster; urgency=low
+
+  * Make configuration file format more flexible.
+  * Adjust some log levels.
+
+ -- Max Maisel <max.maisel@posteo.de> Fri, 23 Jul 2021 17:37:00 +0200
+
 stromd (0.2.2) buster; urgency=medium
 
   * Fix permissions of the included udev rules.
