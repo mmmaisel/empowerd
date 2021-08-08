@@ -1,4 +1,5 @@
 use super::{Miner, MinerResult, MinerState};
+use crate::miner_sleep;
 use crate::models::{InfluxObject, InfluxResult, Meter};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, warn, Logger};
@@ -44,29 +45,8 @@ impl SmlMeterMiner {
         });
     }
 
-    // TODO: dedup
     pub async fn mine(&mut self) -> MinerResult {
-        let now = match Miner::sleep_aligned(
-            self.interval,
-            &mut self.canceled,
-            &self.logger,
-            &self.name,
-        )
-        .await
-        {
-            Err(e) => {
-                return MinerResult::Err(format!(
-                    "sleep_aligned failed in {}:{}: {}",
-                    std::any::type_name::<Self>(),
-                    &self.name,
-                    e
-                ));
-            }
-            Ok(state) => match state {
-                MinerState::Canceled => return MinerResult::Canceled,
-                MinerState::Running(x) => x,
-            },
-        };
+        let now = miner_sleep!(self);
 
         let mut meter_data = self.sml_client.get_consumed_produced().await;
         for i in 1..4u8 {

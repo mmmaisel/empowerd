@@ -45,6 +45,33 @@ macro_rules! miner_task {
     };
 }
 
+#[macro_export]
+macro_rules! miner_sleep {
+    ($self:expr) => {
+        match Miner::sleep_aligned(
+            $self.interval,
+            &mut $self.canceled,
+            &$self.logger,
+            &$self.name,
+        )
+        .await
+        {
+            Err(e) => {
+                return MinerResult::Err(format!(
+                    "sleep_aligned failed in {}:{}: {}",
+                    std::any::type_name::<Self>(),
+                    &$self.name,
+                    e
+                ));
+            }
+            Ok(state) => match state {
+                MinerState::Canceled => return MinerResult::Canceled,
+                MinerState::Running(x) => x,
+            },
+        }
+    };
+}
+
 impl Miner {
     pub fn new(logger: Logger, settings: &Settings) -> Result<Miner, String> {
         let miners = FuturesUnordered::new();

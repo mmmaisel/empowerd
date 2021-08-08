@@ -1,4 +1,5 @@
 use super::{Miner, MinerResult, MinerState};
+use crate::miner_sleep;
 use crate::models::{Dachs, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
@@ -35,29 +36,8 @@ impl DachsMsrSMiner {
         });
     }
 
-    // TODO: dedup
     pub async fn mine(&mut self) -> MinerResult {
-        let now = match Miner::sleep_aligned(
-            self.interval,
-            &mut self.canceled,
-            &self.logger,
-            &self.name,
-        )
-        .await
-        {
-            Err(e) => {
-                return MinerResult::Err(format!(
-                    "sleep_aligned failed in {}:{}: {}",
-                    std::any::type_name::<Self>(),
-                    self.name,
-                    e
-                ));
-            }
-            Ok(state) => match state {
-                MinerState::Canceled => return MinerResult::Canceled,
-                MinerState::Running(x) => x,
-            },
-        };
+        let now = miner_sleep!(self);
 
         let dachs_runtime = match self.dachs_client.get_runtime().await {
             Ok(runtime) => {

@@ -1,4 +1,5 @@
 use super::{Miner, MinerResult, MinerState};
+use crate::miner_sleep;
 use crate::models::{InfluxObject, Weather};
 use bresser6in1_usb::{Client as BresserClient, PID, VID};
 use slog::{debug, error, trace, warn, Logger};
@@ -31,29 +32,8 @@ impl Bresser6in1Miner {
         });
     }
 
-    // TODO: dedup
     pub async fn mine(&mut self) -> MinerResult {
-        let now = match Miner::sleep_aligned(
-            self.interval,
-            &mut self.canceled,
-            &self.logger,
-            &self.name,
-        )
-        .await
-        {
-            Err(e) => {
-                return MinerResult::Err(format!(
-                    "sleep_aligned failed in {}:{}: {}",
-                    std::any::type_name::<Self>(),
-                    &self.name,
-                    e
-                ));
-            }
-            Ok(state) => match state {
-                MinerState::Canceled => return MinerResult::Canceled,
-                MinerState::Running(x) => x,
-            },
-        };
+        let now = miner_sleep!(self);
 
         let logger2 = self.logger.clone();
         let weather_data = match tokio::task::spawn_blocking(move || {

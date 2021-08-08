@@ -1,4 +1,5 @@
 use super::{Miner, MinerResult, MinerState};
+use crate::miner_sleep;
 use crate::models::{Battery, InfluxObject, InfluxResult};
 use battery_client::BatteryClient;
 use chrono::{DateTime, Utc};
@@ -36,29 +37,8 @@ impl SunnyIslandMiner {
         });
     }
 
-    // TODO: dedup
     pub async fn mine(&mut self) -> MinerResult {
-        let now = match Miner::sleep_aligned(
-            self.interval,
-            &mut self.canceled,
-            &self.logger,
-            &self.name,
-        )
-        .await
-        {
-            Err(e) => {
-                return MinerResult::Err(format!(
-                    "sleep_aligned failed in {}:{}: {}",
-                    std::any::type_name::<Self>(),
-                    &self.name,
-                    e
-                ));
-            }
-            Ok(state) => match state {
-                MinerState::Canceled => return MinerResult::Canceled,
-                MinerState::Running(x) => x,
-            },
-        };
+        let now = miner_sleep!(self);
 
         let (wh_in, wh_out, charge) =
             match self.battery_client.get_in_out_charge().await {
