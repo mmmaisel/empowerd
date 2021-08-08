@@ -1,0 +1,19 @@
+[package]
+name = "sunspec-client"
+version = "0.2.0"
+license = "AGPL-3+"
+authors = ["Max Maisel <max.maisel@posteo.de>"]
+edition = "2018"
+
+[lib]
+path = "lib.rs"
+
+[[bin]]
+name = "sunspec-enum"
+path = "sunspec-enum.rs"
+
+[dependencies]
+clap = "*"
+slog = { version=">=2.7", features=["max_level_trace", "release_max_level_debug"] }
+tokio = { version=">=1.0", features=["full"] }
+tokio-modbus = { git = "https://github.com/ivoisbelongtous/tokio-modbus.git", branch = "tokio1", features = ["tcp"], default-features = false }
