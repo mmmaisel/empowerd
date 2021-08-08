@@ -6,12 +6,12 @@ use std::net::SocketAddr;
 use tokio_modbus::client::tcp::connect_slave;
 use tokio_modbus::prelude::Reader;
 
-pub struct BatteryClient {
+pub struct SunnyIslandClient {
     addr: SocketAddr,
     logger: Option<Logger>,
 }
 
-impl BatteryClient {
+impl SunnyIslandClient {
     const BAT_CHA_STT: u16 = 30845;
     const METERING_WH_IN: u16 = 30595;
     const METERING_WH_OUT: u16 = 30597;
@@ -20,13 +20,13 @@ impl BatteryClient {
         addr: String,
         port: u16,
         logger: Option<Logger>,
-    ) -> Result<BatteryClient, String> {
+    ) -> Result<Self, String> {
         let addr: SocketAddr = match format!("{}:{}", addr, port).parse() {
             Ok(x) => x,
             Err(e) => return Err(e.to_string()),
         };
 
-        return Ok(BatteryClient {
+        return Ok(Self {
             addr: addr,
             logger: logger,
         });
@@ -57,24 +57,18 @@ impl BatteryClient {
     pub async fn get_in_out_charge(&self) -> Result<(u32, u32, u32), String> {
         let mut client = connect_slave(self.addr, 3.into())
             .await
-            .map_err(|e| format!("Coult not connect to battery: {}", e))?;
+            .map_err(|e| format!("Coult not connect to sunny island: {}", e))?;
         let wh_in = self.validate_result(
             "METERING_WH_IN",
-            client
-                .read_input_registers(BatteryClient::METERING_WH_IN, 2)
-                .await,
+            client.read_input_registers(Self::METERING_WH_IN, 2).await,
         )?;
         let wh_out = self.validate_result(
             "METERING_WH_OUT",
-            client
-                .read_input_registers(BatteryClient::METERING_WH_OUT, 2)
-                .await,
+            client.read_input_registers(Self::METERING_WH_OUT, 2).await,
         )?;
         let charge = self.validate_result(
             "BAT_CHA_STT",
-            client
-                .read_input_registers(BatteryClient::BAT_CHA_STT, 2)
-                .await,
+            client.read_input_registers(Self::BAT_CHA_STT, 2).await,
         )?;
 
         if charge == 0 {
@@ -86,8 +80,9 @@ impl BatteryClient {
 }
 
 #[tokio::test]
-async fn test_battery_client() {
-    let client = BatteryClient::new("127.0.0.1".into(), 1502, None).unwrap();
+async fn test_sunny_island_client() {
+    let client =
+        SunnyIslandClient::new("127.0.0.1".into(), 1502, None).unwrap();
 
     match client.get_in_out_charge().await {
         Ok((wh_in, wh_out, charge)) => {

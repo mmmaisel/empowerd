@@ -324,16 +324,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
-name = "battery-client"
-version = "0.2.0"
-dependencies = [
- "clap",
- "slog",
- "tokio",
- "tokio-modbus",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2294,7 +2284,6 @@ checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 name = "stromd"
 version = "0.2.3"
 dependencies = [
- "battery-client",
  "bresser6in1-usb",
  "chrono",
  "config",
@@ -2313,6 +2302,7 @@ dependencies = [
  "sloggers",
  "sma-client",
  "sml-client",
+ "sunny-island-client",
  "tokio",
  "usb-reset",
 ]
@@ -2328,6 +2318,16 @@ name = "subtle"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
+
+[[package]]
+name = "sunny-island-client"
+version = "0.2.0"
+dependencies = [
+ "clap",
+ "slog",
+ "tokio",
+ "tokio-modbus",
+]
 
 [[package]]
 name = "surf"

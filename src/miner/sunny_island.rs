@@ -1,10 +1,10 @@
 use super::{Miner, MinerResult, MinerState};
 use crate::miner_sleep;
 use crate::models::{Battery, InfluxObject, InfluxResult};
-use battery_client::BatteryClient;
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
+use sunny_island_client::SunnyIslandClient;
 use tokio::sync::watch;
 
 pub struct SunnyIslandMiner {
@@ -13,7 +13,7 @@ pub struct SunnyIslandMiner {
     name: String,
     interval: Duration,
     logger: Logger,
-    battery_client: BatteryClient,
+    battery_client: SunnyIslandClient,
 }
 
 impl SunnyIslandMiner {
@@ -26,7 +26,7 @@ impl SunnyIslandMiner {
         logger: Logger,
     ) -> Result<SunnyIslandMiner, String> {
         let battery_client =
-            BatteryClient::new(battery_addr, 502, Some(logger.clone()))?;
+            SunnyIslandClient::new(battery_addr, 502, Some(logger.clone()))?;
         return Ok(SunnyIslandMiner {
             canceled: canceled,
             influx: influx,
