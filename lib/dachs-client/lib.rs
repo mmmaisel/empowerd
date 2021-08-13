@@ -17,15 +17,9 @@
 \******************************************************************************/
 #![forbid(unsafe_code)]
 
-#[macro_use]
-extern crate lazy_static;
-extern crate regex;
-extern crate reqwest;
-#[macro_use]
-extern crate slog;
-
+use lazy_static::lazy_static;
 use regex::Regex;
-use slog::Logger;
+use slog::{Logger, trace};
 
 #[cfg(test)]
 mod tests;

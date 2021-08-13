@@ -16,16 +16,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 #![forbid(unsafe_code)]
-extern crate bytes;
-extern crate hidapi;
-#[macro_use]
-extern crate slog;
-
 use std::io::Cursor;
 
 use bytes::BytesMut;
 use hidapi::HidApi;
-use slog::Logger;
+use slog::{Logger, trace};
 
 mod bresser6in1_buf;
 use bresser6in1_buf::Bresser6in1Buf;
@@ -128,7 +123,3 @@ impl Client {
 
 #[cfg(test)]
 mod tests;
-
-#[cfg(test)]
-#[cfg_attr(test, macro_use)]
-extern crate byte_strings;
