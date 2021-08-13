@@ -70,7 +70,7 @@ impl SunnyIslandMiner {
 
         let battery = Battery::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
-            (charge as f64) / 100.0,
+            charge,
             wh_in,
             wh_out,
             power,

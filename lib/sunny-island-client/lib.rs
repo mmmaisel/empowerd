@@ -15,6 +15,7 @@ impl SunnyIslandClient {
     const BAT_CHA_STT: u16 = 30845;
     const METERING_WH_IN: u16 = 30595;
     const METERING_WH_OUT: u16 = 30597;
+    const BAT_CAPAC_RTG_WH: u16 = 40187;
 
     pub fn new(
         addr: String,
@@ -54,7 +55,7 @@ impl SunnyIslandClient {
         };
     }
 
-    pub async fn get_in_out_charge(&self) -> Result<(u32, u32, u32), String> {
+    pub async fn get_in_out_charge(&self) -> Result<(u32, u32, f64), String> {
         let mut client = connect_slave(self.addr, 3.into())
             .await
             .map_err(|e| format!("Coult not connect to sunny island: {}", e))?;
@@ -70,12 +71,16 @@ impl SunnyIslandClient {
             "BAT_CHA_STT",
             client.read_input_registers(Self::BAT_CHA_STT, 2).await,
         )?;
+        let capacity = self.validate_result(
+            "BAT_CAPAC_RTG_WH",
+            client.read_input_registers(Self::BAT_CAPAC_RTG_WH, 2).await,
+        )?;
 
         if charge == 0 {
             return Err("Received invalid value 0 for charge.".into());
         }
 
-        return Ok((wh_in, wh_out, charge));
+        return Ok((wh_in, wh_out, (charge as f64) * (capacity as f64) / 100.0));
     }
 }
 
