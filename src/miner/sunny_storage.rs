@@ -21,30 +21,51 @@ use crate::models::{Battery, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
-use sunny_island_client::SunnyIslandClient;
+use sunny_storage_client::{
+    SunnyBoyStorageClient, SunnyIslandClient, SunnyStorageClient,
+};
 use tokio::sync::watch;
 
-pub struct SunnyIslandMiner {
+pub struct SunnyStorageMiner {
     canceled: watch::Receiver<MinerState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
     logger: Logger,
-    battery_client: SunnyIslandClient,
+    battery_client: Box<dyn SunnyStorageClient + Send + Sync>,
 }
 
-impl SunnyIslandMiner {
+impl SunnyStorageMiner {
     pub fn new(
         canceled: watch::Receiver<MinerState>,
         influx: influxdb::Client,
         name: String,
+        r#type: &'static str,
         interval: Duration,
         battery_addr: String,
         logger: Logger,
-    ) -> Result<SunnyIslandMiner, String> {
-        let battery_client =
-            SunnyIslandClient::new(battery_addr, 502, Some(logger.clone()))?;
-        return Ok(SunnyIslandMiner {
+    ) -> Result<Self, String> {
+        let battery_client: Box<dyn SunnyStorageClient + Send + Sync> =
+            match r#type {
+                "sunny_island" => Box::new(SunnyIslandClient::new(
+                    battery_addr,
+                    502,
+                    Some(logger.clone()),
+                )?),
+                "sunny_boy_storage" => Box::new(SunnyBoyStorageClient::new(
+                    battery_addr,
+                    502,
+                    Some(logger.clone()),
+                )?),
+                _ => {
+                    return Err(format!(
+                        "ArgumentError: SunnyStorageClient type {} is invalid.",
+                        r#type
+                    ))
+                }
+            };
+
+        return Ok(Self {
             canceled: canceled,
             influx: influx,
             name: name,

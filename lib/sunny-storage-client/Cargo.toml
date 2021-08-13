@@ -1,5 +1,5 @@
 [package]
-name = "sunny-island-client"
+name = "sunny-storage-client"
 version = "0.2.0"
 license = "AGPL-3+"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
@@ -13,6 +13,7 @@ name = "battery-cli"
 path = "battery-cli.rs"
 
 [dependencies]
+async-trait = ">=0.1.51"
 clap = "*"
 slog = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
 tokio = { version=">=1.0", features=["full"] }

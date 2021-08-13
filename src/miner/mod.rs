@@ -40,7 +40,7 @@ mod bresser6in1;
 mod dachs_msr_s;
 mod sml_meter;
 mod sunny_boy_speedwire;
-mod sunny_island;
+mod sunny_storage;
 
 pub struct Miner {
     logger: Logger,
@@ -103,10 +103,23 @@ impl Miner {
         for source in &settings.sources {
             match source {
                 Source::SunnyIsland(settings) => {
-                    let mut battery = sunny_island::SunnyIslandMiner::new(
+                    let mut battery = sunny_storage::SunnyStorageMiner::new(
                         rx.clone(),
                         influx_client.clone(),
                         settings.name.clone(),
+                        "sunny_island",
+                        Duration::from_secs(settings.poll_interval),
+                        settings.address.clone(),
+                        logger.clone(),
+                    )?;
+                    miners.push(miner_task!(battery));
+                }
+                Source::SunnyBoyStorage(settings) => {
+                    let mut battery = sunny_storage::SunnyStorageMiner::new(
+                        rx.clone(),
+                        influx_client.clone(),
+                        settings.name.clone(),
+                        "sunny_boy_storage",
                         Duration::from_secs(settings.poll_interval),
                         settings.address.clone(),
                         logger.clone(),

@@ -30,7 +30,7 @@ members = [
     "lib/dachs-client",
     "lib/sma-client",
     "lib/sml-client",
-    "lib/sunny-island-client",
+    "lib/sunny-storage-client",
     "lib/sunspec-client",
     "lib/usb-reset"
 ]
@@ -40,7 +40,7 @@ bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
 dachs-client = { version = "*", path = "lib/dachs-client/" }
 sma-client = { version = "*", path = "lib/sma-client/" }
 sml-client = { version = "*", path = "lib/sml-client/" }
-sunny-island-client = { version = "*", path = "lib/sunny-island-client/" }
+sunny-storage-client = { version = "*", path = "lib/sunny-storage-client/" }
 sunspec-client = { version = "*", path = "lib/sunspec-client/" }
 usb-reset = { version = "*", path = "lib/usb-reset/" }
 

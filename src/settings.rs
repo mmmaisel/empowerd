@@ -30,6 +30,13 @@ pub struct Database {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct SunnyBoyStorage {
+    pub name: String,
+    pub address: String,
+    pub poll_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct SunnyIsland {
     pub name: String,
     pub address: String,
@@ -69,6 +76,7 @@ pub struct Bresser6in1 {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum Source {
+    SunnyBoyStorage(SunnyBoyStorage),
     SunnyIsland(SunnyIsland),
     DachsMsrS(DachsMsrS),
     SmlMeter(SmlMeter),
