@@ -745,6 +745,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 
 [[package]]
+name = "empowerd"
+version = "0.2.3"
+dependencies = [
+ "bresser6in1-usb",
+ "chrono",
+ "config",
+ "dachs-client",
+ "daemonize",
+ "futures",
+ "getopts",
+ "http-client",
+ "influxdb",
+ "lazy_static",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "slog",
+ "sloggers",
+ "sma-client",
+ "sml-client",
+ "sunny-island-client",
+ "sunspec-client",
+ "tokio",
+ "usb-reset",
+]
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2279,34 +2307,6 @@ name = "stdweb-internal-runtime"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
-
-[[package]]
-name = "stromd"
-version = "0.2.3"
-dependencies = [
- "bresser6in1-usb",
- "chrono",
- "config",
- "dachs-client",
- "daemonize",
- "futures",
- "getopts",
- "http-client",
- "influxdb",
- "lazy_static",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "slog",
- "sloggers",
- "sma-client",
- "sml-client",
- "sunny-island-client",
- "sunspec-client",
- "tokio",
- "usb-reset",
-]
 
 [[package]]
 name = "strsim"

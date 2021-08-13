@@ -78,10 +78,10 @@ impl Settings {
         let mut config = Config::new();
 
         config.set_default("daemonize", false)?;
-        config.set_default("pid_file", "/run/stromd/pid")?;
+        config.set_default("pid_file", "/run/empowerd/pid")?;
         config.set_default("wrk_dir", "/")?;
         config.set_default("one_shot", false)?;
-        config.set_default("logfile", "/var/log/stromd.log")?;
+        config.set_default("logfile", "/var/log/empowerd.log")?;
         config.set_default("log_level", 0)?;
 
         config.merge(File::with_name(&filename).format(FileFormat::Toml))?;
@@ -101,7 +101,7 @@ impl Settings {
 
         let cfg_path = match matches.opt_str("c") {
             Some(x) => x,
-            None => "/etc/stromd/stromd.conf".into(),
+            None => "/etc/empowerd/empowerd.conf".into(),
         };
 
         let mut settings =

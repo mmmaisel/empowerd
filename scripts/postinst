@@ -1,9 +1,9 @@
 #!/bin/sh
 
-adduser --system stromd ||:
-chown stromd /etc/stromd/stromd.conf
-mkdir -p /var/log/stromd
-chown stromd /var/log/stromd
+adduser --system empowerd ||:
+chown empowerd /etc/empowerd/empowerd.conf
+mkdir -p /var/log/empowerd
+chown empowerd /var/log/empowerd
 
 deb-systemd-helper restart logrotate.service >/dev/null || true
 

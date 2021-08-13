@@ -55,7 +55,7 @@ fn main() {
     };
     let root_logger = root_logger.unwrap();
 
-    info!(root_logger, "⚡️ Starting stromd");
+    info!(root_logger, "⚡️ Starting empowerd");
     debug!(root_logger, "Settings: {:?}", &settings);
 
     let retval = match Runtime::new() {

@@ -1,15 +1,15 @@
 [Unit]
-Description=stromd miner service
+Description=Empowers the offline smart home
 After=multi-user.target network-online.target
 
 [Service]
 Type=forking
-User=stromd
-RuntimeDirectory=stromd
+User=empowerd
+RuntimeDirectory=empowerd
 RuntimeDirectoryMode=0750
-PIDFile=/var/run/stromd/pid
+PIDFile=/var/run/empowerd/pid
 WorkingDirectory=/
-ExecStart=/bin/stromd
+ExecStart=/bin/empowerd
 ExecStop=/bin/kill -s TERM $MAINPID
 KillSignal=SIGTERM
 

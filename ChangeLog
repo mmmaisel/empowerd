@@ -1,11 +1,11 @@
-stromd (0.2.3) buster; urgency=low
+empowerd (0.2.3) buster; urgency=low
 
   * Make configuration file format more flexible.
   * Adjust some log levels.
 
  -- Max Maisel <max.maisel@posteo.de> Fri, 23 Jul 2021 17:37:00 +0200
 
-stromd (0.2.2) buster; urgency=medium
+empowerd (0.2.2) buster; urgency=medium
 
   * Fix permissions of the included udev rules.
   * Fix logrotate config so that log keep working after rotation.
@@ -13,14 +13,14 @@ stromd (0.2.2) buster; urgency=medium
 
  -- Max Maisel <max.maisel@posteo.de> Fri, 2 Jul 2021 16:43:00 +0200
 
-stromd (0.2.1) buster; urgency=medium
+empowerd (0.2.1) buster; urgency=medium
 
   * Reset USB devices on failure.
   * Fix logging in daemon mode.
 
  -- Max Maisel <max.maisel@posteo.de> Sat, 26 Jun 2021 11:01:26 +0200
 
-stromd (0.2.0) buster; urgency=low
+empowerd (0.2.0) buster; urgency=low
 
   * Initial Debian package release.
 

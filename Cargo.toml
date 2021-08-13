@@ -1,21 +1,22 @@
 [package]
-name = "stromd"
+name = "empowerd"
 version = "0.2.3"
 license = "AGPL-3+"
-description = "stromd data logger service"
+description = "empowers the offline smart home"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
 
 [package.metadata.deb]
 assets = [
-    ["target/release/stromd", "bin/", "755"],
-    ["data/stromd.conf", "etc/stromd/", "600"],
-    ["data/stromd.logrotate", "etc/logrotate.d/stromd", "644"],
+    ["target/release/empowerd", "bin/", "755"],
+    ["data/empowerd.conf", "etc/empowerd/", "600"],
+    ["data/empowerd.logrotate", "etc/logrotate.d/empowerd", "644"],
     ["lib/bresser6in1-usb/bresser6in1.rules", "etc/udev/rules.d/", "644"],
     ["lib/sml-client/ttyusb-meter.rules", "etc/udev/rules.d/", "644"],
 ]
 conf-files = [
-    "etc/stromd/stromd.conf"
+    "etc/empowerd/empowerd.conf",
+    "etc/logrotate.d/empowerd"
 ]
 changelog = "ChangeLog"
 maintainer-scripts = "scripts/"
