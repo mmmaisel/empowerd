@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::{Miner, MinerResult, MinerState};
 use crate::miner_sleep;
-use crate::models::{Dachs, InfluxObject, InfluxResult};
+use crate::models::{Generator, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
 use slog::{error, trace, Logger};
@@ -77,8 +77,10 @@ impl DachsMsrSMiner {
             }
         };
 
-        let power = match Dachs::into_single(
-            self.influx.json_query(Dachs::query_last(&self.name)).await,
+        let power = match Generator::into_single(
+            self.influx
+                .json_query(Generator::query_last(&self.name))
+                .await,
         ) {
             InfluxResult::Some(last_record) => {
                 // TODO: derive nonlinear power from delta timestamp and delta runtime
@@ -90,12 +92,15 @@ impl DachsMsrSMiner {
             }
             InfluxResult::None => 0.0,
             InfluxResult::Err(e) => {
-                error!(self.logger, "Query dachs database failed: {}", e);
+                error!(
+                    self.logger,
+                    "Query {} database failed: {}", &self.name, e
+                );
                 return MinerResult::Running;
             }
         };
 
-        let dachs = Dachs::new(
+        let dachs = Generator::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
             dachs_energy.into(),
             power,

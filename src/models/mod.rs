@@ -21,13 +21,13 @@ use influxdb::{
 };
 
 pub mod battery;
-pub mod dachs;
+pub mod generator;
 pub mod meter;
 pub mod solar;
 pub mod weather;
 
 pub use battery::Battery;
-pub use dachs::Dachs;
+pub use generator::Generator;
 pub use meter::Meter;
 pub use solar::Solar;
 pub use weather::Weather;

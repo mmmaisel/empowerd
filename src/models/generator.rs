@@ -21,21 +21,21 @@ use influxdb::InfluxDbWriteable;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, InfluxDbWriteable)]
-pub struct Dachs {
+pub struct Generator {
     pub time: DateTime<Utc>,
     pub power: f64,
     pub runtime: f64,
     pub energy: f64,
 }
 
-impl Dachs {
+impl Generator {
     pub fn new(
         time: DateTime<Utc>,
         energy: f64,
         power: f64, // TODO: remove, use derivative query
         runtime: f64,
-    ) -> Dachs {
-        return Dachs {
+    ) -> Self {
+        return Self {
             time: time,
             energy: energy,
             power: power,
@@ -44,6 +44,6 @@ impl Dachs {
     }
 }
 
-impl InfluxObject<Dachs> for Dachs {
+impl InfluxObject<Generator> for Generator {
     const FIELDS: &'static str = "energy, power, runtime";
 }
