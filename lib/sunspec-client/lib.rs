@@ -35,6 +35,15 @@ pub struct SunspecClient {
 impl SunspecClient {
     const SUNSPEC_START_ADDR: u16 = 40000;
 
+    const SUNSPEC_INVERTER_1: u16 = 101;
+    const SUNSPEC_INVERTER_2: u16 = 102;
+    const SUNSPEC_INVERTER_3: u16 = 103;
+
+    const SUNSPEC_INVERTER_YIELD_ACC: u16 = 24;
+    const SUNSPEC_INVERTER_YIELD_ACC_SIZE: u16 = 2;
+    const SUNSPEC_INVERTER_YIELD_SCALE: u16 = 26;
+    const SUNSPEC_INVERTER_YIELD_SCALE_SIZE: u16 = 1;
+
     pub fn new(
         addr: String,
         port: u16,
@@ -107,6 +116,43 @@ impl SunspecClient {
         return &self.models;
     }
 
+    pub async fn get_total_yield(
+        &self,
+        context: &mut Context,
+    ) -> Result<f64, String> {
+        let model = if self.models.contains_key(&Self::SUNSPEC_INVERTER_1) {
+            Self::SUNSPEC_INVERTER_1
+        } else if self.models.contains_key(&Self::SUNSPEC_INVERTER_2) {
+            Self::SUNSPEC_INVERTER_2
+        } else {
+            Self::SUNSPEC_INVERTER_3
+        };
+
+        let total_energy = Self::validate_result_u32(
+            "SUNSPEC_INVERTER_YIELD_ACC",
+            self.read_register(
+                context,
+                model,
+                Self::SUNSPEC_INVERTER_YIELD_ACC,
+                Self::SUNSPEC_INVERTER_YIELD_ACC_SIZE,
+            )
+            .await,
+        )?;
+
+        let scale = Self::validate_result_i16(
+            "SUNSPEC_INVERTER_YIELD_SCALE",
+            self.read_register(
+                context,
+                model,
+                Self::SUNSPEC_INVERTER_YIELD_SCALE,
+                Self::SUNSPEC_INVERTER_YIELD_SCALE_SIZE,
+            )
+            .await,
+        )?;
+
+        return Ok(total_energy as f64 * 10_f64.powf(scale as f64));
+    }
+
     async fn read_register(
         &self,
         context: &mut Context,
@@ -116,10 +162,54 @@ impl SunspecClient {
     ) -> Result<Vec<u16>, String> {
         let model_base = match self.models.get(&model) {
             Some(x) => x,
-            None => return Err(format!("The device does not support model {}", &model)),
+            None => {
+                return Err(format!(
+                    "The device does not support model {}",
+                    &model
+                ))
+            }
         };
         let addr = model_base + register;
-        return context.read_input_registers(addr, size).await.map_err(|e| e.to_string());
+        return context
+            .read_input_registers(addr, size)
+            .await
+            .map_err(|e| e.to_string());
+    }
+
+    fn validate_result_i16(
+        which: &str,
+        res: Result<Vec<u16>, String>,
+    ) -> Result<i16, String> {
+        match res {
+            Err(e) => return Err(e.to_string()),
+            Ok(data) => {
+                if data[0] == 0x8000 {
+                    return Err(format!(
+                        "Received invalid value for {}",
+                        which
+                    ));
+                }
+                return Ok(data[0] as i16);
+            }
+        };
+    }
+
+    fn validate_result_u32(
+        which: &str,
+        res: Result<Vec<u16>, String>,
+    ) -> Result<u32, String> {
+        match res {
+            Err(e) => return Err(e.to_string()),
+            Ok(data) => {
+                if data.iter().all(|x| *x == 0xFFFF) {
+                    return Err(format!(
+                        "Received invalid value for {}",
+                        which
+                    ));
+                }
+                return Ok((data[0] as u32) * 65536 + (data[1] as u32));
+            }
+        };
     }
 }
 

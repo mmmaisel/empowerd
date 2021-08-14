@@ -52,5 +52,9 @@ async fn main() -> Result<(), String> {
     for (model, reg) in client.models().iter() {
         println!("Model {} at {}", model, reg);
     }
+
+    let energy = client.get_total_yield(&mut context).await.unwrap();
+    println!("Total energy yield is {} Wh", energy);
+
     return Ok(());
 }
