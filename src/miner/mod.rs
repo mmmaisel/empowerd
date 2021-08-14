@@ -41,6 +41,7 @@ mod dachs_msr_s;
 mod sml_meter;
 mod sunny_boy_speedwire;
 mod sunny_storage;
+mod sunspec_solar;
 
 pub struct Miner {
     logger: Logger,
@@ -125,6 +126,17 @@ impl Miner {
                         logger.clone(),
                     )?;
                     miners.push(miner_task!(battery));
+                }
+                Source::SunspecSolar(settings) => {
+                    let mut sunspec = sunspec_solar::SunspecSolarMiner::new(
+                        rx.clone(),
+                        influx_client.clone(),
+                        settings.name.clone(),
+                        Duration::from_secs(settings.poll_interval),
+                        settings.address.clone(),
+                        logger.clone(),
+                    )?;
+                    miners.push(miner_task!(sunspec));
                 }
                 Source::DachsMsrS(settings) => {
                     let mut dachs = dachs_msr_s::DachsMsrSMiner::new(

@@ -44,6 +44,13 @@ pub struct SunnyIsland {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct SunspecSolar {
+    pub name: String,
+    pub address: String,
+    pub poll_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct DachsMsrS {
     pub name: String,
     pub address: String,
@@ -78,6 +85,7 @@ pub struct Bresser6in1 {
 pub enum Source {
     SunnyBoyStorage(SunnyBoyStorage),
     SunnyIsland(SunnyIsland),
+    SunspecSolar(SunspecSolar),
     DachsMsrS(DachsMsrS),
     SmlMeter(SmlMeter),
     SunnyBoySpeedwire(SunnyBoySpeedwire),
