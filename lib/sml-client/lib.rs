@@ -24,7 +24,7 @@ use bytes::BytesMut;
 use slog::{trace, Logger};
 use tokio::io::AsyncReadExt;
 use tokio::time::{sleep, timeout};
-use tokio_serial::{SerialPort, SerialPortBuilder, TTYPort};
+use tokio_serial::{SerialPort, SerialPortBuilder, SerialStream};
 
 mod doc;
 use doc::SmlBody;
@@ -62,7 +62,7 @@ impl SmlClient {
     }
 
     pub async fn get_sml_file(&mut self) -> Result<SmlFile, String> {
-        let mut port = match TTYPort::open(&self.settings) {
+        let mut port = match SerialStream::open(&self.settings) {
             Ok(port) => port,
             Err(e) => {
                 return Err(format!("Failed to open serial port, error: {}", e))

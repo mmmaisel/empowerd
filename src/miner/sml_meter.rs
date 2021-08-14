@@ -120,7 +120,10 @@ impl SmlMeterMiner {
             }
             InfluxResult::None => 0.0,
             InfluxResult::Err(e) => {
-                error!(self.logger, "Query dachs database failed: {}", e);
+                error!(
+                    self.logger,
+                    "Query {} database failed: {}", &self.name, e
+                );
                 return MinerResult::Running;
             }
         };
