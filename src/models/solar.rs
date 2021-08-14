@@ -32,8 +32,8 @@ impl Solar {
         time: DateTime<Utc>,
         energy: f64,
         power: f64, // TODO: remove, use derivative query
-    ) -> Solar {
-        return Solar {
+    ) -> Self {
+        return Self {
             time: time,
             energy: energy,
             power: power,

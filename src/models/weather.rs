@@ -47,8 +47,8 @@ pub struct Weather {
 }
 
 impl Weather {
-    pub fn new(data: BresserData) -> Weather {
-        return Weather {
+    pub fn new(data: BresserData) -> Self {
+        return Self {
             time: DateTime::<Utc>::from(
                 UNIX_EPOCH + Duration::from_secs(data.timestamp as u64),
             ),

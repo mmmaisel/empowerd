@@ -45,7 +45,7 @@ impl SunnyBoySpeedwireMiner {
         sma_pw: String,
         sma_addr: String,
         logger: Logger,
-    ) -> Result<SunnyBoySpeedwireMiner, String> {
+    ) -> Result<Self, String> {
         let sma_socket_addr: SocketAddr =
             match SmaClient::sma_sock_addr(sma_addr) {
                 Ok(x) => x,
@@ -54,7 +54,7 @@ impl SunnyBoySpeedwireMiner {
                 }
             };
 
-        return Ok(SunnyBoySpeedwireMiner {
+        return Ok(Self {
             canceled: canceled,
             influx: influx,
             name: name,
@@ -78,7 +78,10 @@ impl SunnyBoySpeedwireMiner {
                 Solar::new(DateTime::<Utc>::from(UNIX_EPOCH), 0.0, 0.0)
             }
             InfluxResult::Err(e) => {
-                error!(self.logger, "Query solar database failed: {}", e);
+                error!(
+                    self.logger,
+                    "Query {} database failed: {}", &self.name, e
+                );
                 return MinerResult::Running;
             }
         };

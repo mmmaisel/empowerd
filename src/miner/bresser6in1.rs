@@ -39,8 +39,8 @@ impl Bresser6in1Miner {
         name: String,
         interval: Duration,
         logger: Logger,
-    ) -> Result<Bresser6in1Miner, String> {
-        return Ok(Bresser6in1Miner {
+    ) -> Result<Self, String> {
+        return Ok(Self {
             canceled: canceled,
             influx: influx,
             name: name,

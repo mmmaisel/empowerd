@@ -42,8 +42,8 @@ impl DachsMsrSMiner {
         dachs_addr: String,
         dachs_pw: String,
         logger: Logger,
-    ) -> Result<DachsMsrSMiner, String> {
-        return Ok(DachsMsrSMiner {
+    ) -> Result<Self, String> {
+        return Ok(Self {
             canceled: canceled,
             influx: influx,
             name: name,

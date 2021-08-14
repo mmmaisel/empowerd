@@ -34,8 +34,8 @@ impl Meter {
         energy_consumed: f64,
         energy_produced: f64,
         power: f64, // TODO: remove, use derivative query
-    ) -> Meter {
-        return Meter {
+    ) -> Self {
+        return Self {
             time: time,
             energy_consumed: energy_consumed,
             energy_produced: energy_produced,

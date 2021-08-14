@@ -43,11 +43,11 @@ impl SmlMeterMiner {
         meter_device: String,
         meter_baud: u32,
         logger: Logger,
-    ) -> Result<SmlMeterMiner, String> {
+    ) -> Result<Self, String> {
         if interval < Duration::from_secs(5) {
             return Err("SmlMeterMiner:poll_interval must be >= 5".into());
         }
-        return Ok(SmlMeterMiner {
+        return Ok(Self {
             canceled: canceled,
             influx: influx,
             name: name,

@@ -36,8 +36,8 @@ impl Battery {
         energy_in: f64,
         energy_out: f64,
         power: f64, // TODO: remove, use derivative query
-    ) -> Battery {
-        return Battery {
+    ) -> Self {
+        return Self {
             time: time,
             charge: charge,
             energy_in: energy_in,
