@@ -315,8 +315,7 @@ impl SmaClient {
         dst_addr: SocketAddr,
     ) -> Result<(), String> {
         return match socket.send_to(self.buffer.as_ref(), dst_addr).await {
-            // TODO: output socket error
-            Err(e) => Err("💩️ send data failed".to_string()),
+            Err(e) => Err(format!("Write data to SMA device failed: {}", e)),
             Ok(_) => Ok(()),
         };
     }
