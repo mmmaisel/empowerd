@@ -17,4 +17,4 @@ async-trait = ">=0.1.51"
 clap = "*"
 slog = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
 tokio = { version=">=1.0", features=["full"] }
-tokio-modbus = { git = "https://github.com/ivoisbelongtous/tokio-modbus.git", branch = "tokio1", features = ["tcp"], default-features = false }
+tokio-modbus = { version=">=0.5.0", features = ["tcp"], default-features = false }

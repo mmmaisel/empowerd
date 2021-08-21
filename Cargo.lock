@@ -2520,9 +2520,11 @@ dependencies = [
 
 [[package]]
 name = "tokio-modbus"
-version = "0.4.0"
-source = "git+https://github.com/ivoisbelongtous/tokio-modbus.git?branch=tokio1#aa2014bbff84e266119e9b9c742e18ff447d6297"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8ed32b9b83ddf540e6dc1769f09331e22d929101931cec5ff89d8ac3c015403"
 dependencies = [
+ "async-trait",
  "byteorder",
  "bytes",
  "futures-util",
