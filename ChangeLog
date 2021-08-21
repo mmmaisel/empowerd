@@ -1,3 +1,11 @@
+empowerd (0.3.0) bullseye; urgency=low
+
+  * Add sunspec solar miner.
+  * Add support for Sunny Boy Storage.
+  * Mine battery states in Wh instead of %.
+
+ -- Max Maisel <max.maisel@posteo.de> Sat, 21 Aug 12:45:20 2021 +0200
+
 empowerd (0.2.3) buster; urgency=low
 
   * Make configuration file format more flexible.
