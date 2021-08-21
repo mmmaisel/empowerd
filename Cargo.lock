@@ -259,7 +259,7 @@ dependencies = [
  "memchr",
  "num_cpus",
  "once_cell",
- "pin-project-lite 0.2.4",
+ "pin-project-lite",
  "pin-utils",
  "slab",
  "wasm-bindgen-futures",
@@ -755,7 +755,6 @@ dependencies = [
  "daemonize",
  "futures",
  "getopts",
- "http-client",
  "influxdb",
  "lazy_static",
  "regex",
@@ -886,7 +885,7 @@ dependencies = [
  "futures-io",
  "memchr",
  "parking",
- "pin-project-lite 0.2.4",
+ "pin-project-lite",
  "waker-fn",
 ]
 
@@ -930,7 +929,7 @@ dependencies = [
  "futures-sink",
  "futures-task",
  "memchr",
- "pin-project-lite 0.2.4",
+ "pin-project-lite",
  "pin-utils",
  "proc-macro-hack",
  "proc-macro-nested",
@@ -1090,14 +1089,15 @@ dependencies = [
 
 [[package]]
 name = "http-client"
-version = "6.3.0"
+version = "6.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "518cdefb188f1e14c60151ca4ee1c186c9b6e0d7047c334e53478d3d9f2b0dfa"
+checksum = "ea880b03c18a7e981d7fb3608b8904a98425d53c440758fcebf7d934aa56547c"
 dependencies = [
  "async-h1",
  "async-native-tls",
  "async-std",
  "async-trait",
+ "cfg-if 1.0.0",
  "dashmap",
  "deadpool",
  "futures",
@@ -1118,7 +1118,7 @@ dependencies = [
  "cookie",
  "futures-lite",
  "infer",
- "pin-project-lite 0.2.4",
+ "pin-project-lite",
  "rand 0.7.3",
  "serde",
  "serde_json",
@@ -1205,9 +1205,9 @@ checksum = "64e9829a50b42bb782c1df523f78d332fe371b10c661e78b7a3c34b0198e9fac"
 
 [[package]]
 name = "influxdb"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "930a3730787ddf754d5ffcbca48909e7aaee3076ecfc6b9547c84a10f937e7f7"
+checksum = "9fe060720fd73a206738b3f0beab024eef0db40f49a38f10a5a5e7e82dbf9e0d"
 dependencies = [
  "chrono",
  "futures",
@@ -1222,9 +1222,9 @@ dependencies = [
 
 [[package]]
 name = "influxdb_derive"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd351b85d6d79b8b73bda7452d8d9ac7da8a392f8b9eb0a4780b373539fb1e6e"
+checksum = "321345ebf687827f6254b36bb3077f00bdee36f609905d1e65d5905cc92156ab"
 dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.8",
@@ -1464,19 +1464,6 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c3728fec49d363a50a8828a190b379a446cc5cf085c06259bbbeb34447e4ec7"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if 1.0.0",
- "libc",
- "memoffset",
-]
-
-[[package]]
-name = "nix"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7555d6c7164cc913be1ce7f95cbecdabda61eb2ccd89008524af306fb7f5031"
@@ -1658,12 +1645,6 @@ dependencies = [
  "quote 1.0.8",
  "syn 1.0.67",
 ]
-
-[[package]]
-name = "pin-project-lite"
-version = "0.1.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c917123afa01924fc84bb20c4c03f004d9c38e5127e3c039bbf7f4b9c76a2f6b"
 
 [[package]]
 name = "pin-project-lite"
@@ -1916,7 +1897,7 @@ dependencies = [
  "mime",
  "native-tls",
  "percent-encoding",
- "pin-project-lite 0.2.4",
+ "pin-project-lite",
  "serde",
  "serde_urlencoded",
  "tokio",
@@ -2335,19 +2316,19 @@ dependencies = [
 
 [[package]]
 name = "surf"
-version = "2.1.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7189c787d96fe18fef704950de76d590022d9d70858a4a201e1f07a0666882ea"
+checksum = "2a154d33ca6b5e1fe6fd1c760e5a5cc1202425f6cca2e13229f16a69009f6328"
 dependencies = [
  "async-std",
  "async-trait",
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "futures-util",
  "http-client",
  "http-types",
  "log",
  "mime_guess",
- "pin-project-lite 0.1.11",
+ "pin-project-lite",
  "serde",
  "serde_json",
 ]
@@ -2520,7 +2501,7 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "parking_lot",
- "pin-project-lite 0.2.4",
+ "pin-project-lite",
  "signal-hook-registry",
  "tokio-macros",
  "winapi",
@@ -2584,7 +2565,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "log",
- "pin-project-lite 0.2.4",
+ "pin-project-lite",
  "tokio",
 ]
 
@@ -2610,7 +2591,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7d40a22fd029e33300d8d89a5cc8ffce18bb7c587662f54629e94c9de5487f3"
 dependencies = [
  "cfg-if 1.0.0",
- "pin-project-lite 0.2.4",
+ "pin-project-lite",
  "tracing-core",
 ]
 
@@ -2747,7 +2728,7 @@ dependencies = [
 name = "usb-reset"
 version = "0.1.0"
 dependencies = [
- "nix 0.21.0",
+ "nix 0.22.1",
  "udev",
 ]
 

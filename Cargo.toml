@@ -50,8 +50,7 @@ sloggers = { version=">=1.0", default_features=false }
 tokio = { version=">=1.0", features=["full"] }
 
 chrono = "*"
-http-client = "6.2.0" # dependency, pin version because newer one is broken.
-influxdb = { version = ">=0.3.0", features = ["derive", "h1-client", "use-serde"], default-features = false }
+influxdb = { version = "0.4.0", features = ["derive", "h1-client", "use-serde"], default-features = false }
 lazy_static = "*"
 regex = "*"
 reqwest = { version = "*", default-features = false }
