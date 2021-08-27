@@ -15,12 +15,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{Miner, MinerResult, MinerState};
+use super::{parse_socketaddr_with_default, Miner, MinerResult, MinerState};
 use crate::miner_sleep;
 use crate::models::{InfluxObject, InfluxResult, Solar};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
-use std::net::SocketAddr;
 use std::time::{Duration, UNIX_EPOCH};
 use sunspec_client::SunspecClient;
 use tokio::sync::watch;
@@ -43,13 +42,7 @@ impl SunspecSolarMiner {
         address: String,
         logger: Logger,
     ) -> Result<Self, String> {
-        let address: SocketAddr = match address.parse() {
-            Ok(x) => x,
-            Err(_) => match format!("{}:502", address).parse() {
-                Ok(x) => x,
-                Err(e) => return Err(e.to_string()),
-            },
-        };
+        let address = parse_socketaddr_with_default(&address, 502)?;
         let client = SunspecClient::new(address, Some(logger.clone()));
 
         return Ok(Self {

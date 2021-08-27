@@ -19,6 +19,7 @@ use crate::settings::{Settings, Source};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use slog::{debug, error, info, trace, Logger};
+use std::net::SocketAddr;
 use std::time::{Duration, SystemTime};
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
@@ -42,6 +43,19 @@ mod sml_meter;
 mod sunny_boy_speedwire;
 mod sunny_storage;
 mod sunspec_solar;
+
+pub fn parse_socketaddr_with_default(
+    addr: &str,
+    default_port: u16,
+) -> Result<SocketAddr, String> {
+    match addr.parse() {
+        Ok(x) => Ok(x),
+        Err(_) => match format!("{}:{}", addr, default_port).parse() {
+            Ok(x) => Ok(x),
+            Err(e) => return Err(e.to_string()),
+        },
+    }
+}
 
 pub struct Miner {
     logger: Logger,

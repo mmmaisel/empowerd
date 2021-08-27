@@ -15,12 +15,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{Miner, MinerResult, MinerState};
+use super::{parse_socketaddr_with_default, Miner, MinerResult, MinerState};
 use crate::miner_sleep;
 use crate::models::{Battery, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
-use std::net::SocketAddr;
 use std::time::{Duration, UNIX_EPOCH};
 use sunny_storage_client::{
     SunnyBoyStorageClient, SunnyIslandClient, SunnyStorageClient,
@@ -43,16 +42,10 @@ impl SunnyStorageMiner {
         name: String,
         r#type: &'static str,
         interval: Duration,
-        battery_addr: String,
+        address: String,
         logger: Logger,
     ) -> Result<Self, String> {
-        let address: SocketAddr = match battery_addr.parse() {
-            Ok(x) => x,
-            Err(_) => match format!("{}:502", battery_addr).parse() {
-                Ok(x) => x,
-                Err(e) => return Err(e.to_string()),
-            },
-        };
+        let address = parse_socketaddr_with_default(&address, 502)?;
         let battery_client: Box<dyn SunnyStorageClient + Send + Sync> =
             match r#type {
                 "sunny_island" => Box::new(SunnyIslandClient::new(
