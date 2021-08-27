@@ -21,6 +21,7 @@ use super::sml_buffer::*;
 use bytes::Buf;
 use crc16::*;
 
+#[derive(Debug)]
 pub struct SmlStream {
     pub version: u32,
     pub data: Vec<u8>,

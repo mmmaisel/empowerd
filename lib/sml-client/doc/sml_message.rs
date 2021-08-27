@@ -34,6 +34,8 @@ impl SmlBody {
     const CLOSE_RESPONSE_ID: u16 = 0x0201;
     const GET_LIST_RESPONSE_ID: u16 = 0x0701;
 
+    // XXX: needs way to rewind buffer in case of errors and print nice error
+    // message with binary context
     pub fn deserialize(mut buffer: &mut dyn SmlBuf) -> Result<SmlBody, String> {
         let tl = buffer.get_sml_tl();
         match tl {

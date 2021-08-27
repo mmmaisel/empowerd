@@ -20,6 +20,7 @@ use super::sml_buffer::*;
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum SmlTime {
+    Invalid(u32),
     SecIndex(u32),
     Timestamp(u32),
 }
@@ -29,22 +30,31 @@ impl SmlTime {
         buffer: &mut dyn SmlBuf,
     ) -> Result<Option<SmlTime>, String> {
         let tl = buffer.get_sml_tl();
-        match tl {
+        let ty = match tl {
             SmlType::None => return Ok(None),
             SmlType::Struct(len) => {
                 if len != 2 {
                     return Err(format!("Invalid length {} for SmlTime", len));
                 }
+                match buffer.get_sml_u8()? {
+                    Some(x) => x,
+                    None => return Err("SmlTime type is required".to_string()),
+                }
+            }
+            SmlType::UInt(len) => {
+                if len != 4 {
+                    return Err(format!("Invalid length {} for Unit(4)", len));
+                }
+                0
             }
             _ => return Err(format!("Found {:X?}, expected struct", tl)),
-        }
-
-        let ty = match buffer.get_sml_u8()? {
-            Some(x) => x,
-            None => return Err("SmlTime type is required".to_string()),
         };
 
         return match ty {
+            0 => {
+                let value = buffer.get_u32();
+                return Ok(Some(SmlTime::Invalid(value)));
+            }
             1 => {
                 let value = buffer.get_sml_u32()?;
                 return match value {
@@ -67,7 +77,7 @@ impl SmlTime {
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct SmlStatus {
-    status: u64,
+    pub status: u64,
 }
 
 impl SmlStatus {
