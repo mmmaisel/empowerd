@@ -22,7 +22,7 @@ use std::io::Cursor;
 
 use bytes::BytesMut;
 use hidapi::HidApi;
-use slog::{Logger, trace};
+use slog::{trace, Logger};
 
 mod bresser6in1_buf;
 use bresser6in1_buf::Bresser6in1Buf;

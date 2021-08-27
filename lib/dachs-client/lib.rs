@@ -21,7 +21,7 @@
 
 use lazy_static::lazy_static;
 use regex::Regex;
-use slog::{Logger, trace};
+use slog::{trace, Logger};
 
 #[cfg(test)]
 mod tests;

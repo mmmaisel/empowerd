@@ -35,20 +35,10 @@ macro_rules! impl_client {
 
         impl $name {
             pub fn new(
-                addr: String,
-                port: u16,
+                addr: SocketAddr,
                 logger: Option<Logger>,
             ) -> Result<Self, String> {
-                let addr: SocketAddr =
-                    match format!("{}:{}", addr, port).parse() {
-                        Ok(x) => x,
-                        Err(e) => return Err(e.to_string()),
-                    };
-
-                return Ok(Self {
-                    addr: addr,
-                    logger: logger,
-                });
+                return Ok(Self { addr, logger });
             }
         }
 
@@ -159,7 +149,8 @@ async fn get_in_out_charge(
 #[tokio::test]
 async fn test_sunny_island_client() {
     let client =
-        SunnyIslandClient::new("127.0.0.1".into(), 1502, None).unwrap();
+        SunnyIslandClient::new("127.0.0.1:1502".parse().unwrap(), None)
+            .unwrap();
 
     match client.get_in_out_charge().await {
         Ok((wh_in, wh_out, charge)) => {

@@ -20,6 +20,7 @@ use crate::miner_sleep;
 use crate::models::{Battery, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
+use std::net::SocketAddr;
 use std::time::{Duration, UNIX_EPOCH};
 use sunny_storage_client::{
     SunnyBoyStorageClient, SunnyIslandClient, SunnyStorageClient,
@@ -45,16 +46,21 @@ impl SunnyStorageMiner {
         battery_addr: String,
         logger: Logger,
     ) -> Result<Self, String> {
+        let address: SocketAddr = match battery_addr.parse() {
+            Ok(x) => x,
+            Err(_) => match format!("{}:502", battery_addr).parse() {
+                Ok(x) => x,
+                Err(e) => return Err(e.to_string()),
+            },
+        };
         let battery_client: Box<dyn SunnyStorageClient + Send + Sync> =
             match r#type {
                 "sunny_island" => Box::new(SunnyIslandClient::new(
-                    battery_addr,
-                    502,
+                    address,
                     Some(logger.clone()),
                 )?),
                 "sunny_boy_storage" => Box::new(SunnyBoyStorageClient::new(
-                    battery_addr,
-                    502,
+                    address,
                     Some(logger.clone()),
                 )?),
                 _ => {

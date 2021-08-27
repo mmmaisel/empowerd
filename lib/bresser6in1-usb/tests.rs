@@ -20,8 +20,8 @@ use hidapi::HidApi;
 
 use std::io::Cursor;
 
-use bytes::{Buf, BufMut, BytesMut};
 use byte_strings::concat_bytes;
+use bytes::{Buf, BufMut, BytesMut};
 use chrono::{Local, Offset};
 
 struct FakeReader {

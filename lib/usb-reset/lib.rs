@@ -86,9 +86,7 @@ fn reset_device(mut device: Option<Device>) -> Result<(), String> {
             if driver == "usb" {
                 let devnode = match dev.devnode() {
                     Some(x) => x,
-                    None => {
-                        return Err("USB parent device has no node".into())
-                    }
+                    None => return Err("USB parent device has no node".into()),
                 };
 
                 return match OpenOptions::new().write(true).open(&devnode) {
