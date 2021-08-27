@@ -64,7 +64,11 @@ pub trait SmlBuf: Buf {
         return match tl {
             SmlType::None => Ok(None),
             SmlType::UInt(len) => Ok(Some(self.get_uint(len))),
-            _ => Err(format!("Found {:X?}, expected u{}", tl, len * 8)),
+            _ => Err(format!(
+                "get_sml_unit: Found {:X?}, expected u{}",
+                tl,
+                len * 8
+            )),
         };
     }
 
@@ -101,7 +105,11 @@ pub trait SmlBuf: Buf {
         return match tl {
             SmlType::None => Ok(None),
             SmlType::Int(len) => Ok(Some(self.get_int(len))),
-            _ => Err(format!("Found {:X?}, expected i{}", tl, len * 8)),
+            _ => Err(format!(
+                "get_sml_int: Found {:X?}, expected i{}",
+                tl,
+                len * 8
+            )),
         };
     }
 
@@ -110,7 +118,7 @@ pub trait SmlBuf: Buf {
         return match tl {
             SmlType::None => Ok(None),
             SmlType::Boolean => Ok(Some(self.get_u8() != 0)),
-            _ => Err(format!("Found {:X?}, expected bool", tl)),
+            _ => Err(format!("get_sml_bool: Found {:X?}, expected bool", tl)),
         };
     }
 
@@ -159,7 +167,10 @@ pub trait SmlBuf: Buf {
         return match tl {
             SmlType::None => Ok(None),
             SmlType::OctetString(len) => Ok(Some(self.get_vector(len))),
-            _ => Err(format!("Found {:X?}, expected octet string", tl)),
+            _ => Err(format!(
+                "get_sml_octet_str: Found {:X?}, expected octet string",
+                tl
+            )),
         };
     }
 
@@ -182,7 +193,7 @@ pub trait SmlBuf: Buf {
         let tl = self.get_sml_tl();
         return match tl {
             SmlType::End => Ok(()),
-            _ => Err(format!("Found {:X?}, expected end", tl)),
+            _ => Err(format!("get_sml_end: Found {:X?}, expected end", tl)),
         };
     }
 

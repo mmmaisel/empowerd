@@ -44,7 +44,12 @@ impl SmlListEntry {
                     ));
                 }
             }
-            _ => return Err(format!("Found {:X?}, expected struct", tl)),
+            _ => {
+                return Err(format!(
+                    "SmlListEntry::deserialize: Found {:X?}, expected struct",
+                    tl
+                ))
+            }
         }
 
         let obj_name = match buffer.get_sml_octet_str()? {
@@ -108,7 +113,15 @@ impl SmlGetListResponse {
                     ));
                 }
             }
-            _ => return Err(format!("Found {:X?}, expected struct", tl)),
+            _ => {
+                return Err(format!(
+                    concat!(
+                        "SmlGetListResponse::deserialize: ",
+                        "Found {:X?}, expected header struct"
+                    ),
+                    tl
+                ))
+            }
         }
 
         let client_id = buffer.get_sml_octet_str()?;
@@ -126,7 +139,10 @@ impl SmlGetListResponse {
             SmlType::Struct(len) => len,
             _ => {
                 return Err(format!(
-                    "Found {:X?}, expected struct",
+                    concat!(
+                        "SmlGetListResponse::deserialize: ",
+                        "Found {:X?}, expected entries struct"
+                    ),
                     entry_count_tl
                 ))
             }

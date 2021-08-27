@@ -43,7 +43,12 @@ impl SmlOpenResponse {
                     ));
                 }
             }
-            _ => return Err(format!("Found {:X?}, expected struct", tl)),
+            _ => {
+                return Err(format!(
+                "SmlOpenResponse::deserialize: Found {:X?}, expected struct",
+                tl
+            ))
+            }
         }
 
         let codepage = buffer.get_sml_octet_str()?;

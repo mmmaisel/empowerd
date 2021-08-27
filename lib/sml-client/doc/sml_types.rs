@@ -47,7 +47,12 @@ impl SmlTime {
                 }
                 0
             }
-            _ => return Err(format!("Found {:X?}, expected struct", tl)),
+            _ => {
+                return Err(format!(
+                    "SmlTime::deserialize: Found {:X?}, expected struct",
+                    tl
+                ))
+            }
         };
 
         return match ty {
@@ -90,7 +95,10 @@ impl SmlStatus {
             SmlType::UInt(len) => Ok(Some(SmlStatus {
                 status: buffer.get_uint(len),
             })),
-            _ => Err(format!("Found {:X?} expected uint", tl)),
+            _ => Err(format!(
+                "SmlStatus::deserialize: Found {:X?} expected uint",
+                tl
+            )),
         };
     }
 }

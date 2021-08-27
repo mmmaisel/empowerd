@@ -37,7 +37,12 @@ impl SmlCloseResponse {
                     ));
                 }
             }
-            _ => return Err(format!("Found {:X?}, expected struct", tl)),
+            _ => {
+                return Err(format!(
+                "SmlCloseResponse::deserialize: Found {:X?}, expected struct",
+                tl
+            ))
+            }
         }
 
         let signature = buffer.get_sml_octet_str()?;

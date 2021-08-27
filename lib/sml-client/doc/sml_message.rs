@@ -44,7 +44,12 @@ impl SmlBody {
                     return Err(format!("Invalid length {} for SmlBody", len));
                 }
             }
-            _ => return Err(format!("Found {:X?}, expected struct", tl)),
+            _ => {
+                return Err(format!(
+                    "SmlBody::deserialize: Found {:X?}, expected struct",
+                    tl
+                ))
+            }
         }
 
         let id = match buffer.get_sml_u16()? {
@@ -92,7 +97,12 @@ impl SmlMessage {
                     ));
                 }
             }
-            _ => return Err(format!("Found {:X?}, expected struct", tl)),
+            _ => {
+                return Err(format!(
+                    "SmlMessage::deserialize: Found {:X?}, expected struct",
+                    tl
+                ))
+            }
         }
 
         let transaction_id = match buffer.get_sml_octet_str()? {
