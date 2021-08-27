@@ -49,6 +49,8 @@ impl SmlClient {
     const OBIS_CONSUMED: [u8; 6] = [1, 0, 1, 8, 0, 255];
     const OBIS_PRODUCED: [u8; 6] = [1, 0, 2, 8, 0, 255];
 
+    const SML_UNIT_WH: u8 = 0x1E;
+
     pub fn new(
         port_name: String,
         baudrate: u32,
@@ -138,26 +140,28 @@ impl SmlClient {
 
         return values.iter().try_fold((0.0, 0.0), |mut acc, val| {
             if val.obj_name == SmlClient::OBIS_CONSUMED {
-                acc.0 = match val.as_f64() {
-                    Some(x) => x,
-                    None => {
-                        return Err(
-                            "Could not convert SML data to number".to_string()
-                        )
-                    }
-                };
+                acc.0 = Self::val_from_obis(&val)?;
             } else if val.obj_name == SmlClient::OBIS_PRODUCED {
-                acc.1 = match val.as_f64() {
-                    Some(x) => x,
-                    None => {
-                        return Err(
-                            "Could not convert SML data to number".to_string()
-                        )
-                    }
-                };
+                acc.1 = Self::val_from_obis(&val)?;
             }
             Ok(acc)
         });
+    }
+
+    fn val_from_obis(val: &doc::SmlListEntry) -> Result<f64, String> {
+        if let Some(unit) = val.unit {
+            if unit != SmlClient::SML_UNIT_WH {
+                return Err(format!(
+                    "Expected SML Unit 0x1E, found {:X}",
+                    unit
+                ));
+            }
+        }
+
+        return match val.as_f64() {
+            Some(x) => Ok(x),
+            None => return Err("Could not convert SML data to number".into()),
+        };
     }
 
     pub async fn get_consumed_produced(
