@@ -44,8 +44,7 @@ async fn main() -> Result<(), String> {
         Err(e) => panic!("{}", e),
     };
 
-    let mut client =
-        SunspecClient::new(addr.ip().to_string(), addr.port(), None).unwrap();
+    let mut client = SunspecClient::new(addr, None);
     let mut context = client.open().await.unwrap();
     client.introspect(&mut context).await.unwrap();
 

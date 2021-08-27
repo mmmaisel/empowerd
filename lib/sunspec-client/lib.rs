@@ -44,21 +44,12 @@ impl SunspecClient {
     const SUNSPEC_INVERTER_YIELD_SCALE: u16 = 26;
     const SUNSPEC_INVERTER_YIELD_SCALE_SIZE: u16 = 1;
 
-    pub fn new(
-        addr: String,
-        port: u16,
-        logger: Option<Logger>,
-    ) -> Result<Self, String> {
-        let addr: SocketAddr = match format!("{}:{}", addr, port).parse() {
-            Ok(x) => x,
-            Err(e) => return Err(e.to_string()),
-        };
-
-        return Ok(Self {
+    pub fn new(addr: SocketAddr, logger: Option<Logger>) -> Self {
+        return Self {
             addr: addr,
             logger: logger,
             models: BTreeMap::new(),
-        });
+        };
     }
 
     pub async fn open(&self) -> Result<Context, String> {
@@ -216,7 +207,7 @@ impl SunspecClient {
 #[tokio::test]
 async fn test_sunspec_client() {
     let mut client =
-        SunspecClient::new("127.0.0.1".into(), 1502, None).unwrap();
+        SunspecClient::new("127.0.0.1:1502".parse().unwrap(), None).unwrap();
     let mut context = client.open().await.unwrap();
     client.introspect(&mut context).await.unwrap();
 

@@ -20,6 +20,7 @@ use crate::miner_sleep;
 use crate::models::{InfluxObject, InfluxResult, Solar};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
+use std::net::SocketAddr;
 use std::time::{Duration, UNIX_EPOCH};
 use sunspec_client::SunspecClient;
 use tokio::sync::watch;
@@ -42,7 +43,14 @@ impl SunspecSolarMiner {
         address: String,
         logger: Logger,
     ) -> Result<Self, String> {
-        let client = SunspecClient::new(address, 502, Some(logger.clone()))?;
+        let address: SocketAddr = match address.parse() {
+            Ok(x) => x,
+            Err(_) => match format!("{}:502", address).parse() {
+                Ok(x) => x,
+                Err(e) => return Err(e.to_string()),
+            },
+        };
+        let client = SunspecClient::new(address, Some(logger.clone()));
 
         return Ok(Self {
             canceled: canceled,
