@@ -202,7 +202,7 @@ impl Data {
             None => return Err("Unexpected end of data found.".to_string()),
         };
 
-        if let None = tokens.next() {
+        if tokens.next().is_none() {
             return Err("Unexpected end of data found.".to_string());
         }
 
@@ -310,7 +310,7 @@ impl Data {
         };
 
         for _ in 0..8 {
-            if let None = tokens.next() {
+            if tokens.next().is_none() {
                 return Err("Unexpected end of data found.".to_string());
             }
         }

@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 #![forbid(unsafe_code)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
 
 use std::io::Cursor;
 use std::time::Duration;
@@ -140,9 +142,9 @@ impl SmlClient {
 
         return values.iter().try_fold((0.0, 0.0), |mut acc, val| {
             if val.obj_name == SmlClient::OBIS_CONSUMED {
-                acc.0 = Self::val_from_obis(&val)?;
+                acc.0 = Self::val_from_obis(val)?;
             } else if val.obj_name == SmlClient::OBIS_PRODUCED {
-                acc.1 = Self::val_from_obis(&val)?;
+                acc.1 = Self::val_from_obis(val)?;
             }
             Ok(acc)
         });

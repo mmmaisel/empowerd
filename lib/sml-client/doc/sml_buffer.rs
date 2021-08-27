@@ -132,7 +132,7 @@ pub trait SmlBuf: Buf {
         }
 
         let mut len = (tl & 0x0F) as usize;
-        let mut tl2 = tl.clone();
+        let mut tl2 = tl;
         let mut tl_bcount = 1;
         while tl2 & 0x80 != 0 {
             tl2 = self.get_u8();
@@ -216,6 +216,7 @@ pub trait SmlBuf: Buf {
         return Err("No escape sequence found in buffer".into());
     }
 
+    #[allow(clippy::same_item_push)]
     fn copy_get_sml_escape(&mut self) -> Result<(Vec<u8>, u32), String> {
         let mut oct_str: Vec<u8> = Vec::new();
         let mut escape_count = 0;

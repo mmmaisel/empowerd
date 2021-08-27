@@ -15,6 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
+
 use nix::ioctl_none;
 use std::{fs::OpenOptions, os::unix::io::AsRawFd};
 use udev::{Device, Enumerator};
@@ -84,7 +87,7 @@ fn reset_device(mut device: Option<Device>) -> Result<(), String> {
                 let devnode = match dev.devnode() {
                     Some(x) => x,
                     None => {
-                        return Err(format!("USB parent device has no node"))
+                        return Err("USB parent device has no node".into())
                     }
                 };
 

@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 #![forbid(unsafe_code)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
 
 use slog::{trace, Logger};
 use std::collections::BTreeMap;
@@ -172,7 +174,7 @@ impl SunspecClient {
         res: Result<Vec<u16>, String>,
     ) -> Result<i16, String> {
         match res {
-            Err(e) => return Err(e.to_string()),
+            Err(e) => return Err(e),
             Ok(data) => {
                 if data[0] == 0x8000 {
                     return Err(format!(
@@ -190,7 +192,7 @@ impl SunspecClient {
         res: Result<Vec<u16>, String>,
     ) -> Result<u32, String> {
         match res {
-            Err(e) => return Err(e.to_string()),
+            Err(e) => return Err(e),
             Ok(data) => {
                 if data.iter().all(|x| *x == 0xFFFF) {
                     return Err(format!(

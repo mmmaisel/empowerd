@@ -398,12 +398,11 @@ fn parse_command(
                 end: end,
             });
         }
-        _ => return Err("💩️ Unsupported SMA packet received".to_string()),
+        _ => return Err("Unsupported SMA packet received".into()),
     }
-    match packet.validate() {
-        Err(e) => return Err(format!("💩️ Packet validation failed {}", e)),
-        Ok(_) => (),
-    };
+    if let Err(e) = packet.validate() {
+        return Err(format!("Packet validation failed {}", e));
+    }
     return Ok(packet);
 }
 

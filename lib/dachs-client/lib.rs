@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 #![forbid(unsafe_code)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
 
 use lazy_static::lazy_static;
 use regex::Regex;

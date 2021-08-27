@@ -55,21 +55,21 @@ impl Parser {
             '1' => {
                 self.buffer.clear();
                 self.append_msg(message)?;
-                self.last_fragment = '1' as u8;
+                self.last_fragment = b'1';
                 return Ok(ParserResult::CollectingData);
             }
             '2' => {
-                if self.last_fragment != '1' as u8 {
+                if self.last_fragment != b'1' {
                     return Err(ParserError::IgnoredMessage(
                         "Wrong fragment order".to_string(),
                     ));
                 }
                 self.append_msg(message)?;
-                self.last_fragment = '2' as u8;
+                self.last_fragment = b'2';
                 return Ok(ParserResult::CollectingData);
             }
             '3' => {
-                if self.last_fragment != '2' as u8 {
+                if self.last_fragment != b'2' {
                     return Err(ParserError::IgnoredMessage(
                         "Wrong fragment order".to_string(),
                     ));
@@ -89,7 +89,7 @@ impl Parser {
     fn append_msg(&mut self, message: Message) -> Result<(), ParserError> {
         return match message.to_string() {
             Ok(x) => {
-                self.buffer.push_str(&x);
+                self.buffer.push_str(x);
                 Ok(())
             }
             Err(e) => Err(ParserError::Error(e.to_string())),

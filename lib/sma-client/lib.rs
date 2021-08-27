@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 #![forbid(unsafe_code)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
 
 use bytes::{Buf, BytesMut};
 use slog::{trace, Logger};
@@ -79,12 +81,9 @@ impl SmaClient {
 
     // TODO: don't panic
     fn merge_rx_data(&self, data: &mut SmaData, mut new_data: SmaData) {
-        match data {
-            SmaData::None() => {
-                std::mem::swap(data, &mut new_data);
-                return;
-            }
-            _ => (),
+        if let SmaData::None() = data {
+            std::mem::swap(data, &mut new_data);
+            return;
         }
         match (data, new_data) {
             (
@@ -211,7 +210,7 @@ impl SmaClient {
     pub async fn login(
         &mut self,
         socket: &UdpSocket,
-        passwd: &String,
+        passwd: &str,
     ) -> Result<(), String> {
         match &self.logger {
             Some(x) => trace!(x, "Login"),

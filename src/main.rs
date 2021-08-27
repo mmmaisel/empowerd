@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 #![forbid(unsafe_code)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
 
 use daemonize::Daemonize;
 use slog::{debug, error, info, trace, Logger};
@@ -128,7 +130,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         error!(logger, "Canceling miner failed: {}", e);
         return 2;
     }
-    if let Err(_) = miner.run().await {
+    if miner.run().await.is_err() {
         error!(logger, "Error occured during miner shutdown");
     }
     return retval;

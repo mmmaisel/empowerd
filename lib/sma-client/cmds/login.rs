@@ -83,7 +83,7 @@ impl SmaCmdLogin {
         return retval;
     }
 
-    pub fn set_password(&mut self, passwd: &String) {
+    pub fn set_password(&mut self, passwd: &str) {
         let encoded_password: Vec<u8> =
             passwd.bytes().into_iter().map(|x| x + 0x88).collect();
         for (dst, src) in self.password[0..encoded_password.len()]

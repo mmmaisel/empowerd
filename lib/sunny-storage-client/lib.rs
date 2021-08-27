@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 #![forbid(unsafe_code)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
 
 use async_trait::async_trait;
 use slog::{trace, Logger};
@@ -125,26 +127,26 @@ async fn get_in_out_charge(
         client
             .read_input_registers(registers.METERING_WH_IN, 2)
             .await,
-        &logger,
+        logger,
     )?;
     let wh_out = validate_result(
         "METERING_WH_OUT",
         client
             .read_input_registers(registers.METERING_WH_OUT, 2)
             .await,
-        &logger,
+        logger,
     )?;
     let charge = validate_result(
         "BAT_CHA_STT",
         client.read_input_registers(registers.BAT_CHA_STT, 2).await,
-        &logger,
+        logger,
     )?;
     let capacity = validate_result(
         "BAT_CAPAC_RTG_WH",
         client
             .read_input_registers(registers.BAT_CAPAC_RTG_WH, 2)
             .await,
-        &logger,
+        logger,
     )?;
 
     if charge == 0 {
