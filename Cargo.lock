@@ -746,7 +746,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 
 [[package]]
 name = "empowerd"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "bresser6in1-usb",
  "chrono",
@@ -2191,7 +2191,7 @@ checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
 
 [[package]]
 name = "sml-client"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "bytes",
  "crc16",

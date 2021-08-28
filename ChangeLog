@@ -1,3 +1,12 @@
+empowerd (0.3.1) bullseye; urgency=low
+
+  * Fix handling of invalid timestamps in SML parser.
+  * Make ports in Sunspec and SonnyStorage miners configurable.
+  * Make Sunspec modbus ID configurable.
+  * Read Sunspec registers as modbus holding registers.
+
+ -- Max Maisel <max.maisel@posteo.de> Sat, 4 Sep 2021 11:43:00 +0200
+
 empowerd (0.3.0) bullseye; urgency=low
 
   * Add sunspec solar miner.
