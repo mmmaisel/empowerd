@@ -47,6 +47,7 @@ pub struct SunnyIsland {
 pub struct SunspecSolar {
     pub name: String,
     pub address: String,
+    pub modbus_id: Option<u8>,
     pub poll_interval: u64,
 }
 

@@ -40,10 +40,11 @@ impl SunspecSolarMiner {
         name: String,
         interval: Duration,
         address: String,
+        id: Option<u8>,
         logger: Logger,
     ) -> Result<Self, String> {
         let address = parse_socketaddr_with_default(&address, 502)?;
-        let client = SunspecClient::new(address, Some(logger.clone()));
+        let client = SunspecClient::new(address, id, Some(logger.clone()));
 
         return Ok(Self {
             canceled: canceled,

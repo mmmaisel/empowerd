@@ -23,13 +23,17 @@ use slog::{trace, Logger};
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use tokio_modbus::{
-    client::{tcp::connect_slave, Context},
+    client::{
+        tcp::{connect, connect_slave},
+        Context,
+    },
     prelude::Reader,
 };
 
 #[derive(Debug)]
 pub struct SunspecClient {
     addr: SocketAddr,
+    id: Option<u8>,
     logger: Option<Logger>,
     models: BTreeMap<u16, u16>,
 }
@@ -46,18 +50,28 @@ impl SunspecClient {
     const SUNSPEC_INVERTER_YIELD_SCALE: u16 = 26;
     const SUNSPEC_INVERTER_YIELD_SCALE_SIZE: u16 = 1;
 
-    pub fn new(addr: SocketAddr, logger: Option<Logger>) -> Self {
+    pub fn new(
+        addr: SocketAddr,
+        id: Option<u8>,
+        logger: Option<Logger>,
+    ) -> Self {
         return Self {
             addr: addr,
+            id: id,
             logger: logger,
             models: BTreeMap::new(),
         };
     }
 
     pub async fn open(&self) -> Result<Context, String> {
-        return connect_slave(self.addr, 126.into())
-            .await
-            .map_err(|e| format!("Could not connect to device: {}", e));
+        match self.id {
+            Some(id) => connect_slave(self.addr, id.into())
+                .await
+                .map_err(|e| format!("Could not connect to device: {}", e)),
+            None => connect(self.addr)
+                .await
+                .map_err(|e| format!("Could not connect to device: {}", e)),
+        }
     }
 
     pub async fn introspect(
@@ -209,7 +223,7 @@ impl SunspecClient {
 #[tokio::test]
 async fn test_sunspec_client() {
     let mut client =
-        SunspecClient::new("127.0.0.1:1502".parse().unwrap(), None).unwrap();
+        SunspecClient::new("127.0.0.1:1502".parse().unwrap(), Some(126), None);
     let mut context = client.open().await.unwrap();
     client.introspect(&mut context).await.unwrap();
 

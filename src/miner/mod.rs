@@ -148,6 +148,7 @@ impl Miner {
                         settings.name.clone(),
                         Duration::from_secs(settings.poll_interval),
                         settings.address.clone(),
+                        settings.modbus_id,
                         logger.clone(),
                     )?;
                     miners.push(miner_task!(sunspec));

@@ -32,19 +32,32 @@ async fn main() -> Result<(), String> {
                 .help("Target IP address and port")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("id")
+                .short("i")
+                .long("id")
+                .help("Modbus ID for multiplexed diveces")
+                .takes_value(true),
+        )
         .get_matches();
 
-    let addr = match matches.value_of("address") {
-        Some(x) => x,
+    let addr: SocketAddr = match matches.value_of("address") {
+        Some(x) => match x.parse() {
+            Ok(x) => x,
+            Err(e) => panic!("Could not parse address: {}", e),
+        },
         None => panic!("Address must be given"),
     };
 
-    let addr: SocketAddr = match addr.parse() {
-        Ok(x) => x,
-        Err(e) => panic!("{}", e),
+    let id: Option<u8> = match matches.value_of("id") {
+        Some(x) => match x.parse() {
+            Ok(x) => Some(x),
+            Err(e) => panic!("Could not parse ID: {}", e),
+        },
+        None => None,
     };
 
-    let mut client = SunspecClient::new(addr, None);
+    let mut client = SunspecClient::new(addr, id, None);
     let mut context = client.open().await.unwrap();
     client.introspect(&mut context).await.unwrap();
 
