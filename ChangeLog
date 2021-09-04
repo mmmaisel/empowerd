@@ -1,3 +1,9 @@
+empowerd (0.3.2) bullseye; urgency=low
+
+  * Fix Sunny Boy Storage register sizes.
+
+ -- Max Maisel <max.maisel@posteo.de> Sat, 4 Sep 2021 16:13:00 +0200
+
 empowerd (0.3.1) bullseye; urgency=low
 
   * Fix handling of invalid timestamps in SML parser.
