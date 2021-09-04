@@ -46,7 +46,7 @@ macro_rules! impl_client {
         impl SunnyStorageClient for $name {
             async fn get_in_out_charge(
                 &self,
-            ) -> Result<(u32, u32, f64), String> {
+            ) -> Result<(u64, u64, f64), String> {
                 return get_in_out_charge(&self.addr, &self.logger, $registers)
                     .await;
             }
@@ -57,24 +57,24 @@ macro_rules! impl_client {
 #[derive(Debug)]
 #[allow(non_snake_case)]
 struct RegisterMap {
-    BAT_CHA_STT: u16,
-    METERING_WH_IN: u16,
-    METERING_WH_OUT: u16,
-    BAT_CAPAC_RTG_WH: u16,
+    BAT_CHA_STT: (u16, u16),
+    METERING_WH_IN: (u16, u16),
+    METERING_WH_OUT: (u16, u16),
+    BAT_CAPAC_RTG_WH: (u16, u16),
 }
 
 const SUNNY_ISLAND_REGISTERS: RegisterMap = RegisterMap {
-    BAT_CHA_STT: 30845,
-    METERING_WH_IN: 30595,
-    METERING_WH_OUT: 30597,
-    BAT_CAPAC_RTG_WH: 40187,
+    BAT_CHA_STT: (30845, 2),
+    METERING_WH_IN: (30595, 2),
+    METERING_WH_OUT: (30597, 2),
+    BAT_CAPAC_RTG_WH: (40187, 2),
 };
 
 const SUNNY_BOY_STORAGE_REGISTERS: RegisterMap = RegisterMap {
-    BAT_CHA_STT: 30845,
-    METERING_WH_IN: 31397,
-    METERING_WH_OUT: 31401,
-    BAT_CAPAC_RTG_WH: 40187,
+    BAT_CHA_STT: (30845, 2),
+    METERING_WH_IN: (31397, 4),
+    METERING_WH_OUT: (31401, 4),
+    BAT_CAPAC_RTG_WH: (40187, 2),
 };
 
 impl_client!(SunnyIslandClient, SUNNY_ISLAND_REGISTERS);
@@ -82,14 +82,14 @@ impl_client!(SunnyBoyStorageClient, SUNNY_BOY_STORAGE_REGISTERS);
 
 #[async_trait]
 pub trait SunnyStorageClient: Send + Sync {
-    async fn get_in_out_charge(&self) -> Result<(u32, u32, f64), String>;
+    async fn get_in_out_charge(&self) -> Result<(u64, u64, f64), String>;
 }
 
 fn validate_result(
     which: &str,
     res: Result<Vec<u16>, Error>,
     logger: &Option<Logger>,
-) -> Result<u32, String> {
+) -> Result<u64, String> {
     match res {
         Err(e) => return Err(e.to_string()),
         Ok(data) => {
@@ -99,7 +99,14 @@ fn validate_result(
             if data.iter().all(|x| *x == 0xFFFF) {
                 return Err(format!("Received invalid value for {}", which));
             }
-            return Ok((data[0] as u32) * 65536 + (data[1] as u32));
+            if data.len() == 2 {
+                return Ok((data[0] as u64) * 65536 + (data[1] as u64));
+            } else {
+                return Ok((data[0] as u64) * 4294967296
+                    + (data[1] as u64) * 16777216
+                    + (data[2] as u64) * 65536
+                    + (data[3] as u64));
+            }
         }
     };
 }
@@ -108,33 +115,47 @@ async fn get_in_out_charge(
     addr: &SocketAddr,
     logger: &Option<Logger>,
     registers: RegisterMap,
-) -> Result<(u32, u32, f64), String> {
+) -> Result<(u64, u64, f64), String> {
     let mut client = connect_slave(*addr, 3.into())
         .await
         .map_err(|e| format!("Could not connect to sunny storage: {}", e))?;
     let wh_in = validate_result(
         "METERING_WH_IN",
         client
-            .read_input_registers(registers.METERING_WH_IN, 2)
+            .read_input_registers(
+                registers.METERING_WH_IN.0,
+                registers.METERING_WH_IN.1,
+            )
             .await,
         logger,
     )?;
     let wh_out = validate_result(
         "METERING_WH_OUT",
         client
-            .read_input_registers(registers.METERING_WH_OUT, 2)
+            .read_input_registers(
+                registers.METERING_WH_OUT.0,
+                registers.METERING_WH_OUT.1,
+            )
             .await,
         logger,
     )?;
     let charge = validate_result(
         "BAT_CHA_STT",
-        client.read_input_registers(registers.BAT_CHA_STT, 2).await,
+        client
+            .read_input_registers(
+                registers.BAT_CHA_STT.0,
+                registers.BAT_CHA_STT.1,
+            )
+            .await,
         logger,
     )?;
     let capacity = validate_result(
         "BAT_CAPAC_RTG_WH",
         client
-            .read_input_registers(registers.BAT_CAPAC_RTG_WH, 2)
+            .read_input_registers(
+                registers.BAT_CAPAC_RTG_WH.0,
+                registers.BAT_CAPAC_RTG_WH.1,
+            )
             .await,
         logger,
     )?;
@@ -147,7 +168,7 @@ async fn get_in_out_charge(
 }
 
 #[tokio::test]
-async fn test_sunny_island_client() {
+async fn test_sunny_island_client() -> Result<(), ()> {
     let client =
         SunnyIslandClient::new("127.0.0.1:1502".parse().unwrap(), None)
             .unwrap();
@@ -158,4 +179,20 @@ async fn test_sunny_island_client() {
         }
         Err(e) => panic!("get_in_out_charge failed: {}", e),
     }
+    return Ok(());
+}
+
+#[tokio::test]
+async fn test_sunny_boy_client() -> Result<(), ()> {
+    let client =
+        SunnyBoyStorageClient::new("127.0.0.1:1502".parse().unwrap(), None)
+            .unwrap();
+
+    match client.get_in_out_charge().await {
+        Ok((wh_in, wh_out, charge)) => {
+            println!("in: {}, out: {}, charge: {}", wh_in, wh_out, charge);
+        }
+        Err(e) => panic!("get_in_out_charge failed: {}", e),
+    }
+    return Ok(());
 }
