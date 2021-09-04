@@ -79,7 +79,7 @@ impl SunspecClient {
         context: &mut Context,
     ) -> Result<(), String> {
         let mut reg_addr = Self::SUNSPEC_START_ADDR;
-        let model = match context.read_input_registers(reg_addr, 2).await {
+        let model = match context.read_holding_registers(reg_addr, 2).await {
             Ok(x) => x,
             Err(e) => {
                 return Err(format!(
@@ -94,7 +94,7 @@ impl SunspecClient {
 
         reg_addr += 2;
         loop {
-            let header = match context.read_input_registers(reg_addr, 2).await {
+            let header = match context.read_holding_registers(reg_addr, 2).await {
                 Ok(x) => x,
                 Err(e) => {
                     return Err(format!(
@@ -178,7 +178,7 @@ impl SunspecClient {
         };
         let addr = model_base + register;
         return context
-            .read_input_registers(addr, size)
+            .read_holding_registers(addr, size)
             .await
             .map_err(|e| e.to_string());
     }
