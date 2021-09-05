@@ -2,6 +2,8 @@
 
 Empowerd is a Linux daemon which empowers the offline smart home.
 
+Currently, it only supports monitoring of different power sources.
+
 ## Installation
 
 The recommended way to install *empowerd* is to use the Debian package built
