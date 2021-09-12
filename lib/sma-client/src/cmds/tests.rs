@@ -163,9 +163,9 @@ fn deserialize_failed_login() {
         0x88, 0x88, 0x00, 0x00, 0x00, 0x00,
     ]);
     let response = parse_command(&mut input_buffer, &None);
-    let response = match response {
-        Err(e) => (),
-        Ok(x) => panic!("Did not detected error bit"),
+    match response {
+        Err(_e) => (),
+        Ok(_x) => panic!("Did not detected error bit"),
     };
 }
 
@@ -262,8 +262,8 @@ fn reject_random_junk() {
         0xB3, 0x8C, 0x22, 0x19,
     ]);
     let response = parse_command(&mut input_buffer, &None);
-    let response = match response {
-        Err(e) => (),
-        Ok(x) => panic!("Incorrectly recognized junk as valid"),
+    match response {
+        Err(_e) => (),
+        Ok(_x) => panic!("Incorrectly recognized junk as valid"),
     };
 }

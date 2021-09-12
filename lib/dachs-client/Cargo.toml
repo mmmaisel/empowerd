@@ -6,7 +6,7 @@ authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
 
 [lib]
-path = "lib.rs"
+path = "src/lib.rs"
 
 [dependencies]
 lazy_static = ">=1.4.0"

@@ -6,11 +6,7 @@ authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
 
 [lib]
-path = "lib.rs"
-
-[[bin]]
-name = "sunspec-enum"
-path = "sunspec-enum.rs"
+path = "src/lib.rs"
 
 [dependencies]
 clap = "*"

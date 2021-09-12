@@ -6,11 +6,7 @@ authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
 
 [lib]
-path = "lib.rs"
-
-[[bin]]
-name = "battery-cli"
-path = "battery-cli.rs"
+path = "src/lib.rs"
 
 [dependencies]
 async-trait = ">=0.1.51"
