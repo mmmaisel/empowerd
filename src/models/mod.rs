@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use influxdb::{
-    integrations::serde_integration::DatabaseQueryResult, Error,
+    integrations::serde_integration::{DatabaseQueryResult, Series}, Error,
     InfluxDbWriteable, Query, ReadQuery, WriteQuery,
 };
 
@@ -33,8 +33,14 @@ pub use solar::Solar;
 pub use weather::Weather;
 
 pub enum InfluxResult<T> {
-    Some(T),
     None,
+    Some(T),
+    Err(String),
+}
+
+pub enum InfluxSeriesResult<T> {
+    None,
+    Some(Series<T>),
     Err(String),
 }
 
@@ -44,46 +50,65 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
     const FIELDS: &'static str;
 
     fn query_last(measurement: &str) -> ReadQuery {
-        return <dyn Query>::raw_read_query(format!(
+        <dyn Query>::raw_read_query(format!(
             "SELECT time, {} FROM {} ORDER BY DESC LIMIT 1",
             Self::FIELDS,
             measurement,
-        ));
+        ))
     }
 
     fn query_first(measurement: &str) -> ReadQuery {
-        return <dyn Query>::raw_read_query(format!(
+        <dyn Query>::raw_read_query(format!(
             "SELECT time, {} FROM {} ORDER BY ASC LIMIT 1",
             Self::FIELDS,
             measurement,
-        ));
+        ))
+    }
+
+    fn query_where(measurement: &str, query: &str) -> ReadQuery {
+        <dyn Query>::raw_read_query(format!(
+            "SELECT time, {} FROM {} WHERE {} ORDER BY ASC",
+            Self::FIELDS,
+            measurement, 
+            query,
+        ))
     }
 
     fn save_query(self, measurement: &str) -> WriteQuery
     where
         Self: Sized,
     {
-        return self.into_query(measurement);
+        self.into_query(measurement)
+    }
+
+    fn into_series(
+        response: Result<DatabaseQueryResult, Error>,
+    ) -> InfluxSeriesResult<T> {
+        let mut results = match response {
+            Ok(x) => x,
+            Err(e) => return InfluxSeriesResult::Err(e.to_string()),
+        };
+        let mut result = match results.deserialize_next::<T>() {
+            Ok(x) => x,
+            Err(e) => return InfluxSeriesResult::Err(e.to_string()),
+        };
+
+        if result.series.len() > 1 {
+            return InfluxSeriesResult::Err("Received more than one series".into());
+        }
+        return match result.series.pop() {
+            None => InfluxSeriesResult::None,
+            Some(x) => InfluxSeriesResult::Some(x),
+        };
     }
 
     fn into_single(
         response: Result<DatabaseQueryResult, Error>,
     ) -> InfluxResult<T> {
-        let mut results = match response {
-            Ok(x) => x,
-            Err(e) => return InfluxResult::Err(e.to_string()),
-        };
-        let mut result = match results.deserialize_next::<T>() {
-            Ok(x) => x,
-            Err(e) => return InfluxResult::Err(e.to_string()),
-        };
-
-        if result.series.len() > 1 {
-            return InfluxResult::Err("Received more than one series".into());
-        }
-        let mut series = match result.series.pop() {
-            None => return InfluxResult::None,
-            Some(x) => x,
+        let mut series = match Self::into_series(response) {
+            InfluxSeriesResult::None => return InfluxResult::None,
+            InfluxSeriesResult::Some(x) => x,
+            InfluxSeriesResult::Err(e) => return InfluxResult::Err(e),
         };
 
         if series.values.len() > 1 {

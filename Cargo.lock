@@ -772,6 +772,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "empowerd-migrations"
+version = "0.3.2"
+dependencies = [
+ "clap",
+ "empowerd",
+ "influxdb",
+ "tokio",
+]
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"

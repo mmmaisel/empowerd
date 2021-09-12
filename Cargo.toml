@@ -32,8 +32,12 @@ members = [
     "lib/sml-client",
     "lib/sunny-storage-client",
     "lib/sunspec-client",
-    "lib/usb-reset"
+    "lib/usb-reset",
+    "migrations/"
 ]
+
+[lib]
+path = "src/lib.rs"
 
 [dependencies]
 bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }

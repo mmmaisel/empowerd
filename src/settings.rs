@@ -108,7 +108,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    fn load_from_file(filename: String) -> Result<Settings, ConfigError> {
+    pub fn load_from_file(filename: String) -> Result<Settings, ConfigError> {
         let mut config = Config::new();
 
         config.set_default("daemonize", false)?;
