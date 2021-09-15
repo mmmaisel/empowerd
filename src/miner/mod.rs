@@ -207,7 +207,7 @@ impl Miner {
         if miners.is_empty() {
             warn!(logger, "No miners enabled, using dummy");
             let mut dummy = dummy::DummyMiner::new(
-                rx.clone(),
+                rx,
                 "dummy".into(),
                 Duration::from_secs(86400),
                 logger.clone(),

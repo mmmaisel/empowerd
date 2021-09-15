@@ -42,11 +42,14 @@ impl AuthError {
         };
     }
 
-    pub fn to_string(self, logger: &Logger) -> String {
-        if let Some(message) = self.message {
+    pub fn to_string(&self, logger: &Logger) -> String {
+        if let Some(ref message) = self.message {
             error!(logger, "{}", message);
         }
-        return self.user_message.unwrap_or("Internal server error!".into());
+        return match &self.user_message {
+            Some(x) => x.clone(),
+            None => "Internal server error!".into(),
+        };
     }
 }
 
@@ -124,7 +127,7 @@ impl SessionManager {
         return Ok(token);
     }
 
-    fn verify_token(&self, token: &String) -> Result<Session, AuthError> {
+    fn verify_token(&self, token: &str) -> Result<Session, AuthError> {
         return token.verify_with_key(&self.key).map_err(|e| {
             AuthError::new_custom(
                 format!("Could not verify session: {}", e),
@@ -133,7 +136,7 @@ impl SessionManager {
         });
     }
 
-    pub fn verify(&self, token: &String) -> Result<(), AuthError> {
+    pub fn verify(&self, token: &str) -> Result<(), AuthError> {
         let requested_session = self.verify_token(token)?;
 
         match self.sessions.lock() {
@@ -174,7 +177,7 @@ impl SessionManager {
         return Ok(());
     }
 
-    pub fn destroy(&self, token: &String) -> Result<(), AuthError> {
+    pub fn destroy(&self, token: &str) -> Result<(), AuthError> {
         let requested_session = self.verify_token(token)?;
 
         match self.sessions.lock() {
@@ -185,7 +188,7 @@ impl SessionManager {
                     .as_secs();
                 x.retain(|_k, v| v.valid_until > now);
 
-                if let None = x.remove(&requested_session.id) {
+                if x.remove(&requested_session.id).is_none() {
                     return Err(AuthError::new_custom(
                         "Could not find session".into(),
                         "Unauthorized!".into(),

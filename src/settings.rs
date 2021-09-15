@@ -183,8 +183,7 @@ impl Settings {
             None => "/etc/empowerd/empowerd.conf".into(),
         };
 
-        let mut settings =
-            Settings::load_from_file(&cfg_path).map_err(|e| e.to_string())?;
+        let mut settings = Settings::load_from_file(&cfg_path)?;
 
         if settings.webgui.pins.len() != settings.webgui.pin_names.len() {
             return Err("'pins' and 'pin_names' must be of same size!".into());

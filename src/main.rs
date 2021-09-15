@@ -33,10 +33,7 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Method, Response, StatusCode,
 };
-use juniper::{
-    http::{graphiql::graphiql_source, GraphQLRequest},
-    EmptySubscription, RootNode,
-};
+use juniper::{EmptySubscription, RootNode};
 use std::{convert::Infallible, net, process, sync::Arc};
 use tokio::{runtime::Runtime, signal};
 
@@ -58,8 +55,6 @@ use query::*;
 use session_manager::*;
 use valve::*;
 use water_switch::*;
-
-type Schema = RootNode<'static, Query, Mutation, EmptySubscription>;
 
 pub struct Globals {
     logger: Logger,
