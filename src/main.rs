@@ -144,7 +144,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
             return 2;
         }
     };
-    let water_switch = match WaterSwitch::new(vec![], vec![])
+    let water_switch = match WaterSwitch::new("/dev/gpiochip0", vec![], vec![])
     {
         Ok(x) => x,
         Err(e) => {

@@ -1,10 +1,24 @@
-use std::convert::TryInto;
-use std::thread;
-use std::time;
-use sysfs_gpio::{Direction, Pin};
+/******************************************************************************\
+    empowerd - empowers the offline smart home
+    Copyright (C) 2019 - 2021 Max Maisel
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+\******************************************************************************/
+use gpio_cdev::{Chip, LineHandle, LineRequestFlags};
 
 struct Channel {
-    pub pin: Pin,
+    pub pin: LineHandle,
     pub name: String,
 }
 
@@ -12,36 +26,29 @@ pub struct WaterSwitch {
     channels: Vec<Channel>,
 }
 
-impl Drop for WaterSwitch {
-    fn drop(&mut self) {
-        for channel in &self.channels {
-            if let Err(e) = channel.pin.set_direction(Direction::In) {
-                panic!("Failed to uninitialize pin: {}", e)
-            }
-            if let Err(e) = channel.pin.unexport() {
-                panic!("Failed to uninitialize pin: {}", e)
-            }
-        }
-    }
-}
-
 impl WaterSwitch {
     pub fn new(
-        pin_nums: Vec<i64>,
+        gpiodev: &str,
+        pin_nums: Vec<u32>,
         pin_names: Vec<String>,
     ) -> Result<WaterSwitch, String> {
+        let mut chip = Chip::new(gpiodev)
+            .map_err(|e| format!("Could not open {}: {}", gpiodev, e))?;
         let channels = pin_nums
             .into_iter()
             .zip(pin_names.into_iter())
             .map(|(pin_num, pin_name)| {
-                let pin_num = TryInto::<u64>::try_into(pin_num)
-                    .map_err(|e| e.to_string())?;
-                let pin = Pin::new(pin_num);
-                pin.export().map_err(|e| e.to_string())?;
-                thread::sleep(time::Duration::from_millis(100));
-                pin.set_direction(Direction::Out)
-                    .map_err(|e| e.to_string())?;
-                pin.set_value(1).map_err(|e| e.to_string())?;
+                let line = chip.get_line(pin_num).map_err(|e| {
+                    format!("Could not open pin {}: {}", pin_num, e)
+                })?;
+                let pin = line
+                    .request(LineRequestFlags::OUTPUT, 1, &pin_name)
+                    .map_err(|e| {
+                        format!(
+                            "Could not get handle for pin {}: {}",
+                            pin_num, e
+                        )
+                    })?;
                 return Ok(Channel {
                     pin: pin,
                     name: pin_name,
