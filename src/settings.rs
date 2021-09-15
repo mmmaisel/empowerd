@@ -15,18 +15,54 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use getopts::Options;
 use serde::Deserialize;
 use std::env;
 
-use config::{Config, ConfigError, File, FileFormat};
-use getopts::Options;
-
 #[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
 pub struct Database {
     pub url: String,
     pub name: String,
     pub user: String,
     pub password: String,
+}
+
+impl Default for Database {
+    fn default() -> Self {
+        Self {
+            url: "127.0.0.1:8086".into(),
+            name: "empowerd".into(),
+            user: "empowerd".into(),
+            password: "password".into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+pub struct WebGui {
+    pub listen_address: String,
+    pub session_timeout: u64,
+    pub username: String,
+    pub hashed_password: String,
+    pub gpiodev: String,
+    pub pins: Vec<u32>,
+    pub pin_names: Vec<String>,
+}
+
+impl Default for WebGui {
+    fn default() -> Self {
+        Self {
+            listen_address: "0.0.0.0:3001".into(),
+            session_timeout: 300,
+            username: "user".into(),
+            hashed_password: "!".into(),
+            gpiodev: "/dev/gpiochip0".into(),
+            pins: Vec::new(),
+            pin_names: Vec::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -94,6 +130,7 @@ pub enum Source {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub daemonize: bool,
     pub pid_file: String,
@@ -101,42 +138,34 @@ pub struct Settings {
     pub logfile: String,
     pub log_level: u8,
     pub database: Database,
+    pub webgui: WebGui,
 
-/*
-    pub listen_address: String,
-    pub port: u16,
-    pub session_timeout: u64,
-    pub username: String,
-    pub hashed_pw: String,
-    pub pins: Vec<i64>,
-    pub pin_names: Vec<String>,
-*/
     #[serde(rename = "source")]
     pub sources: Vec<Source>,
 }
 
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            daemonize: false,
+            pid_file: "/run/empowerd/pid".into(),
+            wrk_dir: "/".into(),
+            logfile: "/var/log/empowerd.log".into(),
+            log_level: 0,
+            database: Database::default(),
+            webgui: WebGui::default(),
+            sources: Vec::new(),
+        }
+    }
+}
+
 impl Settings {
-    pub fn load_from_file(filename: String) -> Result<Settings, ConfigError> {
-        let mut config = Config::new();
-
-        config.set_default("daemonize", false)?;
-        config.set_default("pid_file", "/run/empowerd/pid")?;
-        config.set_default("wrk_dir", "/")?;
-        config.set_default("logfile", "/var/log/empowerd.log")?;
-        config.set_default("log_level", 0)?;
-/*
-        config.set_default("listen_address", "127.0.0.1")?;
-        config.set_default("port", 3000)?;
-        config.set_default("session_timeout", 300)?;
-        config.set_default("username", "water")?;
-        config.set_default("hashed_pw", "!")?;
-        config.set_default("pins", Vec::<i64>::new())?;
-        config.set_default("pin_names", Vec::<String>::new())?;
-*/
-
-        config.merge(File::with_name(&filename).format(FileFormat::Toml))?;
-
-        return config.try_into();
+    pub fn load_from_file(filename: &str) -> Result<Settings, String> {
+        let toml = std::fs::read_to_string(filename).map_err(|e| {
+            format!("Could not read config file '{}': {}", &filename, e)
+        })?;
+        return toml::from_str(&toml)
+            .map_err(|e| format!("Could not parse config: {}", e));
     }
 
     pub fn load() -> Result<Settings, String> {
@@ -155,13 +184,11 @@ impl Settings {
         };
 
         let mut settings =
-            Settings::load_from_file(cfg_path).map_err(|e| e.to_string())?;
+            Settings::load_from_file(&cfg_path).map_err(|e| e.to_string())?;
 
-/*
-        if settings.pins.len() != settings.pin_names.len() {
+        if settings.webgui.pins.len() != settings.webgui.pin_names.len() {
             return Err("'pins' and 'pin_names' must be of same size!".into());
         }
-*/
 
         if matches.opt_present("d") {
             settings.daemonize = true;

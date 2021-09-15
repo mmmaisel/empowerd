@@ -16,8 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use influxdb::{
-    integrations::serde_integration::{DatabaseQueryResult, Series}, Error,
-    InfluxDbWriteable, Query, ReadQuery, WriteQuery,
+    integrations::serde_integration::{DatabaseQueryResult, Series},
+    Error, InfluxDbWriteable, Query, ReadQuery, WriteQuery,
 };
 
 pub mod battery;
@@ -69,7 +69,7 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
         <dyn Query>::raw_read_query(format!(
             "SELECT time, {} FROM {} WHERE {} ORDER BY ASC",
             Self::FIELDS,
-            measurement, 
+            measurement,
             query,
         ))
     }
@@ -94,7 +94,9 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
         };
 
         if result.series.len() > 1 {
-            return InfluxSeriesResult::Err("Received more than one series".into());
+            return InfluxSeriesResult::Err(
+                "Received more than one series".into(),
+            );
         }
         return match result.series.pop() {
             None => InfluxSeriesResult::None,

@@ -547,18 +547,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "config"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1b9d958c2b1368a663f05538fc1b5975adce1e19f435acceae987aceeeb369"
-dependencies = [
- "lazy_static",
- "nom",
- "serde",
- "toml",
-]
-
-[[package]]
 name = "const_fn"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -731,7 +719,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d126179d86aee4556e54f5f3c6bf6d9884e7cc52cef82f77ee6f90a7747616d"
 dependencies = [
  "async-trait",
- "config 0.10.1",
+ "config",
  "crossbeam-queue",
  "num_cpus",
  "serde",
@@ -798,7 +786,6 @@ dependencies = [
  "base64 0.13.0",
  "bresser6in1-usb",
  "chrono",
- "config 0.11.0",
  "dachs-client",
  "daemonize",
  "futures",
@@ -825,6 +812,7 @@ dependencies = [
  "sunny-storage-client",
  "sunspec-client",
  "tokio",
+ "toml",
  "usb-reset",
 ]
 

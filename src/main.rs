@@ -28,28 +28,17 @@ use sloggers::{
     Build,
 };
 
-use juniper::{
-    http::{
-        graphiql::graphiql_source,
-        GraphQLRequest,
-    },
-    EmptySubscription,
-    RootNode,
-};
-use std::{
-    convert::Infallible,
-    net, process,
-    sync::Arc,
-};
-use tokio::{
-    runtime::Runtime,
-    signal,
-};
 use hyper::{
     server::Server,
+    service::{make_service_fn, service_fn},
     Body, Method, Response, StatusCode,
-    service::{make_service_fn, service_fn}
 };
+use juniper::{
+    http::{graphiql::graphiql_source, GraphQLRequest},
+    EmptySubscription, RootNode,
+};
+use std::{convert::Infallible, net, process, sync::Arc};
+use tokio::{runtime::Runtime, signal};
 
 mod miner;
 mod models;
@@ -137,15 +126,19 @@ fn main() {
 }
 
 async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
-    let session_manager = match SessionManager::new(5/*settings.session_timeout*/) {
-        Ok(x) => x,
-        Err(e) => {
-            error!(logger, "Creating session manager failed: {}", e);
-            return 2;
-        }
-    };
-    let water_switch = match WaterSwitch::new("/dev/gpiochip0", vec![], vec![])
-    {
+    let session_manager =
+        match SessionManager::new(settings.webgui.session_timeout) {
+            Ok(x) => x,
+            Err(e) => {
+                error!(logger, "Creating session manager failed: {}", e);
+                return 2;
+            }
+        };
+    let water_switch = match WaterSwitch::new(
+        &settings.webgui.gpiodev,
+        settings.webgui.pins.clone(),
+        settings.webgui.pin_names.clone(),
+    ) {
         Ok(x) => x,
         Err(e) => {
             error!(logger, "Could not create water switch: {}", e);
@@ -155,29 +148,28 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
 
     let globals = Arc::new(Globals {
         logger: logger.clone(),
-        username: "asdf".into(), /*settings.username*/
-        hashed_pw: "!".into(), /*settings.hashed_pw*/
+        username: settings.webgui.username.clone(),
+        hashed_pw: settings.webgui.hashed_password.clone(),
         session_manager: session_manager,
         water_switch: water_switch,
     });
 
-    //let address = format!("{}:{}", settings.listen_address, settings.port);
-    let address = "127.0.0.1:8080".to_string();
-    let address = match address.parse::<net::SocketAddr>() {
-        Ok(x) => x,
-        Err(_) => {
-            error!(logger, "{} is not an IP address", address);
-            return 2;
-        }
-    };
-
-    // TODO: add graphql API and allow reconfigure settings over it
-    // TODO: integrate graphql API server
+    let address =
+        match settings.webgui.listen_address.parse::<net::SocketAddr>() {
+            Ok(x) => x,
+            Err(_) => {
+                error!(
+                    logger,
+                    "{} is not an IP address", settings.webgui.listen_address
+                );
+                return 2;
+            }
+        };
 
     let root_node = Arc::new(RootNode::new(
         Query {},
         Mutation {},
-        EmptySubscription::<Context>::new()
+        EmptySubscription::<Context>::new(),
     ));
 
     let new_service = make_service_fn(move |_| {
@@ -188,21 +180,27 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
                 let root_node = root_node.clone();
                 let globals = globals.clone();
                 async {
-                    Ok::<_, Infallible>(match (req.method(), req.uri().path()) {
-                        (&Method::GET, "/") => juniper_hyper::graphiql("/graphql", None).await,
-                        (&Method::GET, "/graphql") | (&Method::POST, "/graphql") => {
-                            let context = Arc::new(Context {
-                                globals: globals,
-                                token: "!".into(),
-                            });
-                            juniper_hyper::graphql(root_node, context, req).await
-                        }
-                        _ => {
-                            let mut response = Response::new(Body::empty());
-                            *response.status_mut() = StatusCode::NOT_FOUND;
-                            response
-                        }
-                    })
+                    Ok::<_, Infallible>(
+                        match (req.method(), req.uri().path()) {
+                            (&Method::GET, "/") => {
+                                juniper_hyper::graphiql("/graphql", None).await
+                            }
+                            (&Method::GET, "/graphql")
+                            | (&Method::POST, "/graphql") => {
+                                let context = Arc::new(Context {
+                                    globals: globals,
+                                    token: "!".into(),
+                                });
+                                juniper_hyper::graphql(root_node, context, req)
+                                    .await
+                            }
+                            _ => {
+                                let mut response = Response::new(Body::empty());
+                                *response.status_mut() = StatusCode::NOT_FOUND;
+                                response
+                            }
+                        },
+                    )
                 }
             }))
         }

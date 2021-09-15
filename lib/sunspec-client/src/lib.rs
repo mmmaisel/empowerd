@@ -94,7 +94,8 @@ impl SunspecClient {
 
         reg_addr += 2;
         loop {
-            let header = match context.read_holding_registers(reg_addr, 2).await {
+            let header = match context.read_holding_registers(reg_addr, 2).await
+            {
                 Ok(x) => x,
                 Err(e) => {
                     return Err(format!(

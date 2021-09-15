@@ -18,7 +18,7 @@
 use crate::settings::{Settings, Source};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
-use slog::{debug, error, info, trace, Logger};
+use slog::{debug, error, info, trace, warn, Logger};
 use std::net::SocketAddr;
 use std::time::{Duration, SystemTime};
 use tokio::sync::watch;
@@ -39,6 +39,7 @@ pub enum MinerState {
 
 mod bresser6in1;
 mod dachs_msr_s;
+mod dummy;
 mod sml_meter;
 mod sunny_boy_speedwire;
 mod sunny_storage;
@@ -204,7 +205,14 @@ impl Miner {
         }
 
         if miners.is_empty() {
-            return Err("No miners are enabled".into());
+            warn!(logger, "No miners enabled, using dummy");
+            let mut dummy = dummy::DummyMiner::new(
+                rx.clone(),
+                "dummy".into(),
+                Duration::from_secs(86400),
+                logger.clone(),
+            )?;
+            miners.push(miner_task!(dummy));
         }
 
         return Ok(Miner {

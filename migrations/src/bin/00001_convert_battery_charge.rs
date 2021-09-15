@@ -126,7 +126,8 @@ async fn main() -> () {
             }
             value.charge = value.charge * capacity;
 
-            if let Err(e) = influx.query(&value.save_query(&measurement)).await {
+            if let Err(e) = influx.query(&value.save_query(&measurement)).await
+            {
                 panic!("Save BatteryData failed, {}", e);
             }
         }
