@@ -1,0 +1,17 @@
+[Unit]
+Description=Empowers the offline smart home
+After=multi-user.target network-online.target
+
+[Service]
+Type=forking
+User=empowerd
+RuntimeDirectory=empowerd
+RuntimeDirectoryMode=0750
+PIDFile=/var/run/empowerd/pid
+WorkingDirectory=/
+ExecStart=/bin/empowerd
+ExecStop=/bin/kill -s TERM $MAINPID
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

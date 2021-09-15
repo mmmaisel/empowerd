@@ -1,4 +1,23 @@
+/******************************************************************************\
+    empowerd - empowers the offline smart home
+    Copyright (C) 2019 - 2021 Max Maisel
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+\******************************************************************************/
 #![forbid(unsafe_code)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
 
 use daemonize::Daemonize;
 use slog::{debug, error, info, trace, Logger};
@@ -75,6 +94,18 @@ fn main() {
         }
     };
 
+    if settings.daemonize {
+        let daemon = Daemonize::new()
+            .pid_file(&settings.pid_file)
+            .chown_pid_file(true)
+            .working_directory(&settings.wrk_dir);
+
+        if let Err(e) = daemon.start() {
+            eprintln!("Daemonize failed: {}", e);
+            process::exit(1);
+        }
+    }
+
     let root_logger = if settings.daemonize {
         // TODO: evaluate log level here
         FileLoggerBuilder::new(&settings.logfile)
@@ -90,24 +121,8 @@ fn main() {
     };
     let root_logger = root_logger.unwrap();
 
-    info!(root_logger, "⚡️ Starting stromd");
+    info!(root_logger, "⚡️ Starting empowerd");
     debug!(root_logger, "Settings: {:?}", &settings);
-
-    if settings.daemonize {
-        let daemon = Daemonize::new()
-            .pid_file(&settings.pid_file)
-            .chown_pid_file(true)
-            .working_directory(&settings.wrk_dir);
-
-        match daemon.start() {
-            Ok(_) => info!(root_logger, "Daemonized"),
-            Err(e) => {
-                error!(root_logger, "Daemonize failed: {}", e);
-                drop(root_logger);
-                process::exit(1);
-            }
-        }
-    }
 
     let retval = match Runtime::new() {
         Ok(rt) => rt.block_on(tokio_main(settings, root_logger.clone())),
@@ -231,7 +246,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         error!(logger, "Canceling miner failed: {}", e);
         return 2;
     }
-    if let Err(_) = miner.run().await {
+    if miner.run().await.is_err() {
         error!(logger, "Error occured during miner shutdown");
     }
     return retval;

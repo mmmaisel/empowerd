@@ -1,3 +1,20 @@
+/******************************************************************************\
+    empowerd - empowers the offline smart home
+    Copyright (C) 2019 - 2021 Max Maisel
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+\******************************************************************************/
 use super::InfluxObject;
 use bresser6in1_usb::Data as BresserData;
 use chrono::{DateTime, Utc};
@@ -10,8 +27,8 @@ pub struct Weather {
     pub time: DateTime<Utc>,
     pub temperature_in: f32,
     pub humidity_in: f32,
-    pub temperature_out: f32,
-    pub humidity_out: f32,
+    pub temperature_out: Option<f32>,
+    pub humidity_out: Option<f32>,
     pub rain_day: f32,
     pub rain_actual: f32,
     pub wind_actual: f32,
@@ -20,7 +37,7 @@ pub struct Weather {
     pub baro_sea: f32,
     pub baro_absolute: f32,
     pub uv_index: f32,
-    pub dew_point: f32,
+    pub dew_point: Option<f32>,
     pub temperature_x1: Option<f32>,
     pub humidity_x1: Option<f32>,
     pub temperature_x2: Option<f32>,
@@ -30,15 +47,15 @@ pub struct Weather {
 }
 
 impl Weather {
-    pub fn new(data: BresserData) -> Weather {
-        return Weather {
+    pub fn new(data: BresserData) -> Self {
+        return Self {
             time: DateTime::<Utc>::from(
                 UNIX_EPOCH + Duration::from_secs(data.timestamp as u64),
             ),
             temperature_in: data.temperature_in,
             humidity_in: data.humidity_in as f32,
-            temperature_out: data.temperature_out,
-            humidity_out: data.humidity_out as f32,
+            temperature_out: data.temperature_out.map(|x| x as f32),
+            humidity_out: data.humidity_out.map(|x| x as f32),
             rain_day: data.rain_day,
             rain_actual: data.rain_actual,
             wind_actual: data.wind_actual,
@@ -64,5 +81,4 @@ impl InfluxObject<Weather> for Weather {
         wind_actual, wind_gust, wind_dir, baro_sea, baro_absolute, \
         uv_index, dew_point, temperature_x1, humidity_x1, \
         temperature_x2, humidity_x2, temperature_x3, humidity_x3";
-    const MEASUREMENT: &'static str = "weather";
 }

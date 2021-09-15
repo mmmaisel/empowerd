@@ -1,8 +1,0 @@
-/var/log/stromd/stromd.log {
-  rotate 12
-  daily
-  compress
-  missingok
-  notifempty
-  sharedscripts
-}

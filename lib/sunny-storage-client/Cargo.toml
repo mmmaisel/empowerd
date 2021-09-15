@@ -1,0 +1,16 @@
+[package]
+name = "sunny-storage-client"
+version = "0.2.0"
+license = "AGPL-3.0-or-later"
+authors = ["Max Maisel <max.maisel@posteo.de>"]
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+async-trait = ">=0.1.51"
+clap = "*"
+slog = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
+tokio = { version=">=1.0", features=["full"] }
+tokio-modbus = { version=">=0.5.0", features = ["tcp"], default-features = false }

@@ -1,3 +1,20 @@
+/******************************************************************************\
+    empowerd - empowers the offline smart home
+    Copyright (C) 2019 - 2021 Max Maisel
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+\******************************************************************************/
 use serde::Deserialize;
 use std::env;
 
@@ -13,36 +30,67 @@ pub struct Database {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Battery {
+pub struct SunnyBoyStorage {
+    pub name: String,
     pub address: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Dachs {
+pub struct SunnyIsland {
+    pub name: String,
+    pub address: String,
+    pub poll_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct SunspecSolar {
+    pub name: String,
+    pub address: String,
+    pub modbus_id: Option<u8>,
+    pub poll_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct DachsMsrS {
+    pub name: String,
     pub address: String,
     pub password: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Meter {
+pub struct SmlMeter {
+    pub name: String,
     pub device: String,
     pub baud: u32,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Solar {
-    pub r#type: String,
+pub struct SunnyBoySpeedwire {
+    pub name: String,
     pub address: String,
     pub password: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Weather {
+pub struct Bresser6in1 {
+    pub name: String,
     pub poll_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum Source {
+    SunnyBoyStorage(SunnyBoyStorage),
+    SunnyIsland(SunnyIsland),
+    SunspecSolar(SunspecSolar),
+    DachsMsrS(DachsMsrS),
+    SmlMeter(SmlMeter),
+    SunnyBoySpeedwire(SunnyBoySpeedwire),
+    Bresser6in1(Bresser6in1),
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -54,12 +102,6 @@ pub struct Settings {
     pub log_level: u8,
     pub database: Database,
 
-    pub battery: Option<Battery>,
-    pub dachs: Option<Dachs>,
-    pub meter: Option<Meter>,
-    pub solar: Option<Solar>,
-    pub weather: Option<Weather>,
-
 /*
     pub listen_address: String,
     pub port: u16,
@@ -69,16 +111,18 @@ pub struct Settings {
     pub pins: Vec<i64>,
     pub pin_names: Vec<String>,
 */
+    #[serde(rename = "source")]
+    pub sources: Vec<Source>,
 }
 
 impl Settings {
-    fn load_from_file(filename: String) -> Result<Settings, ConfigError> {
+    pub fn load_from_file(filename: String) -> Result<Settings, ConfigError> {
         let mut config = Config::new();
 
         config.set_default("daemonize", false)?;
-        config.set_default("pid_file", "/run/stromd/pid")?;
+        config.set_default("pid_file", "/run/empowerd/pid")?;
         config.set_default("wrk_dir", "/")?;
-        config.set_default("logfile", "/var/log/stromd.log")?;
+        config.set_default("logfile", "/var/log/empowerd.log")?;
         config.set_default("log_level", 0)?;
 /*
         config.set_default("listen_address", "127.0.0.1")?;
@@ -107,17 +151,12 @@ impl Settings {
 
         let cfg_path = match matches.opt_str("c") {
             Some(x) => x,
-            None => "/etc/stromd/stromd.conf".into(),
+            None => "/etc/empowerd/empowerd.conf".into(),
         };
 
         let mut settings =
             Settings::load_from_file(cfg_path).map_err(|e| e.to_string())?;
 
-        if let Some(settings) = &settings.meter {
-            if settings.poll_interval < 5 {
-                return Err("meter:poll_interval must be >= 5".into());
-            }
-        }
 /*
         if settings.pins.len() != settings.pin_names.len() {
             return Err("'pins' and 'pin_names' must be of same size!".into());

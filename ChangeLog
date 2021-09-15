@@ -1,4 +1,49 @@
-stromd (0.2.0) buster; urgency=low
+empowerd (0.3.2) bullseye; urgency=low
+
+  * Fix Sunny Boy Storage register sizes.
+
+ -- Max Maisel <max.maisel@posteo.de> Sat, 4 Sep 2021 16:13:00 +0200
+
+empowerd (0.3.1) bullseye; urgency=low
+
+  * Fix handling of invalid timestamps in SML parser.
+  * Make ports in Sunspec and SonnyStorage miners configurable.
+  * Make Sunspec modbus ID configurable.
+  * Read Sunspec registers as modbus holding registers.
+
+ -- Max Maisel <max.maisel@posteo.de> Sat, 4 Sep 2021 11:43:00 +0200
+
+empowerd (0.3.0) bullseye; urgency=low
+
+  * Add sunspec solar miner.
+  * Add support for Sunny Boy Storage.
+  * Mine battery states in Wh instead of %.
+
+ -- Max Maisel <max.maisel@posteo.de> Sat, 21 Aug 12:45:20 2021 +0200
+
+empowerd (0.2.3) buster; urgency=low
+
+  * Make configuration file format more flexible.
+  * Adjust some log levels.
+
+ -- Max Maisel <max.maisel@posteo.de> Fri, 23 Jul 2021 17:37:00 +0200
+
+empowerd (0.2.2) buster; urgency=medium
+
+  * Fix permissions of the included udev rules.
+  * Fix logrotate config so that log keep working after rotation.
+  * Handle missing weather station values.
+
+ -- Max Maisel <max.maisel@posteo.de> Fri, 2 Jul 2021 16:43:00 +0200
+
+empowerd (0.2.1) buster; urgency=medium
+
+  * Reset USB devices on failure.
+  * Fix logging in daemon mode.
+
+ -- Max Maisel <max.maisel@posteo.de> Sat, 26 Jun 2021 11:01:26 +0200
+
+empowerd (0.2.0) buster; urgency=low
 
   * Initial Debian package release.
 

@@ -1,21 +1,23 @@
 [package]
-name = "stromd"
-version = "0.2.1"
-license = "AGPL-3+"
-description = "stromd data logger service"
-readme = "README.md"
+name = "empowerd"
+version = "0.3.2"
+license = "AGPL-3.0-or-later"
+description = "empowers the offline smart home"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
+readme = "README.md"
 edition = "2018"
 
 [package.metadata.deb]
 assets = [
-    ["target/release/stromd", "bin/", "755"],
-    ["data/stromd.conf", "etc/stromd/", "600"],
-    ["data/stromd.logrotate", "etc/logrotate.d/", "644"],
+    ["target/release/empowerd", "bin/", "755"],
+    ["data/empowerd.conf", "etc/empowerd/", "600"],
+    ["data/empowerd.logrotate", "etc/logrotate.d/empowerd", "644"],
     ["lib/bresser6in1-usb/bresser6in1.rules", "etc/udev/rules.d/", "644"],
+    ["lib/sml-client/ttyusb-meter.rules", "etc/udev/rules.d/", "644"],
 ]
 conf-files = [
-    "etc/stromd/stromd.conf"
+    "etc/empowerd/empowerd.conf",
+    "etc/logrotate.d/empowerd"
 ]
 changelog = "ChangeLog"
 maintainer-scripts = "scripts/"
@@ -24,19 +26,27 @@ maintainer-scripts = "scripts/"
 
 [workspace]
 members = [
+    "lib/bresser6in1-usb",
     "lib/dachs-client",
     "lib/sma-client",
     "lib/sml-client",
-    "lib/bresser6in1-usb",
-    "lib/battery-client"
+    "lib/sunny-storage-client",
+    "lib/sunspec-client",
+    "lib/usb-reset",
+    "migrations/"
 ]
 
+[lib]
+path = "src/lib.rs"
+
 [dependencies]
+bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
 dachs-client = { version = "*", path = "lib/dachs-client/" }
 sma-client = { version = "*", path = "lib/sma-client/" }
 sml-client = { version = "*", path = "lib/sml-client/" }
-bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
-battery-client = { version = "*", path = "lib/battery-client/" }
+sunny-storage-client = { version = "*", path = "lib/sunny-storage-client/" }
+sunspec-client = { version = "*", path = "lib/sunspec-client/" }
+usb-reset = { version = "*", path = "lib/usb-reset/" }
 
 futures = "*"
 slog = { version=">=2.7", features=["max_level_trace", "release_max_level_debug"] }
@@ -45,8 +55,7 @@ sloggers = { version=">=1.0", default_features=false }
 tokio = { version=">=1.0", features=["full"] }
 
 chrono = "*"
-http-client = "6.2.0" # dependency, pin version because newer one is broken.
-influxdb = { version = ">=0.3.0", features = ["derive", "h1-client", "use-serde"], default-features = false }
+influxdb = { version = "0.4.0", features = ["derive", "h1-client", "use-serde"], default-features = false }
 lazy_static = "*"
 regex = "*"
 reqwest = { version = "*", default-features = false }
@@ -68,6 +77,3 @@ ring = "*"
 base64 = "*"
 rust-argon2 = "*"
 sysfs_gpio = "*"
-
-[patch.crates-io]
-mio-serial = { git = "https://github.com/berkowski/mio-serial.git", branch = "v4.0" }
