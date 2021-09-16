@@ -15,10 +15,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use gpio_cdev::{Chip, LineHandle, LineRequestFlags};
+use gpio_cdev::{Chip, Line, LineHandle, LineRequestFlags};
 
 #[derive(Debug)]
 struct Channel {
+    pub line: Line,
     pub pin: LineHandle,
     pub name: String,
 }
@@ -26,6 +27,18 @@ struct Channel {
 #[derive(Debug)]
 pub struct WaterSwitch {
     channels: Vec<Channel>,
+}
+
+impl Drop for WaterSwitch {
+    fn drop(&mut self) {
+        let lines: Vec<Line> =
+            self.channels.drain(..).map(|c| c.line).collect();
+        for line in lines {
+            if let Err(e) = line.request(LineRequestFlags::INPUT, 0, "") {
+                panic!("Failed to uninitialize pin: {}", e)
+            }
+        }
+    }
 }
 
 impl WaterSwitch {
@@ -52,7 +65,8 @@ impl WaterSwitch {
                         )
                     })?;
                 return Ok(Channel {
-                    pin: pin,
+                    pin,
+                    line,
                     name: pin_name,
                 });
             })
