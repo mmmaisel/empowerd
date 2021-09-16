@@ -184,10 +184,16 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
                             }
                             (&Method::GET, "/graphql")
                             | (&Method::POST, "/graphql") => {
-                                let context = Arc::new(Context {
-                                    globals: globals,
-                                    token: "!".into(),
-                                });
+                                let token =
+                                    match req.headers().get("Authorization") {
+                                        Some(x) => match x.to_str() {
+                                            Ok(y) => y.replace("Bearer ", ""),
+                                            Err(_) => "".into(),
+                                        },
+                                        None => "".into(),
+                                    };
+                                let context =
+                                    Arc::new(Context { globals, token });
                                 juniper_hyper::graphql(root_node, context, req)
                                     .await
                             }
