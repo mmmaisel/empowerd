@@ -65,11 +65,11 @@ async fn main() -> () {
         .get_matches();
 
     let from = match matches.value_of("from").unwrap().parse::<u64>() {
-        Ok(x) => x * 1000_000_000,
+        Ok(x) => x,
         Err(e) => panic!("Could not parse argument 'from' as int: {}", e),
     };
     let to = match matches.value_of("to").unwrap().parse::<u64>() {
-        Ok(x) => x * 1000_000_000,
+        Ok(x) => x,
         Err(e) => panic!("Could not parse argument 'to' as int: {}", e),
     };
     let capacity = match matches.value_of("capacity").unwrap().parse::<f64>() {
@@ -94,7 +94,7 @@ async fn main() -> () {
     .with_auth(&settings.database.user, &settings.database.password);
 
     let mut past = from;
-    for now in (from..to).step_by(86400_000_000_000) {
+    for now in (from..to).step_by(86400) {
         if past == now {
             continue;
         }
@@ -104,7 +104,11 @@ async fn main() -> () {
             influx
                 .json_query(Battery::query_where(
                     measurement,
-                    &format!("time >= {} AND time < {}", past, now),
+                    &format!(
+                        "time >= {} AND time < {}",
+                        past * 1000_000_000,
+                        now * 1000_000_000
+                    ),
                 ))
                 .await,
         ) {
