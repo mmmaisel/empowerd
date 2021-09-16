@@ -20,7 +20,6 @@ use std::process::Command;
 const GUI_DIR: &str = "gui";
 
 fn main() {
-    // TODO: run conditionally when input files have changed
     Command::new("npm")
         .arg("install")
         .current_dir(GUI_DIR)
@@ -32,4 +31,7 @@ fn main() {
         .current_dir(GUI_DIR)
         .status()
         .unwrap();
+
+    println!("cargo:rerun-if-changed=gui/public/");
+    println!("cargo:rerun-if-changed=gui/src/");
 }
