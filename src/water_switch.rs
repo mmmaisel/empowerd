@@ -17,11 +17,13 @@
 \******************************************************************************/
 use gpio_cdev::{Chip, LineHandle, LineRequestFlags};
 
+#[derive(Debug)]
 struct Channel {
     pub pin: LineHandle,
     pub name: String,
 }
 
+#[derive(Debug)]
 pub struct WaterSwitch {
     channels: Vec<Channel>,
 }

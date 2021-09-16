@@ -56,6 +56,7 @@ use session_manager::*;
 use valve::*;
 use water_switch::*;
 
+#[derive(Debug)]
 pub struct Globals {
     logger: Logger,
     username: String,
@@ -64,6 +65,7 @@ pub struct Globals {
     water_switch: WaterSwitch,
 }
 
+#[derive(Debug)]
 pub struct Context {
     globals: Arc<Globals>,
     token: String,

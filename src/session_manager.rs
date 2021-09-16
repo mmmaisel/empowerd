@@ -79,6 +79,7 @@ macro_rules! auth_error(
     };
 );
 
+#[derive(Debug)]
 pub struct SessionManager {
     rand: SystemRandom,
     lifetime: u64,
