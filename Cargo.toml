@@ -10,6 +10,8 @@ edition = "2018"
 [package.metadata.deb]
 assets = [
     ["target/release/empowerd", "bin/", "755"],
+    ["target/release/sunspec-enum", "bin/", "755"],
+    ["target/release/00001_convert_battery_charge", "libexec/empowerd/", "755"],
     ["data/empowerd.conf", "etc/empowerd/", "600"],
     ["data/empowerd.logrotate", "etc/logrotate.d/empowerd", "644"],
     ["lib/bresser6in1-usb/bresser6in1.rules", "etc/udev/rules.d/", "644"],
