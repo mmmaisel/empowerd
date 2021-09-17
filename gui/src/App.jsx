@@ -16,7 +16,7 @@ class App extends Component {
             .replace(/^https?\/\/[^/]+(?::\d+)?\//, "/")
             .replace(/[^/]*$/, "");
 
-        this.items = ["Status", "Config", "Logout"];
+        this.items = ["Status", "Logout"];
         this.api = new WaterApi(location);
         this.state = {
             logged_in: false,
