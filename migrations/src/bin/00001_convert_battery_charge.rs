@@ -22,8 +22,56 @@ use empowerd::{
     models::Battery, settings::Settings, InfluxObject, InfluxSeriesResult,
 };
 
+async fn migrate_batch(
+    influx: &influxdb::Client,
+    measurement: &str,
+    capacity: f64,
+    past: u64,
+    now: u64,
+) {
+    println!("Querying from {} to {}", &past, &now);
+    let series = match Battery::into_series(
+        influx
+            .json_query(Battery::query_where(
+                measurement,
+                &format!(
+                    "time >= {} AND time < {}",
+                    past * 1_000_000_000,
+                    now * 1_000_000_000
+                ),
+            ))
+            .await,
+    ) {
+        InfluxSeriesResult::Some(x) => x,
+        InfluxSeriesResult::None => {
+            println!("Query returned no series");
+            return;
+        }
+        InfluxSeriesResult::Err(e) => panic!("Query failed: {}", e),
+    };
+
+    let mut records = series.values.len();
+    let mut skipped = 0;
+    for mut value in &mut series.values.into_iter() {
+        if value.charge > 1.0 {
+            skipped += 1;
+            records -= 1;
+            continue; // Already migrated
+        }
+        value.charge *= capacity;
+
+        if let Err(e) = influx.query(&value.save_query(measurement)).await {
+            panic!("Save BatteryData failed, {}", e);
+        }
+    }
+    println!("Migrated {} records", records);
+    if skipped != 0 {
+        println!("Skipped {} records", skipped);
+    }
+}
+
 #[tokio::main]
-async fn main() -> () {
+async fn main() {
     let matches = App::new("Empowerd Migration: convert battery charge")
         .version("0.3.2")
         .arg(
@@ -82,7 +130,7 @@ async fn main() -> () {
         .value_of("config")
         .or(Some("/etc/empowerd/empowerd.conf"))
         .unwrap();
-    let settings = match Settings::load_from_file(config_filename.into()) {
+    let settings = match Settings::load_from_file(config_filename) {
         Ok(x) => x,
         Err(e) => panic!("Could not read config file: {}", e),
     };
@@ -94,51 +142,12 @@ async fn main() -> () {
     .with_auth(&settings.database.user, &settings.database.password);
 
     let mut past = from;
-    for now in (from..to).step_by(86400) {
+    for now in (from..=to).step_by(86400) {
         if past == now {
             continue;
         }
-
-        println!("Querying from {} to {}", &past, &now);
-        let series = match Battery::into_series(
-            influx
-                .json_query(Battery::query_where(
-                    measurement,
-                    &format!(
-                        "time >= {} AND time < {}",
-                        past * 1000_000_000,
-                        now * 1000_000_000
-                    ),
-                ))
-                .await,
-        ) {
-            InfluxSeriesResult::Some(x) => x,
-            InfluxSeriesResult::None => {
-                println!("Query returned no series");
-                continue;
-            }
-            InfluxSeriesResult::Err(e) => panic!("Query failed: {}", e),
-        };
-
-        let mut records = series.values.len();
-        let mut skipped = 0;
-        for mut value in &mut series.values.into_iter() {
-            if value.charge > 1.0 {
-                skipped += 1;
-                records -= 1;
-                continue; // Already migrated
-            }
-            value.charge = value.charge * capacity;
-
-            if let Err(e) = influx.query(&value.save_query(&measurement)).await
-            {
-                panic!("Save BatteryData failed, {}", e);
-            }
-        }
-        println!("Migrated {} records", records);
-        if skipped != 0 {
-            println!("Skipped {} records", skipped);
-        }
+        migrate_batch(&influx, measurement, capacity, past, now).await;
         past = now;
     }
+    migrate_batch(&influx, measurement, capacity, past, to).await;
 }
