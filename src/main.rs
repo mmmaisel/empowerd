@@ -124,7 +124,7 @@ fn main() {
 
 async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
     let session_manager =
-        match SessionManager::new(settings.webgui.session_timeout) {
+        match SessionManager::new(settings.graphql.session_timeout) {
             Ok(x) => x,
             Err(e) => {
                 error!(logger, "Creating session manager failed: {}", e);
@@ -132,9 +132,9 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
             }
         };
     let water_switch = match WaterSwitch::new(
-        &settings.webgui.gpiodev,
-        settings.webgui.pins.clone(),
-        settings.webgui.pin_names.clone(),
+        &settings.graphql.gpiodev,
+        settings.graphql.pins.clone(),
+        settings.graphql.pin_names.clone(),
     ) {
         Ok(x) => x,
         Err(e) => {
@@ -145,19 +145,19 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
 
     let globals = Arc::new(Globals {
         logger: logger.clone(),
-        username: settings.webgui.username.clone(),
-        hashed_pw: settings.webgui.hashed_password.clone(),
+        username: settings.graphql.username.clone(),
+        hashed_pw: settings.graphql.hashed_password.clone(),
         session_manager: session_manager,
         water_switch: water_switch,
     });
 
     let address =
-        match settings.webgui.listen_address.parse::<net::SocketAddr>() {
+        match settings.graphql.listen_address.parse::<net::SocketAddr>() {
             Ok(x) => x,
             Err(_) => {
                 error!(
                     logger,
-                    "{} is not an IP address", settings.webgui.listen_address
+                    "{} is not an IP address", settings.graphql.listen_address
                 );
                 return 2;
             }

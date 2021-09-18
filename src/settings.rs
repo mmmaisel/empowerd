@@ -41,7 +41,7 @@ impl Default for Database {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
-pub struct WebGui {
+pub struct GraphQL {
     pub listen_address: String,
     pub session_timeout: u64,
     pub username: String,
@@ -51,7 +51,7 @@ pub struct WebGui {
     pub pin_names: Vec<String>,
 }
 
-impl Default for WebGui {
+impl Default for GraphQL {
     fn default() -> Self {
         Self {
             listen_address: "0.0.0.0:3001".into(),
@@ -138,7 +138,7 @@ pub struct Settings {
     pub logfile: String,
     pub log_level: u8,
     pub database: Database,
-    pub webgui: WebGui,
+    pub graphql: GraphQL,
 
     #[serde(rename = "source")]
     pub sources: Vec<Source>,
@@ -153,7 +153,7 @@ impl Default for Settings {
             logfile: "/var/log/empowerd.log".into(),
             log_level: 0,
             database: Database::default(),
-            webgui: WebGui::default(),
+            graphql: GraphQL::default(),
             sources: Vec::new(),
         }
     }
@@ -185,7 +185,7 @@ impl Settings {
 
         let mut settings = Settings::load_from_file(&cfg_path)?;
 
-        if settings.webgui.pins.len() != settings.webgui.pin_names.len() {
+        if settings.graphql.pins.len() != settings.graphql.pin_names.len() {
             return Err("'pins' and 'pin_names' must be of same size!".into());
         }
 
