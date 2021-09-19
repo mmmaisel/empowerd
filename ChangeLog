@@ -1,3 +1,10 @@
+empowerd (0.4.0) bullseye; urgency=low
+
+  * Add GraphQL API and WebGUI for GPIO relay control.
+  * Add migration utility to convert battery data into 0.3 format.
+
+ -- Max Maisel <max.maisel@posteo.de> Sun, 19 Sep 2021 10:48:00 +0200
+
 empowerd (0.3.2) bullseye; urgency=low
 
   * Fix Sunny Boy Storage register sizes.
