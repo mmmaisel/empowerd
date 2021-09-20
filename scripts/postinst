@@ -1,6 +1,7 @@
 #!/bin/sh
 
-adduser --system empowerd ||:
+adduser --home /run/empowerd --no-create-home --system empowerd ||:
+usermod -a -G dialout empowerd
 usermod -a -G gpio empowerd
 chown empowerd /etc/empowerd/empowerd.conf
 mkdir -p /var/log/empowerd
