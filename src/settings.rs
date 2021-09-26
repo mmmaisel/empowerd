@@ -46,9 +46,6 @@ pub struct GraphQL {
     pub session_timeout: u64,
     pub username: String,
     pub hashed_password: String,
-    pub gpiodev: String,
-    pub pins: Vec<u32>,
-    pub pin_names: Vec<String>,
 }
 
 impl Default for GraphQL {
@@ -58,9 +55,6 @@ impl Default for GraphQL {
             session_timeout: 300,
             username: "user".into(),
             hashed_password: "!".into(),
-            gpiodev: "/dev/gpiochip0".into(),
-            pins: Vec::new(),
-            pin_names: Vec::new(),
         }
     }
 }
@@ -130,6 +124,20 @@ pub enum Source {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct Gpio {
+    pub name: String,
+    pub dev: String,
+    #[serde(rename = "pin_num")]
+    pub num: u32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum Sink {
+    Gpio(Gpio),
+}
+
+#[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
 pub struct Settings {
     pub daemonize: bool,
@@ -142,6 +150,8 @@ pub struct Settings {
 
     #[serde(rename = "source")]
     pub sources: Vec<Source>,
+    #[serde(rename = "sink")]
+    pub sinks: Vec<Sink>,
 }
 
 impl Default for Settings {
@@ -155,6 +165,7 @@ impl Default for Settings {
             database: Database::default(),
             graphql: GraphQL::default(),
             sources: Vec::new(),
+            sinks: Vec::new(),
         }
     }
 }
@@ -184,10 +195,6 @@ impl Settings {
         };
 
         let mut settings = Settings::load_from_file(&cfg_path)?;
-
-        if settings.graphql.pins.len() != settings.graphql.pin_names.len() {
-            return Err("'pins' and 'pin_names' must be of same size!".into());
-        }
 
         if matches.opt_present("d") {
             settings.daemonize = true;

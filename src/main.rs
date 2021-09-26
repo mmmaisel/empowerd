@@ -48,7 +48,7 @@ mod valve;
 mod water_switch;
 
 use miner::Miner;
-use settings::Settings;
+use settings::{Settings, Sink};
 
 use mutation::*;
 use query::*;
@@ -131,11 +131,17 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
                 return 2;
             }
         };
-    let water_switch = match WaterSwitch::new(
-        &settings.graphql.gpiodev,
-        settings.graphql.pins.clone(),
-        settings.graphql.pin_names.clone(),
-    ) {
+
+    let gpios = settings
+        .sinks
+        .clone()
+        .into_iter()
+        .filter_map(|sink| match sink {
+            Sink::Gpio(gpio) => Some(gpio),
+            _ => None,
+        })
+        .collect();
+    let water_switch = match WaterSwitch::new(gpios) {
         Ok(x) => x,
         Err(e) => {
             error!(logger, "Could not create water switch: {}", e);

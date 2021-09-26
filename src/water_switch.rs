@@ -15,6 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use super::settings::Gpio;
 use gpio_cdev::{Chip, Line, LineHandle, LineRequestFlags};
 
 #[derive(Debug)]
@@ -42,32 +43,28 @@ impl Drop for WaterSwitch {
 }
 
 impl WaterSwitch {
-    pub fn new(
-        gpiodev: &str,
-        pin_nums: Vec<u32>,
-        pin_names: Vec<String>,
-    ) -> Result<WaterSwitch, String> {
-        let mut chip = Chip::new(gpiodev)
-            .map_err(|e| format!("Could not open {}: {}", gpiodev, e))?;
-        let channels = pin_nums
+    pub fn new(gpios: Vec<Gpio>) -> Result<WaterSwitch, String> {
+        let channels = gpios
             .into_iter()
-            .zip(pin_names.into_iter())
-            .map(|(pin_num, pin_name)| {
-                let line = chip.get_line(pin_num).map_err(|e| {
-                    format!("Could not open pin {}: {}", pin_num, e)
+            .map(|gpio| {
+                let mut chip = Chip::new(&gpio.dev).map_err(|e| {
+                    format!("Could not open {}: {}", &gpio.dev, e)
+                })?;
+                let line = chip.get_line(gpio.num).map_err(|e| {
+                    format!("Could not open gpio {}: {}", &gpio.num, e)
                 })?;
                 let pin = line
-                    .request(LineRequestFlags::OUTPUT, 1, &pin_name)
+                    .request(LineRequestFlags::OUTPUT, 1, &gpio.name)
                     .map_err(|e| {
                         format!(
-                            "Could not get handle for pin {}: {}",
-                            pin_num, e
+                            "Could not get handle for gpio {}: {}",
+                            &gpio.num, e
                         )
                     })?;
                 return Ok(Channel {
                     pin,
                     line,
-                    name: pin_name,
+                    name: gpio.name,
                 });
             })
             .collect::<Result<Vec<Channel>, String>>()?;
