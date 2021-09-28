@@ -16,6 +16,13 @@ In order to use *empowerd* an *Influx database* is required to store the
 gathered data. For visualization you can use an Influx compatible tool like
 *Grafana*.
 
+## Building
+
+The build process uses cargo as top level build system to build the rust
+components. To build the debian package, the "cargo deb" plugin is required.
+It can be installed with `cargo install cargo-deb`.
+Addtionally, "npm" is required to build the web GUI.
+
 ## Configuration
 
 Set the correct Influx database IP, port, username and password in the
@@ -32,6 +39,18 @@ configure the required options. Common options for all sources are:
 For the individual options of the different source types, the provided example
 config. Usually, these options are IP addresses and ports, passwords or device
 nodes.
+
+### Web-GUI
+
+To use the web GUI you have to configure the listen address a username and an
+argon2 password hash in the *[graphql]* section of the config file.
+Currently, the controlled GPIOs are configured in this sectrion as well.
+
+To access the web GUI you also need a web-server which servers the
+"usr/share/empowerd/www" directory and forwards the "/graphql" URL to the
+empowerd server. An example nginx configuration can be found at
+"data/nginx-site.conf" or "usr/share/doc/empowerd/" after installing the
+Debian package.
 
 ## License
 
