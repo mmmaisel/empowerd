@@ -41,20 +41,19 @@ mod miner;
 mod models;
 mod settings;
 
+mod gpio_switch;
 mod mutation;
 mod query;
 mod session_manager;
-mod valve;
-mod water_switch;
+mod switch;
 
 use miner::Miner;
 use settings::{Settings, Sink};
 
+use gpio_switch::GpioSwitch;
 use mutation::*;
 use query::*;
 use session_manager::*;
-use valve::*;
-use water_switch::*;
 
 #[derive(Debug)]
 pub struct Globals {
@@ -62,7 +61,7 @@ pub struct Globals {
     username: String,
     hashed_pw: String,
     session_manager: SessionManager,
-    water_switch: WaterSwitch,
+    gpio_switch: GpioSwitch,
 }
 
 #[derive(Debug)]
@@ -141,7 +140,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
             _ => None,
         })
         .collect();
-    let water_switch = match WaterSwitch::new(gpios) {
+    let gpio_switch = match GpioSwitch::new(gpios) {
         Ok(x) => x,
         Err(e) => {
             error!(logger, "Could not create water switch: {}", e);
@@ -153,8 +152,8 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         logger: logger.clone(),
         username: settings.graphql.username.clone(),
         hashed_pw: settings.graphql.hashed_password.clone(),
-        session_manager: session_manager,
-        water_switch: water_switch,
+        session_manager,
+        gpio_switch,
     });
 
     let address =

@@ -75,13 +75,13 @@ class WaterApi {
         );
     };
 
-    valves = (on_success, on_error) => {
-        this.query("valves{id,name,open}", on_success, on_error);
+    switches = (on_success, on_error) => {
+        this.query("switches{id,name,open}", on_success, on_error);
     };
 
-    setValve = (id, open, on_success, on_error) => {
+    setSwitch = (id, open, on_success, on_error) => {
         this.mutation(
-            `setValve(valve:{id:${id},open:${!!open}}){open}`,
+            `setSwitch(switch:{id:${id},open:${!!open}}){open}`,
             on_success,
             on_error
         );

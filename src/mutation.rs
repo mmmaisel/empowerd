@@ -18,9 +18,8 @@
 use slog::warn;
 use std::convert::TryInto;
 
+use super::switch::{InputSwitch, Switch};
 use super::Context;
-use super::InputValve;
-use super::Valve;
 
 pub struct Mutation;
 
@@ -61,32 +60,32 @@ impl Mutation {
         };
     }
 
-    /// Open or close a valve.
-    async fn set_valve(
+    /// Open or close a switch.
+    async fn set_switch(
         ctx: &Context,
-        valve: InputValve,
-    ) -> juniper::FieldResult<Valve> {
+        switch: InputSwitch,
+    ) -> juniper::FieldResult<Switch> {
         if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
             return Err(e.to_string(&ctx.globals.logger).into());
         }
 
-        let channel: usize = match valve.id.try_into() {
+        let channel: usize = match switch.id.try_into() {
             Ok(x) => x,
             Err(e) => return Err(e.into()),
         };
 
-        let name = match ctx.globals.water_switch.get_name(channel) {
+        let name = match ctx.globals.gpio_switch.get_name(channel) {
             Ok(x) => x,
             Err(e) => return Err(e.into()),
         };
 
-        if let Err(e) = ctx.globals.water_switch.set_open(channel, valve.open) {
+        if let Err(e) = ctx.globals.gpio_switch.set_open(channel, switch.open) {
             return Err(e.into());
         }
 
-        return Ok(Valve {
-            id: valve.id,
-            open: valve.open,
+        return Ok(Switch {
+            id: switch.id,
+            open: switch.open,
             name: name,
         });
     }

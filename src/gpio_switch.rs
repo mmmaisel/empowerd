@@ -26,11 +26,11 @@ struct Channel {
 }
 
 #[derive(Debug)]
-pub struct WaterSwitch {
+pub struct GpioSwitch {
     channels: Vec<Channel>,
 }
 
-impl Drop for WaterSwitch {
+impl Drop for GpioSwitch {
     fn drop(&mut self) {
         let lines: Vec<Line> =
             self.channels.drain(..).map(|c| c.line).collect();
@@ -42,8 +42,8 @@ impl Drop for WaterSwitch {
     }
 }
 
-impl WaterSwitch {
-    pub fn new(gpios: Vec<Gpio>) -> Result<WaterSwitch, String> {
+impl GpioSwitch {
+    pub fn new(gpios: Vec<Gpio>) -> Result<Self, String> {
         let channels = gpios
             .into_iter()
             .map(|gpio| {
@@ -69,7 +69,7 @@ impl WaterSwitch {
             })
             .collect::<Result<Vec<Channel>, String>>()?;
 
-        return Ok(WaterSwitch { channels: channels });
+        return Ok(Self { channels });
     }
 
     pub fn set_open(&self, channel: usize, open: bool) -> Result<(), String> {
@@ -80,7 +80,7 @@ impl WaterSwitch {
                     Err(e) => return Err(e.to_string()),
                 }
             }
-            None => return Err("Valve index not found".into()),
+            None => return Err("Switch index not found".into()),
         };
     }
 
@@ -95,7 +95,7 @@ impl WaterSwitch {
     pub fn get_name(&self, channel: usize) -> Result<String, String> {
         match self.channels.get(channel) {
             Some(channel) => return Ok(channel.name.clone()),
-            None => return Err("Valve index not found".into()),
+            None => return Err("Switch index not found".into()),
         };
     }
 

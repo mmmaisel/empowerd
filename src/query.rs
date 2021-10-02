@@ -18,15 +18,15 @@
 use juniper::LookAheadMethods;
 use slog::trace;
 
+use super::switch::Switch;
 use super::Context;
-use super::Valve;
 
 pub struct Query;
 
 #[juniper::graphql_object(Context = Context)]
 impl Query {
-    /// Get the current state of the valves.
-    async fn valves(ctx: &Context) -> juniper::FieldResult<Vec<Valve>> {
+    /// Get the current state of the switches.
+    async fn switches(ctx: &Context) -> juniper::FieldResult<Vec<Switch>> {
         if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
             return Err(e.to_string(&ctx.globals.logger).into());
         }
@@ -36,14 +36,14 @@ impl Query {
         let get_name = lookahead.has_child("name");
 
         return if get_open && get_name {
-            trace!(ctx.globals.logger, "Query Valves: get open and name");
-            match ctx.globals.water_switch.get_open() {
+            trace!(ctx.globals.logger, "Query Switches: get open and name");
+            match ctx.globals.gpio_switch.get_open() {
                 Ok(x) => x
                     .iter()
                     .enumerate()
-                    .zip(ctx.globals.water_switch.get_names())
+                    .zip(ctx.globals.gpio_switch.get_names())
                     .map(|((idx, val), name)| {
-                        return Ok(Valve {
+                        return Ok(Switch {
                             id: idx as i32,
                             open: *val,
                             name: name,
@@ -53,13 +53,13 @@ impl Query {
                 Err(e) => Err(e.into()),
             }
         } else if get_open {
-            trace!(ctx.globals.logger, "Query Valves: get open");
-            match ctx.globals.water_switch.get_open() {
+            trace!(ctx.globals.logger, "Query Switches: get open");
+            match ctx.globals.gpio_switch.get_open() {
                 Ok(x) => x
                     .iter()
                     .enumerate()
                     .map(|(idx, val)| {
-                        return Ok(Valve {
+                        return Ok(Switch {
                             id: idx as i32,
                             open: *val,
                             name: "".into(),
@@ -69,14 +69,14 @@ impl Query {
                 Err(e) => Err(e.into()),
             }
         } else {
-            trace!(ctx.globals.logger, "Query Valves: get name");
+            trace!(ctx.globals.logger, "Query Switches: get name");
             ctx.globals
-                .water_switch
+                .gpio_switch
                 .get_names()
                 .into_iter()
                 .enumerate()
                 .map(|(idx, name)| {
-                    return Ok(Valve {
+                    return Ok(Switch {
                         id: idx as i32,
                         open: false,
                         name: name,

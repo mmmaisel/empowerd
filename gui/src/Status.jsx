@@ -7,27 +7,27 @@ class Status extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            valves: [],
+            switches: [],
         };
     }
 
-    onValve = (channel) => {
-        let id = this.state.valves[channel].id;
-        let open = this.state.valves[channel].open;
+    onSwitch = (channel) => {
+        let id = this.state.switches[channel].id;
+        let open = this.state.switches[channel].open;
 
         if (open === true) open = false;
         else open = true;
 
-        this.props.api.setValve(
+        this.props.api.setSwitch(
             id,
             open,
             (response) => {
-                let valves = this.state.valves;
-                valves[channel].open = response.setValve.open;
-                this.setState({ valves: valves });
+                let switches = this.state.switches;
+                switches[channel].open = response.setSwitch.open;
+                this.setState({ switches: switches });
             },
             (error) => {
-                alert("Setting valve failed");
+                alert("Setting switch failed");
                 console.log(error);
             }
         );
@@ -37,9 +37,9 @@ class Status extends Component {
     // TODO: show remaining active time
 
     componentDidMount() {
-        this.props.api.valves(
+        this.props.api.switches(
             (response) => {
-                this.setState({ valves: response.valves });
+                this.setState({ switches: response.switches });
             },
             (error) => {
                 console.log(error);
@@ -52,8 +52,8 @@ class Status extends Component {
         return (
             <div className="mainframe">
                 <WaterSwitch
-                    valves={this.state.valves}
-                    onClick={this.onValve}
+                    valves={this.state.switches}
+                    onClick={this.onSwitch}
                 />
             </div>
         );
