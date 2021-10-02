@@ -79,6 +79,11 @@ impl Mutation {
             Err(e) => return Err(e.into()),
         };
 
+        let icon = match ctx.globals.gpio_switch.get_icon(channel) {
+            Ok(x) => x,
+            Err(e) => return Err(e.into()),
+        };
+
         if let Err(e) = ctx.globals.gpio_switch.set_open(channel, switch.open) {
             return Err(e.into());
         }
@@ -86,7 +91,8 @@ impl Mutation {
         return Ok(Switch {
             id: switch.id,
             open: switch.open,
-            name: name,
+            name,
+            icon,
         });
     }
 }

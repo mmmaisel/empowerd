@@ -42,12 +42,14 @@ impl Query {
                 .into_iter()
                 .map(|idx| {
                     let name = gpio_switch.get_name(idx)?;
+                    let icon = gpio_switch.get_icon(idx)?;
                     let open = gpio_switch.get_open(idx)?;
 
                     return Ok(Switch {
                         id: idx as i32,
                         open,
                         name,
+                        icon,
                     });
                 })
                 .collect()
@@ -58,11 +60,13 @@ impl Query {
                 .into_iter()
                 .map(|idx| {
                     let name = gpio_switch.get_name(idx)?;
+                    let icon = gpio_switch.get_icon(idx)?;
 
                     return Ok(Switch {
                         id: idx as i32,
                         open: false,
                         name,
+                        icon,
                     });
                 })
                 .collect()

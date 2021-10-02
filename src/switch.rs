@@ -24,6 +24,8 @@ pub struct Switch {
     pub open: bool,
     /// Name of the channel.
     pub name: String,
+    /// Icon of the channel.
+    pub icon: String,
 }
 
 #[derive(juniper::GraphQLInputObject)]

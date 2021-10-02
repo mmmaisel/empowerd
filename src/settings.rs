@@ -124,8 +124,23 @@ pub enum Source {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub enum Icon {
+    Valve,
+}
+
+impl std::fmt::Display for Icon {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let name = match self {
+            Icon::Valve => "Valve",
+        };
+        write!(f, "{}", name)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct Gpio {
     pub name: String,
+    pub icon: Icon,
     pub dev: String,
     #[serde(rename = "pin_num")]
     pub num: u32,

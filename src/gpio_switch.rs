@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::settings::Gpio;
+use super::settings::{Gpio, Icon};
 use gpio_cdev::{Chip, Line, LineHandle, LineRequestFlags};
 
 #[derive(Debug)]
@@ -23,6 +23,7 @@ struct Channel {
     pub line: Line,
     pub pin: LineHandle,
     pub name: String,
+    pub icon: Icon,
 }
 
 #[derive(Debug)]
@@ -65,6 +66,7 @@ impl GpioSwitch {
                     pin,
                     line,
                     name: gpio.name,
+                    icon: gpio.icon,
                 });
             })
             .collect::<Result<Vec<Channel>, String>>()?;
@@ -96,6 +98,13 @@ impl GpioSwitch {
     pub fn get_name(&self, channel: usize) -> Result<String, String> {
         match self.channels.get(channel) {
             Some(channel) => return Ok(channel.name.clone()),
+            None => return Err("Switch index not found".into()),
+        };
+    }
+
+    pub fn get_icon(&self, channel: usize) -> Result<String, String> {
+        match self.channels.get(channel) {
+            Some(channel) => return Ok(channel.icon.to_string()),
             None => return Err("Switch index not found".into()),
         };
     }

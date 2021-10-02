@@ -49,10 +49,13 @@ class Status extends Component {
 
     render() {
         // TODO: server time, manual trigger, next event
+        let valves = this.state.switches.filter((x) => {
+            return x["icon"] == "Valve";
+        });
         return (
             <div className="mainframe">
                 <WaterSwitch
-                    valves={this.state.switches}
+                    valves={valves}
                     onClick={this.onSwitch}
                 />
             </div>

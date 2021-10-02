@@ -76,7 +76,7 @@ class WaterApi {
     };
 
     switches = (on_success, on_error) => {
-        this.query("switches{id,name,open}", on_success, on_error);
+        this.query("switches{id,name,icon,open}", on_success, on_error);
     };
 
     setSwitch = (id, open, on_success, on_error) => {
