@@ -33,53 +33,36 @@ impl Query {
 
         let lookahead = executor.look_ahead();
         let get_open = lookahead.has_child("open");
-        let get_name = lookahead.has_child("name");
+        let gpio_switch = &ctx.globals.gpio_switch;
 
-        return if get_open && get_name {
-            trace!(ctx.globals.logger, "Query Switches: get open and name");
-            match ctx.globals.gpio_switch.get_open() {
-                Ok(x) => x
-                    .iter()
-                    .enumerate()
-                    .zip(ctx.globals.gpio_switch.get_names())
-                    .map(|((idx, val), name)| {
-                        return Ok(Switch {
-                            id: idx as i32,
-                            open: *val,
-                            name: name,
-                        });
-                    })
-                    .collect(),
-                Err(e) => Err(e.into()),
-            }
-        } else if get_open {
+        return if get_open {
             trace!(ctx.globals.logger, "Query Switches: get open");
-            match ctx.globals.gpio_switch.get_open() {
-                Ok(x) => x
-                    .iter()
-                    .enumerate()
-                    .map(|(idx, val)| {
-                        return Ok(Switch {
-                            id: idx as i32,
-                            open: *val,
-                            name: "".into(),
-                        });
-                    })
-                    .collect(),
-                Err(e) => Err(e.into()),
-            }
-        } else {
-            trace!(ctx.globals.logger, "Query Switches: get name");
-            ctx.globals
-                .gpio_switch
-                .get_names()
+            gpio_switch
+                .get_ids()
                 .into_iter()
-                .enumerate()
-                .map(|(idx, name)| {
+                .map(|idx| {
+                    let name = gpio_switch.get_name(idx)?;
+                    let open = gpio_switch.get_open(idx)?;
+
+                    return Ok(Switch {
+                        id: idx as i32,
+                        open,
+                        name,
+                    });
+                })
+                .collect()
+        } else {
+            trace!(ctx.globals.logger, "Query Switches: get basic");
+            gpio_switch
+                .get_ids()
+                .into_iter()
+                .map(|idx| {
+                    let name = gpio_switch.get_name(idx)?;
+
                     return Ok(Switch {
                         id: idx as i32,
                         open: false,
-                        name: name,
+                        name,
                     });
                 })
                 .collect()

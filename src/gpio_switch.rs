@@ -84,11 +84,12 @@ impl GpioSwitch {
         };
     }
 
-    pub fn get_names(&self) -> Vec<String> {
+    pub fn get_ids(&self) -> Vec<usize> {
         return self
             .channels
             .iter()
-            .map(|channel| channel.name.clone())
+            .enumerate()
+            .map(|(idx, _channel)| idx)
             .collect();
     }
 
@@ -99,16 +100,13 @@ impl GpioSwitch {
         };
     }
 
-    pub fn get_open(&self) -> Result<Vec<bool>, String> {
-        return self
-            .channels
-            .iter()
-            .map(|channel| {
-                return match channel.pin.get_value() {
-                    Ok(x) => Ok(x == 0),
-                    Err(e) => Err(e.to_string()),
-                };
-            })
-            .collect();
+    pub fn get_open(&self, channel: usize) -> Result<bool, String> {
+        match self.channels.get(channel) {
+            Some(channel) => match channel.pin.get_value() {
+                Ok(x) => Ok(x == 0),
+                Err(e) => Err(e.to_string()),
+            },
+            None => return Err("Switch index not found".into()),
+        }
     }
 }
