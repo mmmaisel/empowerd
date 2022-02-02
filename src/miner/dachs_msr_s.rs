@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -56,23 +56,40 @@ impl DachsMsrSMiner {
     pub async fn mine(&mut self) -> MinerResult {
         let now = miner_sleep!(self);
 
-        let dachs_runtime = match self.dachs_client.get_runtime().await {
-            Ok(runtime) => {
-                trace!(self.logger, "Runtime: {} s", runtime);
-                runtime
-            }
+        let (dachs_runtime, dachs_energy) = match tokio::time::timeout(
+            std::time::Duration::from_secs(15),
+            async {
+                let runtime = match self.dachs_client.get_runtime().await {
+                    Ok(runtime) => {
+                        trace!(self.logger, "Runtime: {} s", runtime);
+                        runtime
+                    }
+                    Err(err) => {
+                        error!(self.logger, "{}", err);
+                        return Err(());
+                    }
+                };
+                let energy = match self.dachs_client.get_total_energy().await {
+                    Ok(energy) => {
+                        trace!(self.logger, "Energy: {} kWh", energy);
+                        energy
+                    }
+                    Err(err) => {
+                        error!(self.logger, "{}", err);
+                        return Err(());
+                    }
+                };
+                Ok((runtime, energy))
+            },
+        )
+        .await
+        {
+            Ok(result) => match result {
+                Ok((runtime, energy)) => (runtime, energy),
+                Err(_) => return MinerResult::Running,
+            },
             Err(err) => {
-                error!(self.logger, "{}", err);
-                return MinerResult::Running;
-            }
-        };
-        let dachs_energy = match self.dachs_client.get_total_energy().await {
-            Ok(energy) => {
-                trace!(self.logger, "Energy: {} kWh", energy);
-                energy
-            }
-            Err(err) => {
-                error!(self.logger, "{}", err);
+                error!(self.logger, "Query Dachs data timed out: {}", err);
                 return MinerResult::Running;
             }
         };
