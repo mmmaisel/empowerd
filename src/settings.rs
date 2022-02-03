@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -90,6 +90,13 @@ pub struct DachsMsrS {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct KeContact {
+    pub name: String,
+    pub address: String,
+    pub poll_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct SmlMeter {
     pub name: String,
     pub device: String,
@@ -118,6 +125,7 @@ pub enum Source {
     SunnyIsland(SunnyIsland),
     SunspecSolar(SunspecSolar),
     DachsMsrS(DachsMsrS),
+    KeContact(KeContact),
     SmlMeter(SmlMeter),
     SunnyBoySpeedwire(SunnyBoySpeedwire),
     Bresser6in1(Bresser6in1),

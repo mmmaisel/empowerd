@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -40,6 +40,7 @@ pub enum MinerState {
 mod bresser6in1;
 mod dachs_msr_s;
 mod dummy;
+mod kecontact;
 mod sml_meter;
 mod sunny_boy_speedwire;
 mod sunny_storage;
@@ -165,6 +166,17 @@ impl Miner {
                         logger.clone(),
                     )?;
                     miners.push(miner_task!(dachs));
+                }
+                Source::KeContact(settings) => {
+                    let mut kecontact = kecontact::KeContactMiner::new(
+                        rx.clone(),
+                        influx_client.clone(),
+                        settings.name.clone(),
+                        Duration::from_secs(settings.poll_interval),
+                        settings.address.clone(),
+                        logger.clone(),
+                    )?;
+                    miners.push(miner_task!(kecontact));
                 }
                 Source::SmlMeter(settings) => {
                     let mut meter = sml_meter::SmlMeterMiner::new(
