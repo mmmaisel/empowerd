@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::{parse_socketaddr_with_default, Miner, MinerResult, MinerState};
 use crate::miner_sleep;
-use crate::models::{InfluxObject, InfluxResult, Solar};
+use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
@@ -86,8 +86,10 @@ impl SunspecSolarMiner {
         };
         trace!(self.logger, "Total energy is {}", &energy);
 
-        let power = match Solar::into_single(
-            self.influx.json_query(Solar::query_last(&self.name)).await,
+        let power = match SimpleMeter::into_single(
+            self.influx
+                .json_query(SimpleMeter::query_last(&self.name))
+                .await,
         ) {
             InfluxResult::Some(last_record) => {
                 trace!(self.logger, "Read {:?} from database", last_record);
@@ -104,14 +106,14 @@ impl SunspecSolarMiner {
             }
         };
 
-        let solar = Solar::new(
+        let solar = SimpleMeter::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
             energy,
             power,
         );
         trace!(self.logger, "Writing {:?} to database", &solar);
         if let Err(e) = self.influx.query(&solar.save_query(&self.name)).await {
-            error!(self.logger, "Save SolarData failed, {}", e);
+            error!(self.logger, "Save solar data failed, {}", e);
         }
         return MinerResult::Running;
     }

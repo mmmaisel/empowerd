@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,29 +21,26 @@ use influxdb::InfluxDbWriteable;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, InfluxDbWriteable)]
-pub struct Meter {
+pub struct SimpleMeter {
     pub time: DateTime<Utc>,
-    pub energy_consumed: f64,
-    pub energy_produced: f64,
+    pub energy: f64,
     pub power: f64,
 }
 
-impl Meter {
+impl SimpleMeter {
     pub fn new(
         time: DateTime<Utc>,
-        energy_consumed: f64,
-        energy_produced: f64,
+        energy: f64,
         power: f64, // TODO: remove, use derivative query
     ) -> Self {
         return Self {
             time: time,
-            energy_consumed: energy_consumed,
-            energy_produced: energy_produced,
+            energy: energy,
             power: power,
         };
     }
 }
 
-impl InfluxObject<Meter> for Meter {
-    const FIELDS: &'static str = "energy_consumed, energy_produced, power";
+impl InfluxObject<SimpleMeter> for SimpleMeter {
+    const FIELDS: &'static str = "energy, power";
 }

@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::{parse_socketaddr_with_default, Miner, MinerResult, MinerState};
 use crate::miner_sleep;
-use crate::models::{InfluxObject, InfluxResult, Solar};
+use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
 use chrono::{DateTime, Utc};
 use kecontact_client::KeContactClient;
 use slog::{error, trace, Logger};
@@ -87,8 +87,10 @@ impl KeContactMiner {
 
         let energy = (report.e_total as f64) / 10.0;
 
-        let power = match Solar::into_single(
-            self.influx.json_query(Solar::query_last(&self.name)).await,
+        let power = match SimpleMeter::into_single(
+            self.influx
+                .json_query(SimpleMeter::query_last(&self.name))
+                .await,
         ) {
             InfluxResult::Some(last_record) => {
                 trace!(self.logger, "Read {:?} from database", last_record);
@@ -105,7 +107,7 @@ impl KeContactMiner {
             }
         };
 
-        let record = Solar::new(
+        let record = SimpleMeter::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
             energy,
             power,

@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::{Miner, MinerResult, MinerState};
 use crate::miner_sleep;
-use crate::models::{InfluxObject, InfluxResult, Solar};
+use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, Logger};
 use sma_client::{SmaClient, TimestampedInt};
@@ -70,12 +70,14 @@ impl SunnyBoySpeedwireMiner {
     pub async fn mine(&mut self) -> MinerResult {
         let now = miner_sleep!(self);
 
-        let last_record = match Solar::into_single(
-            self.influx.json_query(Solar::query_last(&self.name)).await,
+        let last_record = match SimpleMeter::into_single(
+            self.influx
+                .json_query(SimpleMeter::query_last(&self.name))
+                .await,
         ) {
             InfluxResult::Some(x) => x,
             InfluxResult::None => {
-                Solar::new(DateTime::<Utc>::from(UNIX_EPOCH), 0.0, 0.0)
+                SimpleMeter::new(DateTime::<Utc>::from(UNIX_EPOCH), 0.0, 0.0)
             }
             InfluxResult::Err(e) => {
                 error!(
@@ -184,7 +186,7 @@ impl SunnyBoySpeedwireMiner {
                     / (((point.timestamp as i64) - last_timestamp) as f64)
             };
 
-            let solar = Solar::new(
+            let solar = SimpleMeter::new(
                 DateTime::<Utc>::from(
                     UNIX_EPOCH + Duration::from_secs(point.timestamp as u64),
                 ),
@@ -197,7 +199,7 @@ impl SunnyBoySpeedwireMiner {
             if let Err(e) =
                 self.influx.query(&solar.save_query(&self.name)).await
             {
-                error!(self.logger, "Save SolarData failed, {}", e);
+                error!(self.logger, "Save solar data failed, {}", e);
                 return MinerResult::Running;
             }
         }

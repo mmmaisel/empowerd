@@ -21,26 +21,29 @@ use influxdb::InfluxDbWriteable;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, InfluxDbWriteable)]
-pub struct Solar {
+pub struct BidirectionalMeter {
     pub time: DateTime<Utc>,
-    pub energy: f64,
+    pub energy_consumed: f64,
+    pub energy_produced: f64,
     pub power: f64,
 }
 
-impl Solar {
+impl BidirectionalMeter {
     pub fn new(
         time: DateTime<Utc>,
-        energy: f64,
+        energy_consumed: f64,
+        energy_produced: f64,
         power: f64, // TODO: remove, use derivative query
     ) -> Self {
         return Self {
             time: time,
-            energy: energy,
+            energy_consumed: energy_consumed,
+            energy_produced: energy_produced,
             power: power,
         };
     }
 }
 
-impl InfluxObject<Solar> for Solar {
-    const FIELDS: &'static str = "energy, power";
+impl InfluxObject<BidirectionalMeter> for BidirectionalMeter {
+    const FIELDS: &'static str = "energy_consumed, energy_produced, power";
 }

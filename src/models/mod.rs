@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,15 +21,15 @@ use influxdb::{
 };
 
 pub mod battery;
+pub mod bidirectional_meter;
 pub mod generator;
-pub mod meter;
-pub mod solar;
+pub mod simple_meter;
 pub mod weather;
 
 pub use battery::Battery;
+pub use bidirectional_meter::BidirectionalMeter;
 pub use generator::Generator;
-pub use meter::Meter;
-pub use solar::Solar;
+pub use simple_meter::SimpleMeter;
 pub use weather::Weather;
 
 pub enum InfluxResult<T> {

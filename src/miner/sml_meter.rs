@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::{Miner, MinerResult, MinerState};
 use crate::miner_sleep;
-use crate::models::{InfluxObject, InfluxResult, Meter};
+use crate::models::{BidirectionalMeter, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, warn, Logger};
 use sml_client::SmlClient;
@@ -107,8 +107,10 @@ impl SmlMeterMiner {
             }
         };
 
-        let power = match Meter::into_single(
-            self.influx.json_query(Meter::query_last(&self.name)).await,
+        let power = match BidirectionalMeter::into_single(
+            self.influx
+                .json_query(BidirectionalMeter::query_last(&self.name))
+                .await,
         ) {
             InfluxResult::Some(last_record) => {
                 trace!(self.logger, "Read {:?} from database", last_record);
@@ -128,15 +130,16 @@ impl SmlMeterMiner {
             }
         };
 
-        let meter = Meter::new(
+        let record = BidirectionalMeter::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
             consumed,
             produced,
             power,
         );
-        trace!(self.logger, "Writing {:?} to database", &meter);
-        if let Err(e) = self.influx.query(&meter.save_query(&self.name)).await {
-            error!(self.logger, "Save MeterData failed, {}", e);
+        trace!(self.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
+        {
+            error!(self.logger, "Save SML meter data failed, {}", e);
         }
         return MinerResult::Running;
     }
