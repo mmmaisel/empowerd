@@ -1,3 +1,10 @@
+empowerd (0.4.1) bullseye; urgency=low
+
+  * Refactor GPIO handling into new "sink" concept.
+  * Add KeContact data source.
+
+ -- Max Maisel <max.maisel@posteo.de> Fri, 4 Feb 2022 13:13:00 +0100
+
 empowerd (0.4.0) bullseye; urgency=low
 
   * Add GraphQL API and WebGUI for GPIO relay control.
