@@ -40,18 +40,18 @@ use tokio::{runtime::Runtime, signal};
 mod graphql;
 mod models;
 mod settings;
+mod sinks;
 mod sources;
 
-mod gpio_switch;
 mod session_manager;
 
 use settings::{Settings, Sink};
 use sources::Sources;
 
-use gpio_switch::GpioSwitch;
 use graphql::mutation::Mutation;
 use graphql::query::Query;
 use session_manager::SessionManager;
+use sinks::gpio_switch::GpioSwitch;
 
 #[derive(Debug)]
 pub struct Globals {
