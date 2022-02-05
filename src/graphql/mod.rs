@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,24 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-#[derive(juniper::GraphQLObject)]
-/// Reads a physical IO channel.
-pub struct Switch {
-    /// References the channel.
-    pub id: i32,
-    /// Currently open or closed.
-    pub open: bool,
-    /// Name of the channel.
-    pub name: String,
-    /// Icon of the channel.
-    pub icon: String,
-}
 
-#[derive(juniper::GraphQLInputObject)]
-/// Controls a physical IO channel.
-pub struct InputSwitch {
-    /// References the channel.
-    pub id: i32,
-    /// Should be opened or closed.
-    pub open: bool,
-}
+pub mod mutation;
+pub mod query;
+pub mod switch;

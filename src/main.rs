@@ -37,23 +37,21 @@ use juniper::{EmptySubscription, RootNode};
 use std::{convert::Infallible, net, process, sync::Arc};
 use tokio::{runtime::Runtime, signal};
 
+mod graphql;
 mod models;
 mod settings;
 mod sources;
 
 mod gpio_switch;
-mod mutation;
-mod query;
 mod session_manager;
-mod switch;
 
 use settings::{Settings, Sink};
 use sources::Sources;
 
 use gpio_switch::GpioSwitch;
-use mutation::*;
-use query::*;
-use session_manager::*;
+use graphql::mutation::Mutation;
+use graphql::query::Query;
+use session_manager::SessionManager;
 
 #[derive(Debug)]
 pub struct Globals {

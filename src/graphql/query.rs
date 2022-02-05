@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,7 @@ use juniper::LookAheadMethods;
 use slog::trace;
 
 use super::switch::Switch;
-use super::Context;
+use crate::Context;
 
 pub struct Query;
 
