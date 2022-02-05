@@ -15,8 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{Miner, MinerResult, MinerState};
-use crate::miner_sleep;
+use super::{PollResult, PollState, Sources};
+use crate::interval_sleep;
 use crate::models::{Generator, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
@@ -24,8 +24,8 @@ use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
-pub struct DachsMsrSMiner {
-    canceled: watch::Receiver<MinerState>,
+pub struct DachsMsrSSource {
+    canceled: watch::Receiver<PollState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -33,9 +33,9 @@ pub struct DachsMsrSMiner {
     dachs_client: DachsClient,
 }
 
-impl DachsMsrSMiner {
+impl DachsMsrSSource {
     pub fn new(
-        canceled: watch::Receiver<MinerState>,
+        canceled: watch::Receiver<PollState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -53,8 +53,8 @@ impl DachsMsrSMiner {
         });
     }
 
-    pub async fn mine(&mut self) -> MinerResult {
-        let now = miner_sleep!(self);
+    pub async fn poll(&mut self) -> PollResult {
+        let now = interval_sleep!(self);
 
         let (dachs_runtime, dachs_energy) = match tokio::time::timeout(
             std::time::Duration::from_secs(15),
@@ -86,11 +86,11 @@ impl DachsMsrSMiner {
         {
             Ok(result) => match result {
                 Ok((runtime, energy)) => (runtime, energy),
-                Err(_) => return MinerResult::Running,
+                Err(_) => return PollResult::Running,
             },
             Err(err) => {
                 error!(self.logger, "Query Dachs data timed out: {}", err);
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
 
@@ -113,21 +113,22 @@ impl DachsMsrSMiner {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
 
-        let dachs = Generator::new(
+        let record = Generator::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
             dachs_energy.into(),
             power,
             dachs_runtime.into(),
         );
 
-        trace!(self.logger, "Writing {:?} to database", &dachs);
-        if let Err(e) = self.influx.query(&dachs.save_query(&self.name)).await {
-            error!(self.logger, "Save DachsData failed, {}", e);
+        trace!(self.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
+        {
+            error!(self.logger, "Save generator data failed, {}", e);
         }
-        return MinerResult::Running;
+        return PollResult::Running;
     }
 }

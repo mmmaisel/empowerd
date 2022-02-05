@@ -15,8 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{Miner, MinerResult, MinerState};
-use crate::miner_sleep;
+use super::{PollResult, PollState, Sources};
+use crate::interval_sleep;
 use crate::models::{BidirectionalMeter, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, warn, Logger};
@@ -24,8 +24,8 @@ use sml_client::SmlClient;
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
-pub struct SmlMeterMiner {
-    canceled: watch::Receiver<MinerState>,
+pub struct SmlMeterSource {
+    canceled: watch::Receiver<PollState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -34,9 +34,9 @@ pub struct SmlMeterMiner {
     meter_device: String,
 }
 
-impl SmlMeterMiner {
+impl SmlMeterSource {
     pub fn new(
-        canceled: watch::Receiver<MinerState>,
+        canceled: watch::Receiver<PollState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -45,7 +45,7 @@ impl SmlMeterMiner {
         logger: Logger,
     ) -> Result<Self, String> {
         if interval < Duration::from_secs(5) {
-            return Err("SmlMeterMiner:poll_interval must be >= 5".into());
+            return Err("SmlMeterSource:poll_interval must be >= 5".into());
         }
         return Ok(Self {
             canceled: canceled,
@@ -62,8 +62,8 @@ impl SmlMeterMiner {
         });
     }
 
-    pub async fn mine(&mut self) -> MinerResult {
-        let now = miner_sleep!(self);
+    pub async fn poll(&mut self) -> PollResult {
+        let now = interval_sleep!(self);
 
         let mut meter_data = self.sml_client.get_consumed_produced().await;
         for i in 1..4u8 {
@@ -103,7 +103,7 @@ impl SmlMeterMiner {
                     self.logger,
                     "Get electric meter data failed, {}, giving up!", e
                 );
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
 
@@ -126,7 +126,7 @@ impl SmlMeterMiner {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
 
@@ -139,8 +139,8 @@ impl SmlMeterMiner {
         trace!(self.logger, "Writing {:?} to database", &record);
         if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
         {
-            error!(self.logger, "Save SML meter data failed, {}", e);
+            error!(self.logger, "Save bidirectional meter data failed, {}", e);
         }
-        return MinerResult::Running;
+        return PollResult::Running;
     }
 }

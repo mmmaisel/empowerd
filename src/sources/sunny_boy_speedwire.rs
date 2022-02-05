@@ -15,8 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{Miner, MinerResult, MinerState};
-use crate::miner_sleep;
+use super::{PollResult, PollState, Sources};
+use crate::interval_sleep;
 use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, Logger};
@@ -25,8 +25,8 @@ use std::net::SocketAddr;
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
-pub struct SunnyBoySpeedwireMiner {
-    canceled: watch::Receiver<MinerState>,
+pub struct SunnyBoySpeedwireSource {
+    canceled: watch::Receiver<PollState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -36,9 +36,9 @@ pub struct SunnyBoySpeedwireMiner {
     sma_addr: SocketAddr,
 }
 
-impl SunnyBoySpeedwireMiner {
+impl SunnyBoySpeedwireSource {
     pub fn new(
-        canceled: watch::Receiver<MinerState>,
+        canceled: watch::Receiver<PollState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -67,8 +67,8 @@ impl SunnyBoySpeedwireMiner {
     }
 
     // XXX: this function is much too long
-    pub async fn mine(&mut self) -> MinerResult {
-        let now = miner_sleep!(self);
+    pub async fn poll(&mut self) -> PollResult {
+        let now = interval_sleep!(self);
 
         let last_record = match SimpleMeter::into_single(
             self.influx
@@ -84,21 +84,21 @@ impl SunnyBoySpeedwireMiner {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
         let session = match self.sma_client.open().await {
             Ok(x) => x,
             Err(e) => {
                 error!(self.logger, "Could not open SMA Client session: {}", e);
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
         let identity =
             match self.sma_client.identify(&session, self.sma_addr).await {
                 Err(e) => {
                     error!(self.logger, "Could not identify SMA device, {}", e);
-                    return MinerResult::Running;
+                    return PollResult::Running;
                 }
                 Ok(x) => x,
             };
@@ -119,11 +119,11 @@ impl SunnyBoySpeedwireMiner {
 
         if let Err(e) = self.sma_client.logout(&session).await {
             error!(self.logger, "Logout failed: {}", e);
-            return MinerResult::Running;
+            return PollResult::Running;
         }
         if let Err(e) = self.sma_client.login(&session, &self.sma_pw).await {
             error!(self.logger, "Login failed: {}", e);
-            return MinerResult::Running;
+            return PollResult::Running;
         }
 
         trace!(
@@ -143,7 +143,7 @@ impl SunnyBoySpeedwireMiner {
         {
             Err(e) => {
                 error!(self.logger, "Get Day Data failed: {}", e);
-                return MinerResult::Running;
+                return PollResult::Running;
             }
             Ok(points) => {
                 trace!(self.logger, "Get Day data returned {:?}", points);
@@ -186,7 +186,7 @@ impl SunnyBoySpeedwireMiner {
                     / (((point.timestamp as i64) - last_timestamp) as f64)
             };
 
-            let solar = SimpleMeter::new(
+            let record = SimpleMeter::new(
                 DateTime::<Utc>::from(
                     UNIX_EPOCH + Duration::from_secs(point.timestamp as u64),
                 ),
@@ -197,18 +197,18 @@ impl SunnyBoySpeedwireMiner {
             last_timestamp = point.timestamp as i64;
 
             if let Err(e) =
-                self.influx.query(&solar.save_query(&self.name)).await
+                self.influx.query(&record.save_query(&self.name)).await
             {
-                error!(self.logger, "Save solar data failed, {}", e);
-                return MinerResult::Running;
+                error!(self.logger, "Save simple meter data failed, {}", e);
+                return PollResult::Running;
             }
         }
 
         trace!(
             self.logger,
-            "Wrote {} solar records to database",
+            "Wrote {} simple meter records to database",
             num_points
         );
-        return MinerResult::Running;
+        return PollResult::Running;
     }
 }

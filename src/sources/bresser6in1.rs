@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,16 +15,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{Miner, MinerResult, MinerState};
-use crate::miner_sleep;
+use super::{PollResult, PollState, Sources};
+use crate::interval_sleep;
 use crate::models::{InfluxObject, Weather};
 use bresser6in1_usb::{Client as BresserClient, PID, VID};
 use slog::{debug, error, trace, warn, Logger};
 use std::time::Duration;
 use tokio::sync::watch;
 
-pub struct Bresser6in1Miner {
-    canceled: watch::Receiver<MinerState>,
+pub struct Bresser6in1Source {
+    canceled: watch::Receiver<PollState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -32,9 +32,9 @@ pub struct Bresser6in1Miner {
     //bresser_client: BresserClient,
 }
 
-impl Bresser6in1Miner {
+impl Bresser6in1Source {
     pub fn new(
-        canceled: watch::Receiver<MinerState>,
+        canceled: watch::Receiver<PollState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -49,8 +49,8 @@ impl Bresser6in1Miner {
         });
     }
 
-    pub async fn mine(&mut self) -> MinerResult {
-        let now = miner_sleep!(self);
+    pub async fn poll(&mut self) -> PollResult {
+        let now = interval_sleep!(self);
 
         let logger2 = self.logger.clone();
         let weather_data = match tokio::task::spawn_blocking(move || {
@@ -98,7 +98,7 @@ impl Bresser6in1Miner {
                     self.logger,
                     "Joining blocking Bresser USB task failed: {}", e
                 );
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
         let mut weather_data = match weather_data {
@@ -108,17 +108,17 @@ impl Bresser6in1Miner {
                     self.logger,
                     "Get weather data failed, {}, giving up!", e
                 );
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
         weather_data.timestamp = now as u32;
 
-        let weather = Weather::new(weather_data);
-        trace!(self.logger, "Writing {:?} to database", &weather);
-        if let Err(e) = self.influx.query(&weather.save_query(&self.name)).await
+        let record = Weather::new(weather_data);
+        trace!(self.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
         {
-            error!(self.logger, "Save WeatherData failed, {}", e);
+            error!(self.logger, "Save weather data failed, {}", e);
         }
-        return MinerResult::Running;
+        return PollResult::Running;
     }
 }

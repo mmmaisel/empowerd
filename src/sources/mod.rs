@@ -25,14 +25,14 @@ use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
 #[derive(Debug)]
-pub enum MinerResult {
+pub enum PollResult {
     Running,
     Canceled,
     Err(String),
 }
 
 #[derive(Debug)]
-pub enum MinerState {
+pub enum PollState {
     Running(u64),
     Canceled,
 }
@@ -40,7 +40,7 @@ pub enum MinerState {
 mod bresser6in1;
 mod dachs_msr_s;
 mod dummy;
-mod kecontact;
+mod ke_contact;
 mod sml_meter;
 mod sunny_boy_speedwire;
 mod sunny_storage;
@@ -59,18 +59,18 @@ pub fn parse_socketaddr_with_default(
     }
 }
 
-pub struct Miner {
+pub struct Sources {
     logger: Logger,
-    miners: FuturesUnordered<JoinHandle<MinerResult>>,
-    cancel: watch::Sender<MinerState>,
+    sources: FuturesUnordered<JoinHandle<PollResult>>,
+    cancel: watch::Sender<PollState>,
 }
 
-macro_rules! miner_task {
-    ($miner:expr) => {
+macro_rules! polling_task {
+    ($source:expr) => {
         tokio::task::spawn(async move {
             loop {
-                let result = $miner.mine().await;
-                if let MinerResult::Running = result {
+                let result = $source.poll().await;
+                if let PollResult::Running = result {
                     continue;
                 }
                 return result;
@@ -80,9 +80,9 @@ macro_rules! miner_task {
 }
 
 #[macro_export]
-macro_rules! miner_sleep {
+macro_rules! interval_sleep {
     ($self:expr) => {
-        match Miner::sleep_aligned(
+        match Sources::sleep_aligned(
             $self.interval,
             &mut $self.canceled,
             &$self.logger,
@@ -91,7 +91,7 @@ macro_rules! miner_sleep {
         .await
         {
             Err(e) => {
-                return MinerResult::Err(format!(
+                return PollResult::Err(format!(
                     "sleep_aligned failed in {}:{}: {}",
                     std::any::type_name::<Self>(),
                     &$self.name,
@@ -99,17 +99,17 @@ macro_rules! miner_sleep {
                 ));
             }
             Ok(state) => match state {
-                MinerState::Canceled => return MinerResult::Canceled,
-                MinerState::Running(x) => x,
+                PollState::Canceled => return PollResult::Canceled,
+                PollState::Running(x) => x,
             },
         }
     };
 }
 
-impl Miner {
-    pub fn new(logger: Logger, settings: &Settings) -> Result<Miner, String> {
-        let miners = FuturesUnordered::new();
-        let (tx, rx) = watch::channel(MinerState::Running(0));
+impl Sources {
+    pub fn new(logger: Logger, settings: &Settings) -> Result<Self, String> {
+        let sources = FuturesUnordered::new();
+        let (tx, rx) = watch::channel(PollState::Running(0));
 
         let influx_client = influxdb::Client::new(
             format!("http://{}", &settings.database.url),
@@ -120,7 +120,7 @@ impl Miner {
         for source in &settings.sources {
             match source {
                 Source::SunnyIsland(settings) => {
-                    let mut battery = sunny_storage::SunnyStorageMiner::new(
+                    let mut battery = sunny_storage::SunnyStorageSource::new(
                         rx.clone(),
                         influx_client.clone(),
                         settings.name.clone(),
@@ -129,10 +129,10 @@ impl Miner {
                         settings.address.clone(),
                         logger.clone(),
                     )?;
-                    miners.push(miner_task!(battery));
+                    sources.push(polling_task!(battery));
                 }
                 Source::SunnyBoyStorage(settings) => {
-                    let mut battery = sunny_storage::SunnyStorageMiner::new(
+                    let mut battery = sunny_storage::SunnyStorageSource::new(
                         rx.clone(),
                         influx_client.clone(),
                         settings.name.clone(),
@@ -141,10 +141,10 @@ impl Miner {
                         settings.address.clone(),
                         logger.clone(),
                     )?;
-                    miners.push(miner_task!(battery));
+                    sources.push(polling_task!(battery));
                 }
                 Source::SunspecSolar(settings) => {
-                    let mut sunspec = sunspec_solar::SunspecSolarMiner::new(
+                    let mut sunspec = sunspec_solar::SunspecSolarSource::new(
                         rx.clone(),
                         influx_client.clone(),
                         settings.name.clone(),
@@ -153,10 +153,10 @@ impl Miner {
                         settings.modbus_id,
                         logger.clone(),
                     )?;
-                    miners.push(miner_task!(sunspec));
+                    sources.push(polling_task!(sunspec));
                 }
                 Source::DachsMsrS(settings) => {
-                    let mut dachs = dachs_msr_s::DachsMsrSMiner::new(
+                    let mut dachs = dachs_msr_s::DachsMsrSSource::new(
                         rx.clone(),
                         influx_client.clone(),
                         settings.name.clone(),
@@ -165,10 +165,10 @@ impl Miner {
                         settings.password.clone(),
                         logger.clone(),
                     )?;
-                    miners.push(miner_task!(dachs));
+                    sources.push(polling_task!(dachs));
                 }
                 Source::KeContact(settings) => {
-                    let mut kecontact = kecontact::KeContactMiner::new(
+                    let mut kecontact = ke_contact::KeContactSource::new(
                         rx.clone(),
                         influx_client.clone(),
                         settings.name.clone(),
@@ -176,10 +176,10 @@ impl Miner {
                         settings.address.clone(),
                         logger.clone(),
                     )?;
-                    miners.push(miner_task!(kecontact));
+                    sources.push(polling_task!(kecontact));
                 }
                 Source::SmlMeter(settings) => {
-                    let mut meter = sml_meter::SmlMeterMiner::new(
+                    let mut meter = sml_meter::SmlMeterSource::new(
                         rx.clone(),
                         influx_client.clone(),
                         settings.name.clone(),
@@ -188,11 +188,11 @@ impl Miner {
                         settings.baud,
                         logger.clone(),
                     )?;
-                    miners.push(miner_task!(meter));
+                    sources.push(polling_task!(meter));
                 }
                 Source::SunnyBoySpeedwire(settings) => {
                     let mut solar =
-                        sunny_boy_speedwire::SunnyBoySpeedwireMiner::new(
+                        sunny_boy_speedwire::SunnyBoySpeedwireSource::new(
                             rx.clone(),
                             influx_client.clone(),
                             settings.name.clone(),
@@ -201,56 +201,56 @@ impl Miner {
                             settings.address.clone(),
                             logger.clone(),
                         )?;
-                    miners.push(miner_task!(solar));
+                    sources.push(polling_task!(solar));
                 }
                 Source::Bresser6in1(settings) => {
-                    let mut weather = bresser6in1::Bresser6in1Miner::new(
+                    let mut weather = bresser6in1::Bresser6in1Source::new(
                         rx.clone(),
                         influx_client.clone(),
                         settings.name.clone(),
                         Duration::from_secs(settings.poll_interval),
                         logger.clone(),
                     )?;
-                    miners.push(miner_task!(weather));
+                    sources.push(polling_task!(weather));
                 }
             }
         }
 
-        if miners.is_empty() {
-            warn!(logger, "No miners enabled, using dummy");
-            let mut dummy = dummy::DummyMiner::new(
+        if sources.is_empty() {
+            warn!(logger, "No sources enabled, using dummy");
+            let mut dummy = dummy::DummySource::new(
                 rx,
                 "dummy".into(),
                 Duration::from_secs(86400),
                 logger.clone(),
             )?;
-            miners.push(miner_task!(dummy));
+            sources.push(polling_task!(dummy));
         }
 
-        return Ok(Miner {
-            logger: logger,
-            miners: miners,
+        return Ok(Sources {
+            logger,
+            sources,
             cancel: tx,
         });
     }
 
     pub async fn run(&mut self) -> Result<(), ()> {
-        while let Some(join_result) = self.miners.next().await {
+        while let Some(join_result) = self.sources.next().await {
             let result = match join_result {
                 Ok(x) => x,
                 Err(e) => {
-                    error!(self.logger, "Joining miner task failed: {}", e);
+                    error!(self.logger, "Join polling task failed: {}", e);
                     return Err(());
                 }
             };
 
             match result {
-                MinerResult::Running => {}
-                MinerResult::Canceled => {
+                PollResult::Running => {}
+                PollResult::Canceled => {
                     // XXX: print task name here
                     debug!(self.logger, "Task was canceled");
                 }
-                MinerResult::Err(e) => {
+                PollResult::Err(e) => {
                     error!(self.logger, "Task failed: {:?}", e);
                     return Err(());
                 }
@@ -263,9 +263,9 @@ impl Miner {
         if self.cancel.is_closed() {
             return Ok(());
         }
-        return match self.cancel.send(MinerState::Canceled) {
+        return match self.cancel.send(PollState::Canceled) {
             Ok(_) => {
-                info!(self.logger, "Miner canceled");
+                info!(self.logger, "Source polling canceled");
                 Ok(())
             }
             Err(e) => Err(e.to_string()),
@@ -278,10 +278,10 @@ impl Miner {
 
     pub async fn sleep_aligned(
         interval: Duration,
-        canceled: &mut watch::Receiver<MinerState>,
+        canceled: &mut watch::Receiver<PollState>,
         logger: &Logger,
         ty: &str,
-    ) -> Result<MinerState, String> {
+    ) -> Result<PollState, String> {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .map_err(|e| {
@@ -294,7 +294,7 @@ impl Miner {
         tokio::select! {
             _ = canceled.changed() => {
                 trace!(logger, "sleep was canceled");
-                return Ok(MinerState::Canceled);
+                return Ok(PollState::Canceled);
             }
             _ = tokio::time::sleep(sleep_time) => {
                 trace!(logger, "wokeup");
@@ -303,7 +303,7 @@ impl Miner {
                     .map_err(|e| {
                         format!("System time is {:?} seconds before UNIX epoch", e)
                     })?.as_secs();
-                return Ok(MinerState::Running(now));
+                return Ok(PollState::Running(now));
             }
             else => {
                 return Err("sleep_aligned returned".into());
@@ -316,10 +316,10 @@ impl Miner {
 fn test_sleep_duration() {
     assert_eq!(
         Duration::from_secs(57),
-        Miner::sleep_duration(300, 1621753443)
+        Sources::sleep_duration(300, 1621753443)
     );
     assert_eq!(
         Duration::from_secs(30),
-        Miner::sleep_duration(60, 1621754070)
+        Sources::sleep_duration(60, 1621754070)
     );
 }

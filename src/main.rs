@@ -37,9 +37,9 @@ use juniper::{EmptySubscription, RootNode};
 use std::{convert::Infallible, net, process, sync::Arc};
 use tokio::{runtime::Runtime, signal};
 
-mod miner;
 mod models;
 mod settings;
+mod sources;
 
 mod gpio_switch;
 mod mutation;
@@ -47,8 +47,8 @@ mod query;
 mod session_manager;
 mod switch;
 
-use miner::Miner;
 use settings::{Settings, Sink};
+use sources::Sources;
 
 use gpio_switch::GpioSwitch;
 use mutation::*;
@@ -217,16 +217,16 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
     let server = Server::bind(&address).serve(new_service);
     info!(logger, "Listening on http://{}", address);
 
-    let mut miner: Miner = match Miner::new(logger.clone(), &settings) {
+    let mut sources: Sources = match Sources::new(logger.clone(), &settings) {
         Ok(x) => x,
         Err(e) => {
-            error!(logger, "Initializing miner failed: {}", e);
+            error!(logger, "Initializing sources failed: {}", e);
             return 0;
         }
     };
 
     let retval = tokio::select! {
-        x = miner.run() => {
+        x = sources.run() => {
             match x {
                 Ok(_) => {
                     info!(logger, "Some task finished, exit.");
@@ -248,12 +248,12 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         }
     };
 
-    if let Err(e) = miner.cancel() {
-        error!(logger, "Canceling miner failed: {}", e);
+    if let Err(e) = sources.cancel() {
+        error!(logger, "Canceling sources failed: {}", e);
         return 2;
     }
-    if miner.run().await.is_err() {
-        error!(logger, "Error occured during miner shutdown");
+    if sources.run().await.is_err() {
+        error!(logger, "Error occured during sources shutdown");
     }
     return retval;
 }

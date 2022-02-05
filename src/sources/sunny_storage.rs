@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,8 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{parse_socketaddr_with_default, Miner, MinerResult, MinerState};
-use crate::miner_sleep;
+use super::{parse_socketaddr_with_default, PollResult, PollState, Sources};
+use crate::interval_sleep;
 use crate::models::{Battery, InfluxObject, InfluxResult};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
@@ -26,8 +26,8 @@ use sunny_storage_client::{
 };
 use tokio::sync::watch;
 
-pub struct SunnyStorageMiner {
-    canceled: watch::Receiver<MinerState>,
+pub struct SunnyStorageSource {
+    canceled: watch::Receiver<PollState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -35,9 +35,9 @@ pub struct SunnyStorageMiner {
     battery_client: Box<dyn SunnyStorageClient + Send + Sync>,
 }
 
-impl SunnyStorageMiner {
+impl SunnyStorageSource {
     pub fn new(
-        canceled: watch::Receiver<MinerState>,
+        canceled: watch::Receiver<PollState>,
         influx: influxdb::Client,
         name: String,
         r#type: &'static str,
@@ -74,15 +74,15 @@ impl SunnyStorageMiner {
         });
     }
 
-    pub async fn mine(&mut self) -> MinerResult {
-        let now = miner_sleep!(self);
+    pub async fn poll(&mut self) -> PollResult {
+        let now = interval_sleep!(self);
 
         let (wh_in, wh_out, charge) =
             match self.battery_client.get_in_out_charge().await {
                 Ok((x, y, z)) => (x as f64, y as f64, z),
                 Err(e) => {
                     error!(self.logger, "Get battery data failed: {}", e);
-                    return MinerResult::Running;
+                    return PollResult::Running;
                 }
             };
 
@@ -104,11 +104,11 @@ impl SunnyStorageMiner {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
 
-        let battery = Battery::new(
+        let record = Battery::new(
             DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
             charge,
             wh_in,
@@ -116,11 +116,11 @@ impl SunnyStorageMiner {
             power,
         );
 
-        trace!(self.logger, "Writing {:?} to database", &battery);
-        if let Err(e) = self.influx.query(&battery.save_query(&self.name)).await
+        trace!(self.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
         {
-            error!(self.logger, "Save BatteryData failed, {}", e);
+            error!(self.logger, "Save battery data failed, {}", e);
         }
-        return MinerResult::Running;
+        return PollResult::Running;
     }
 }

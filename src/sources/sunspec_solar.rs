@@ -15,77 +15,76 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{parse_socketaddr_with_default, Miner, MinerResult, MinerState};
-use crate::miner_sleep;
+use super::{parse_socketaddr_with_default, PollResult, PollState, Sources};
+use crate::interval_sleep;
 use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
 use chrono::{DateTime, Utc};
-use kecontact_client::KeContactClient;
 use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
+use sunspec_client::SunspecClient;
 use tokio::sync::watch;
 
-pub struct KeContactMiner {
-    canceled: watch::Receiver<MinerState>,
+pub struct SunspecSolarSource {
+    canceled: watch::Receiver<PollState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
     logger: Logger,
-    client: KeContactClient,
+    client: SunspecClient,
 }
 
-impl KeContactMiner {
+impl SunspecSolarSource {
     pub fn new(
-        canceled: watch::Receiver<MinerState>,
+        canceled: watch::Receiver<PollState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
         address: String,
+        id: Option<u8>,
         logger: Logger,
     ) -> Result<Self, String> {
-        let address = parse_socketaddr_with_default(&address, 7090)?;
-        let client = KeContactClient::new(address, Some(logger.clone()));
+        let address = parse_socketaddr_with_default(&address, 502)?;
+        let client = SunspecClient::new(address, id, Some(logger.clone()));
 
-        Ok(Self {
-            canceled,
-            influx,
-            name,
-            interval,
-            logger: logger.clone(),
-            client,
-        })
+        return Ok(Self {
+            canceled: canceled,
+            influx: influx,
+            name: name,
+            interval: interval,
+            logger: logger,
+            client: client,
+        });
     }
 
-    pub async fn mine(&mut self) -> MinerResult {
-        let now = miner_sleep!(self);
+    pub async fn poll(&mut self) -> PollResult {
+        let now = interval_sleep!(self);
 
-        let report = match tokio::time::timeout(
-            std::time::Duration::from_secs(15),
-            async {
-                match self.client.power_report().await {
-                    Ok(x) => Ok(x),
-                    Err(e) => {
-                        error!(
-                            self.logger,
-                            "Query KeContact data failed: {}", e
-                        );
-                        Err(())
-                    }
-                }
-            },
-        )
-        .await
-        {
-            Ok(result) => match result {
-                Ok(x) => x,
-                Err(_) => return MinerResult::Running,
-            },
+        let mut context = match self.client.open().await {
+            Ok(x) => x,
             Err(e) => {
-                error!(self.logger, "Query KeContact data timed out: {}", e);
-                return MinerResult::Running;
+                error!(self.logger, "Could not open sunspec connection: {}", e);
+                return PollResult::Running;
             }
         };
 
-        let energy = (report.e_total as f64) / 10.0;
+        if self.client.models().is_empty() {
+            if let Err(e) = self.client.introspect(&mut context).await {
+                error!(
+                    self.logger,
+                    "Could not introspect sunspec device: {}", e
+                );
+                return PollResult::Running;
+            }
+        }
+
+        let energy = match self.client.get_total_yield(&mut context).await {
+            Ok(x) => x,
+            Err(e) => {
+                error!(self.logger, "Could not read energy yield: {}", e);
+                return PollResult::Running;
+            }
+        };
+        trace!(self.logger, "Total energy is {}", &energy);
 
         let power = match SimpleMeter::into_single(
             self.influx
@@ -103,7 +102,7 @@ impl KeContactMiner {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return MinerResult::Running;
+                return PollResult::Running;
             }
         };
 
@@ -115,8 +114,8 @@ impl KeContactMiner {
         trace!(self.logger, "Writing {:?} to database", &record);
         if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
         {
-            error!(self.logger, "Save KeContact data failed, {}", e);
+            error!(self.logger, "Save simple meter data failed, {}", e);
         }
-        return MinerResult::Running;
+        return PollResult::Running;
     }
 }
