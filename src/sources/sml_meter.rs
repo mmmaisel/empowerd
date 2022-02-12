@@ -15,9 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{PollResult, PollState, Sources};
 use crate::interval_sleep;
 use crate::models::{BidirectionalMeter, InfluxObject, InfluxResult};
+use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, warn, Logger};
 use sml_client::SmlClient;
@@ -25,7 +25,7 @@ use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct SmlMeterSource {
-    canceled: watch::Receiver<PollState>,
+    canceled: watch::Receiver<TaskState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -36,7 +36,7 @@ pub struct SmlMeterSource {
 
 impl SmlMeterSource {
     pub fn new(
-        canceled: watch::Receiver<PollState>,
+        canceled: watch::Receiver<TaskState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -62,7 +62,7 @@ impl SmlMeterSource {
         });
     }
 
-    pub async fn poll(&mut self) -> PollResult {
+    pub async fn run(&mut self) -> TaskResult {
         let now = interval_sleep!(self);
 
         let mut meter_data = self.sml_client.get_consumed_produced().await;
@@ -103,7 +103,7 @@ impl SmlMeterSource {
                     self.logger,
                     "Get electric meter data failed, {}, giving up!", e
                 );
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
 
@@ -126,7 +126,7 @@ impl SmlMeterSource {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
 
@@ -141,6 +141,6 @@ impl SmlMeterSource {
         {
             error!(self.logger, "Save bidirectional meter data failed, {}", e);
         }
-        return PollResult::Running;
+        return TaskResult::Running;
     }
 }

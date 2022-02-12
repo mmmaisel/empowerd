@@ -15,10 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{PollResult, PollState, Sources};
 use crate::interval_sleep;
 use crate::misc::parse_socketaddr_with_default;
 use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
+use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
 use std::time::{Duration, UNIX_EPOCH};
@@ -26,7 +26,7 @@ use sunspec_client::SunspecClient;
 use tokio::sync::watch;
 
 pub struct SunspecSolarSource {
-    canceled: watch::Receiver<PollState>,
+    canceled: watch::Receiver<TaskState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -36,7 +36,7 @@ pub struct SunspecSolarSource {
 
 impl SunspecSolarSource {
     pub fn new(
-        canceled: watch::Receiver<PollState>,
+        canceled: watch::Receiver<TaskState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -57,14 +57,14 @@ impl SunspecSolarSource {
         });
     }
 
-    pub async fn poll(&mut self) -> PollResult {
+    pub async fn run(&mut self) -> TaskResult {
         let now = interval_sleep!(self);
 
         let mut context = match self.client.open().await {
             Ok(x) => x,
             Err(e) => {
                 error!(self.logger, "Could not open sunspec connection: {}", e);
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
 
@@ -74,7 +74,7 @@ impl SunspecSolarSource {
                     self.logger,
                     "Could not introspect sunspec device: {}", e
                 );
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         }
 
@@ -82,7 +82,7 @@ impl SunspecSolarSource {
             Ok(x) => x,
             Err(e) => {
                 error!(self.logger, "Could not read energy yield: {}", e);
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
         trace!(self.logger, "Total energy is {}", &energy);
@@ -103,7 +103,7 @@ impl SunspecSolarSource {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
 
@@ -117,6 +117,6 @@ impl SunspecSolarSource {
         {
             error!(self.logger, "Save simple meter data failed, {}", e);
         }
-        return PollResult::Running;
+        return TaskResult::Running;
     }
 }

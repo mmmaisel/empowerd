@@ -15,9 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{PollResult, PollState, Sources};
 use crate::interval_sleep;
 use crate::models::{Generator, InfluxObject, InfluxResult};
+use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
 use slog::{error, trace, Logger};
@@ -25,7 +25,7 @@ use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct DachsMsrSSource {
-    canceled: watch::Receiver<PollState>,
+    canceled: watch::Receiver<TaskState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -35,7 +35,7 @@ pub struct DachsMsrSSource {
 
 impl DachsMsrSSource {
     pub fn new(
-        canceled: watch::Receiver<PollState>,
+        canceled: watch::Receiver<TaskState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -53,7 +53,7 @@ impl DachsMsrSSource {
         });
     }
 
-    pub async fn poll(&mut self) -> PollResult {
+    pub async fn run(&mut self) -> TaskResult {
         let now = interval_sleep!(self);
 
         let (dachs_runtime, dachs_energy) = match tokio::time::timeout(
@@ -86,11 +86,11 @@ impl DachsMsrSSource {
         {
             Ok(result) => match result {
                 Ok((runtime, energy)) => (runtime, energy),
-                Err(_) => return PollResult::Running,
+                Err(_) => return TaskResult::Running,
             },
             Err(err) => {
                 error!(self.logger, "Query Dachs data timed out: {}", err);
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
 
@@ -113,7 +113,7 @@ impl DachsMsrSSource {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
 
@@ -129,6 +129,6 @@ impl DachsMsrSSource {
         {
             error!(self.logger, "Save generator data failed, {}", e);
         }
-        return PollResult::Running;
+        return TaskResult::Running;
     }
 }

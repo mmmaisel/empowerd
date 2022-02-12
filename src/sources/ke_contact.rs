@@ -15,10 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{PollResult, PollState, Sources};
 use crate::interval_sleep;
 use crate::misc::parse_socketaddr_with_default;
 use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
+use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use kecontact_client::KeContactClient;
 use slog::{error, trace, Logger};
@@ -26,7 +26,7 @@ use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct KeContactSource {
-    canceled: watch::Receiver<PollState>,
+    canceled: watch::Receiver<TaskState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -36,7 +36,7 @@ pub struct KeContactSource {
 
 impl KeContactSource {
     pub fn new(
-        canceled: watch::Receiver<PollState>,
+        canceled: watch::Receiver<TaskState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -56,7 +56,7 @@ impl KeContactSource {
         })
     }
 
-    pub async fn poll(&mut self) -> PollResult {
+    pub async fn run(&mut self) -> TaskResult {
         let now = interval_sleep!(self);
 
         let report = match tokio::time::timeout(
@@ -78,11 +78,11 @@ impl KeContactSource {
         {
             Ok(result) => match result {
                 Ok(x) => x,
-                Err(_) => return PollResult::Running,
+                Err(_) => return TaskResult::Running,
             },
             Err(e) => {
                 error!(self.logger, "Query KeContact data timed out: {}", e);
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
 
@@ -104,7 +104,7 @@ impl KeContactSource {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
 
@@ -118,6 +118,6 @@ impl KeContactSource {
         {
             error!(self.logger, "Save simple meter data failed, {}", e);
         }
-        return PollResult::Running;
+        return TaskResult::Running;
     }
 }

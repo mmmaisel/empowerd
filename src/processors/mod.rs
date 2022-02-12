@@ -15,36 +15,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::interval_sleep;
-use crate::task_group::{TaskResult, TaskState};
+use crate::settings::Settings;
+use crate::task_group::TaskGroup;
 use slog::Logger;
-use std::time::Duration;
-use tokio::sync::watch;
 
-pub struct DummySource {
-    canceled: watch::Receiver<TaskState>,
-    name: String,
-    interval: Duration,
-    logger: Logger,
-}
-
-impl DummySource {
-    pub fn new(
-        canceled: watch::Receiver<TaskState>,
-        name: String,
-        interval: Duration,
-        logger: Logger,
-    ) -> Result<Self, String> {
-        return Ok(Self {
-            canceled: canceled,
-            name: name,
-            interval: interval,
-            logger: logger.clone(),
-        });
-    }
-
-    pub async fn run(&mut self) -> TaskResult {
-        interval_sleep!(self);
-        return TaskResult::Running;
-    }
+// TODO: add dummy processor for testing
+pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
+    Err("Not implemented yet".into())
 }

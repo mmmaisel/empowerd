@@ -15,16 +15,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{PollResult, PollState, Sources};
 use crate::interval_sleep;
 use crate::models::{InfluxObject, Weather};
+use crate::task_group::{TaskResult, TaskState};
 use bresser6in1_usb::{Client as BresserClient, PID, VID};
 use slog::{debug, error, trace, warn, Logger};
 use std::time::Duration;
 use tokio::sync::watch;
 
 pub struct Bresser6in1Source {
-    canceled: watch::Receiver<PollState>,
+    canceled: watch::Receiver<TaskState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -34,7 +34,7 @@ pub struct Bresser6in1Source {
 
 impl Bresser6in1Source {
     pub fn new(
-        canceled: watch::Receiver<PollState>,
+        canceled: watch::Receiver<TaskState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -49,7 +49,7 @@ impl Bresser6in1Source {
         });
     }
 
-    pub async fn poll(&mut self) -> PollResult {
+    pub async fn run(&mut self) -> TaskResult {
         let now = interval_sleep!(self);
 
         let logger2 = self.logger.clone();
@@ -98,7 +98,7 @@ impl Bresser6in1Source {
                     self.logger,
                     "Joining blocking Bresser USB task failed: {}", e
                 );
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
         let mut weather_data = match weather_data {
@@ -108,7 +108,7 @@ impl Bresser6in1Source {
                     self.logger,
                     "Get weather data failed, {}, giving up!", e
                 );
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
         weather_data.timestamp = now as u32;
@@ -119,6 +119,6 @@ impl Bresser6in1Source {
         {
             error!(self.logger, "Save weather data failed, {}", e);
         }
-        return PollResult::Running;
+        return TaskResult::Running;
     }
 }

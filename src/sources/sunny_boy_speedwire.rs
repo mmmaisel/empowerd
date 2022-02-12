@@ -15,9 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{PollResult, PollState, Sources};
 use crate::interval_sleep;
 use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
+use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, Logger};
 use sma_client::{SmaClient, TimestampedInt};
@@ -26,7 +26,7 @@ use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct SunnyBoySpeedwireSource {
-    canceled: watch::Receiver<PollState>,
+    canceled: watch::Receiver<TaskState>,
     influx: influxdb::Client,
     name: String,
     interval: Duration,
@@ -38,7 +38,7 @@ pub struct SunnyBoySpeedwireSource {
 
 impl SunnyBoySpeedwireSource {
     pub fn new(
-        canceled: watch::Receiver<PollState>,
+        canceled: watch::Receiver<TaskState>,
         influx: influxdb::Client,
         name: String,
         interval: Duration,
@@ -67,7 +67,7 @@ impl SunnyBoySpeedwireSource {
     }
 
     // XXX: this function is much too long
-    pub async fn poll(&mut self) -> PollResult {
+    pub async fn run(&mut self) -> TaskResult {
         let now = interval_sleep!(self);
 
         let last_record = match SimpleMeter::into_single(
@@ -84,21 +84,21 @@ impl SunnyBoySpeedwireSource {
                     self.logger,
                     "Query {} database failed: {}", &self.name, e
                 );
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
         let session = match self.sma_client.open().await {
             Ok(x) => x,
             Err(e) => {
                 error!(self.logger, "Could not open SMA Client session: {}", e);
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         };
         let identity =
             match self.sma_client.identify(&session, self.sma_addr).await {
                 Err(e) => {
                     error!(self.logger, "Could not identify SMA device, {}", e);
-                    return PollResult::Running;
+                    return TaskResult::Running;
                 }
                 Ok(x) => x,
             };
@@ -119,11 +119,11 @@ impl SunnyBoySpeedwireSource {
 
         if let Err(e) = self.sma_client.logout(&session).await {
             error!(self.logger, "Logout failed: {}", e);
-            return PollResult::Running;
+            return TaskResult::Running;
         }
         if let Err(e) = self.sma_client.login(&session, &self.sma_pw).await {
             error!(self.logger, "Login failed: {}", e);
-            return PollResult::Running;
+            return TaskResult::Running;
         }
 
         trace!(
@@ -143,7 +143,7 @@ impl SunnyBoySpeedwireSource {
         {
             Err(e) => {
                 error!(self.logger, "Get Day Data failed: {}", e);
-                return PollResult::Running;
+                return TaskResult::Running;
             }
             Ok(points) => {
                 trace!(self.logger, "Get Day data returned {:?}", points);
@@ -200,7 +200,7 @@ impl SunnyBoySpeedwireSource {
                 self.influx.query(&record.save_query(&self.name)).await
             {
                 error!(self.logger, "Save simple meter data failed, {}", e);
-                return PollResult::Running;
+                return TaskResult::Running;
             }
         }
 
@@ -209,6 +209,6 @@ impl SunnyBoySpeedwireSource {
             "Wrote {} simple meter records to database",
             num_points
         );
-        return PollResult::Running;
+        return TaskResult::Running;
     }
 }

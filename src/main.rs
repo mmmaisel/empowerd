@@ -40,14 +40,14 @@ use tokio::{runtime::Runtime, signal};
 mod graphql;
 mod misc;
 mod models;
+mod processors;
+mod session_manager;
 mod settings;
 mod sinks;
 mod sources;
-
-mod session_manager;
+mod task_group;
 
 use settings::{Settings, Sink};
-use sources::Sources;
 
 use graphql::mutation::Mutation;
 use graphql::query::Query;
@@ -216,7 +216,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
     let server = Server::bind(&address).serve(new_service);
     info!(logger, "Listening on http://{}", address);
 
-    let mut sources: Sources = match Sources::new(logger.clone(), &settings) {
+    let mut sources = match sources::new(logger.clone(), &settings) {
         Ok(x) => x,
         Err(e) => {
             error!(logger, "Initializing sources failed: {}", e);
@@ -224,8 +224,29 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         }
     };
 
+    let mut processors = match processors::new(logger.clone(), &settings) {
+        Ok(x) => x,
+        Err(e) => {
+            error!(logger, "Initializing processors failed: {}", e);
+            return 0;
+        }
+    };
+
     let retval = tokio::select! {
         x = sources.run() => {
+            match x {
+                Ok(_) => {
+                    info!(logger, "Some task finished, exit.");
+                    0
+                },
+                Err(_) => {
+                    info!(logger, "Some task failed, exit.");
+                    1
+                }
+            }
+        }
+        // TODO: dedup this
+        x = processors.run() => {
             match x {
                 Ok(_) => {
                     info!(logger, "Some task finished, exit.");
