@@ -114,7 +114,7 @@ impl KeContactClient {
         Self::check_acknowledge(&response[..len])
     }
 
-    pub async fn set_charge_current(&self, current: u16) -> Result<(), String> {
+    pub async fn set_max_current(&self, current: u16) -> Result<(), String> {
         let mut response = [0; 16];
         let socket = self.connect().await?;
         socket

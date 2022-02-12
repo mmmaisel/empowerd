@@ -15,7 +15,32 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use crate::misc::parse_socketaddr_with_default;
+use kecontact_client::KeContactClient;
+use slog::Logger;
 
-// TODO: add dummy processor for testing
-pub mod gpio_switch;
-pub mod ke_contact;
+pub struct KeContactSink {
+    name: String,
+    client: KeContactClient,
+}
+
+impl KeContactSink {
+    pub fn new(
+        name: String,
+        address: String,
+        logger: Logger,
+    ) -> Result<Self, String> {
+        let address = parse_socketaddr_with_default(&address, 7090)?;
+        let client = KeContactClient::new(address, Some(logger.clone()));
+
+        Ok(Self { name, client })
+    }
+
+    pub async fn set_max_current(&self, current: u16) -> Result<(), String> {
+        self.client.set_max_current(current).await
+    }
+
+    pub async fn set_enable(&self, enabled: bool) -> Result<(), String> {
+        self.client.set_enable(enabled).await
+    }
+}
