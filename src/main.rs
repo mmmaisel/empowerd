@@ -38,6 +38,7 @@ use std::{convert::Infallible, net, process, sync::Arc};
 use tokio::{runtime::Runtime, signal};
 
 mod graphql;
+mod misc;
 mod models;
 mod settings;
 mod sinks;

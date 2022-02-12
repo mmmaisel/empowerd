@@ -15,8 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::{parse_socketaddr_with_default, PollResult, PollState, Sources};
+use super::{PollResult, PollState, Sources};
 use crate::interval_sleep;
+use crate::misc::parse_socketaddr_with_default;
 use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
