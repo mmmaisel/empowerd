@@ -46,7 +46,7 @@ pub struct SmlClient {
 }
 
 impl SmlClient {
-    const BUFFER_SIZE: usize = 1024;
+    const BUFFER_SIZE: usize = 2048;
 
     const OBIS_CONSUMED: [u8; 6] = [1, 0, 1, 8, 0, 255];
     const OBIS_PRODUCED: [u8; 6] = [1, 0, 2, 8, 0, 255];
@@ -77,7 +77,7 @@ impl SmlClient {
         if let Err(e) = port.clear(tokio_serial::ClearBuffer::Input) {
             return Err(format!("Failed to flush input buffer, error: {}", e));
         }
-        sleep(Duration::from_secs(4)).await;
+        sleep(Duration::from_secs(6)).await;
 
         self.buffer.clear();
         self.buffer.resize(SmlClient::BUFFER_SIZE, 0);
