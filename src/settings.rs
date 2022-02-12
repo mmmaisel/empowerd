@@ -207,7 +207,7 @@ impl Settings {
         options.optopt("c", "", "config filename", "NAME").optflag(
             "d",
             "",
-            "daemonize",
+            "nodaemonize",
         );
 
         let matches = options.parse(env::args()).map_err(|e| e.to_string())?;
@@ -220,7 +220,7 @@ impl Settings {
         let mut settings = Settings::load_from_file(&cfg_path)?;
 
         if matches.opt_present("d") {
-            settings.daemonize = true;
+            settings.daemonize = false;
         }
 
         return Ok(settings);
