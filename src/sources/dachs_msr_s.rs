@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::interval_sleep;
+use super::SourceBase;
 use crate::models::{Generator, InfluxObject, InfluxResult};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
@@ -25,11 +25,7 @@ use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct DachsMsrSSource {
-    canceled: watch::Receiver<TaskState>,
-    influx: influxdb::Client,
-    name: String,
-    interval: Duration,
-    logger: Logger,
+    base: SourceBase,
     dachs_client: DachsClient,
 }
 
@@ -43,39 +39,44 @@ impl DachsMsrSSource {
         dachs_pw: String,
         logger: Logger,
     ) -> Result<Self, String> {
-        return Ok(Self {
-            canceled: canceled,
-            influx: influx,
-            name: name,
-            interval: interval,
-            logger: logger.clone(),
+        Ok(Self {
+            base: SourceBase::new(
+                canceled,
+                influx,
+                name,
+                interval,
+                logger.clone(),
+            ),
             dachs_client: DachsClient::new(dachs_addr, dachs_pw, Some(logger)),
-        });
+        })
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = interval_sleep!(self);
+        let now = match self.base.sleep_aligned().await {
+            Ok(x) => x,
+            Err(e) => return e,
+        };
 
         let (dachs_runtime, dachs_energy) = match tokio::time::timeout(
             std::time::Duration::from_secs(15),
             async {
                 let runtime = match self.dachs_client.get_runtime().await {
                     Ok(runtime) => {
-                        trace!(self.logger, "Runtime: {} s", runtime);
+                        trace!(self.base.logger, "Runtime: {} s", runtime);
                         runtime
                     }
                     Err(err) => {
-                        error!(self.logger, "{}", err);
+                        error!(self.base.logger, "{}", err);
                         return Err(());
                     }
                 };
                 let energy = match self.dachs_client.get_total_energy().await {
                     Ok(energy) => {
-                        trace!(self.logger, "Energy: {} kWh", energy);
+                        trace!(self.base.logger, "Energy: {} kWh", energy);
                         energy
                     }
                     Err(err) => {
-                        error!(self.logger, "{}", err);
+                        error!(self.base.logger, "{}", err);
                         return Err(());
                     }
                 };
@@ -89,14 +90,15 @@ impl DachsMsrSSource {
                 Err(_) => return TaskResult::Running,
             },
             Err(err) => {
-                error!(self.logger, "Query Dachs data timed out: {}", err);
+                error!(self.base.logger, "Query Dachs data timed out: {}", err);
                 return TaskResult::Running;
             }
         };
 
         let power = match Generator::into_single(
-            self.influx
-                .json_query(Generator::query_last(&self.name))
+            self.base
+                .influx
+                .json_query(Generator::query_last(&self.base.name))
                 .await,
         ) {
             InfluxResult::Some(last_record) => {
@@ -110,8 +112,8 @@ impl DachsMsrSSource {
             InfluxResult::None => 0.0,
             InfluxResult::Err(e) => {
                 error!(
-                    self.logger,
-                    "Query {} database failed: {}", &self.name, e
+                    self.base.logger,
+                    "Query {} database failed: {}", &self.base.name, e
                 );
                 return TaskResult::Running;
             }
@@ -124,10 +126,14 @@ impl DachsMsrSSource {
             dachs_runtime.into(),
         );
 
-        trace!(self.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
+        trace!(self.base.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self
+            .base
+            .influx
+            .query(&record.save_query(&self.base.name))
+            .await
         {
-            error!(self.logger, "Save generator data failed, {}", e);
+            error!(self.base.logger, "Save generator data failed, {}", e);
         }
         return TaskResult::Running;
     }

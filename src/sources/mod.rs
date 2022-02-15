@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::settings::{Settings, Source};
-use crate::task_group::{TaskGroup, TaskState};
+use crate::task_group::{TaskGroup, TaskResult, TaskState};
 use crate::task_loop;
 use futures::stream::FuturesUnordered;
 use slog::{debug, trace, warn, Logger};
@@ -33,35 +33,54 @@ mod sunny_boy_speedwire;
 mod sunny_storage;
 mod sunspec_solar;
 
-#[macro_export]
-macro_rules! interval_sleep {
-    ($self:expr) => {
-        match crate::sources::sleep_aligned(
-            $self.interval,
-            &mut $self.canceled,
-            &$self.logger,
-            &$self.name,
+pub struct SourceBase {
+    canceled: watch::Receiver<TaskState>,
+    influx: influxdb::Client,
+    name: String,
+    interval: Duration,
+    logger: Logger,
+}
+
+impl SourceBase {
+    pub fn new(
+        canceled: watch::Receiver<TaskState>,
+        influx: influxdb::Client,
+        name: String,
+        interval: Duration,
+        logger: Logger,
+    ) -> Self {
+        Self {
+            canceled,
+            influx,
+            name,
+            interval,
+            logger,
+        }
+    }
+
+    pub async fn sleep_aligned(&mut self) -> Result<u64, TaskResult> {
+        match sleep_aligned(
+            self.interval,
+            &mut self.canceled,
+            &self.logger,
+            &self.name,
         )
         .await
         {
-            Err(e) => {
-                return crate::task_group::TaskResult::Err(format!(
-                    "sleep_aligned failed in {}:{}: {}",
-                    std::any::type_name::<Self>(),
-                    &$self.name,
-                    e
-                ));
-            }
+            Err(e) => Err(TaskResult::Err(format!(
+                "sleep_aligned failed in {}:{}: {}",
+                std::any::type_name::<Self>(),
+                &self.name,
+                e
+            ))),
             Ok(state) => match state {
-                crate::task_group::TaskState::Canceled => {
-                    return crate::task_group::TaskResult::Canceled(
-                        $self.name.clone(),
-                    )
+                TaskState::Canceled => {
+                    Err(TaskResult::Canceled(self.name.clone()))
                 }
-                crate::task_group::TaskState::Running(x) => x,
+                TaskState::Running(x) => Ok(x),
             },
         }
-    };
+    }
 }
 
 pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
@@ -179,10 +198,11 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
         warn!(logger, "No sources enabled, using dummy");
         let mut dummy = dummy::DummySource::new(
             rx,
+            influx_client,
             "dummy".into(),
             Duration::from_secs(86400),
             logger.clone(),
-        )?;
+        );
         sources.push(task_loop!(dummy));
     }
 

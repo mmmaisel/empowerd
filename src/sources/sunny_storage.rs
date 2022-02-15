@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::interval_sleep;
+use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
 use crate::models::{Battery, InfluxObject, InfluxResult};
 use crate::task_group::{TaskResult, TaskState};
@@ -28,11 +28,7 @@ use sunny_storage_client::{
 use tokio::sync::watch;
 
 pub struct SunnyStorageSource {
-    canceled: watch::Receiver<TaskState>,
-    influx: influxdb::Client,
-    name: String,
-    interval: Duration,
-    logger: Logger,
+    base: SourceBase,
     battery_client: Box<dyn SunnyStorageClient + Send + Sync>,
 }
 
@@ -65,31 +61,31 @@ impl SunnyStorageSource {
                 }
             };
 
-        return Ok(Self {
-            canceled: canceled,
-            influx: influx,
-            name: name,
-            interval: interval,
-            logger: logger,
+        Ok(Self {
+            base: SourceBase::new(canceled, influx, name, interval, logger),
             battery_client: battery_client,
-        });
+        })
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = interval_sleep!(self);
+        let now = match self.base.sleep_aligned().await {
+            Ok(x) => x,
+            Err(e) => return e,
+        };
 
         let (wh_in, wh_out, charge) =
             match self.battery_client.get_in_out_charge().await {
                 Ok((x, y, z)) => (x as f64, y as f64, z),
                 Err(e) => {
-                    error!(self.logger, "Get battery data failed: {}", e);
+                    error!(self.base.logger, "Get battery data failed: {}", e);
                     return TaskResult::Running;
                 }
             };
 
         let power = match Battery::into_single(
-            self.influx
-                .json_query(Battery::query_last(&self.name))
+            self.base
+                .influx
+                .json_query(Battery::query_last(&self.base.name))
                 .await,
         ) {
             InfluxResult::Some(last_record) => {
@@ -102,8 +98,8 @@ impl SunnyStorageSource {
             InfluxResult::None => 0.0,
             InfluxResult::Err(e) => {
                 error!(
-                    self.logger,
-                    "Query {} database failed: {}", &self.name, e
+                    self.base.logger,
+                    "Query {} database failed: {}", &self.base.name, e
                 );
                 return TaskResult::Running;
             }
@@ -117,10 +113,14 @@ impl SunnyStorageSource {
             power,
         );
 
-        trace!(self.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
+        trace!(self.base.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self
+            .base
+            .influx
+            .query(&record.save_query(&self.base.name))
+            .await
         {
-            error!(self.logger, "Save battery data failed, {}", e);
+            error!(self.base.logger, "Save battery data failed, {}", e);
         }
         return TaskResult::Running;
     }

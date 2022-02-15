@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::interval_sleep;
+use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
 use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
 use crate::task_group::{TaskResult, TaskState};
@@ -26,11 +26,7 @@ use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct KeContactSource {
-    canceled: watch::Receiver<TaskState>,
-    influx: influxdb::Client,
-    name: String,
-    interval: Duration,
-    logger: Logger,
+    base: SourceBase,
     client: KeContactClient,
 }
 
@@ -47,17 +43,16 @@ impl KeContactSource {
         let client = KeContactClient::new(address, Some(logger.clone()));
 
         Ok(Self {
-            canceled,
-            influx,
-            name,
-            interval,
-            logger: logger.clone(),
+            base: SourceBase::new(canceled, influx, name, interval, logger),
             client,
         })
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = interval_sleep!(self);
+        let now = match self.base.sleep_aligned().await {
+            Ok(x) => x,
+            Err(e) => return e,
+        };
 
         let report = match tokio::time::timeout(
             std::time::Duration::from_secs(15),
@@ -66,7 +61,7 @@ impl KeContactSource {
                     Ok(x) => Ok(x),
                     Err(e) => {
                         error!(
-                            self.logger,
+                            self.base.logger,
                             "Query KeContact data failed: {}", e
                         );
                         Err(())
@@ -81,7 +76,10 @@ impl KeContactSource {
                 Err(_) => return TaskResult::Running,
             },
             Err(e) => {
-                error!(self.logger, "Query KeContact data timed out: {}", e);
+                error!(
+                    self.base.logger,
+                    "Query KeContact data timed out: {}", e
+                );
                 return TaskResult::Running;
             }
         };
@@ -89,20 +87,25 @@ impl KeContactSource {
         let energy = (report.e_total as f64) / 10.0;
 
         let power = match SimpleMeter::into_single(
-            self.influx
-                .json_query(SimpleMeter::query_last(&self.name))
+            self.base
+                .influx
+                .json_query(SimpleMeter::query_last(&self.base.name))
                 .await,
         ) {
             InfluxResult::Some(last_record) => {
-                trace!(self.logger, "Read {:?} from database", last_record);
+                trace!(
+                    self.base.logger,
+                    "Read {:?} from database",
+                    last_record
+                );
                 3600.0 * (energy - last_record.energy)
                     / ((now - last_record.time.timestamp() as u64) as f64)
             }
             InfluxResult::None => 0.0,
             InfluxResult::Err(e) => {
                 error!(
-                    self.logger,
-                    "Query {} database failed: {}", &self.name, e
+                    self.base.logger,
+                    "Query {} database failed: {}", &self.base.name, e
                 );
                 return TaskResult::Running;
             }
@@ -113,10 +116,14 @@ impl KeContactSource {
             energy,
             power,
         );
-        trace!(self.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
+        trace!(self.base.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self
+            .base
+            .influx
+            .query(&record.save_query(&self.base.name))
+            .await
         {
-            error!(self.logger, "Save simple meter data failed, {}", e);
+            error!(self.base.logger, "Save simple meter data failed, {}", e);
         }
         return TaskResult::Running;
     }

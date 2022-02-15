@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::interval_sleep;
+use super::SourceBase;
 use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
@@ -26,11 +26,7 @@ use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct SunnyBoySpeedwireSource {
-    canceled: watch::Receiver<TaskState>,
-    influx: influxdb::Client,
-    name: String,
-    interval: Duration,
-    logger: Logger,
+    base: SourceBase,
     sma_client: SmaClient,
     sma_pw: String,
     sma_addr: SocketAddr,
@@ -54,25 +50,31 @@ impl SunnyBoySpeedwireSource {
                 }
             };
 
-        return Ok(Self {
-            canceled: canceled,
-            influx: influx,
-            name: name,
-            interval: interval,
-            logger: logger.clone(),
+        Ok(Self {
+            base: SourceBase::new(
+                canceled,
+                influx,
+                name,
+                interval,
+                logger.clone(),
+            ),
             sma_client: SmaClient::new(Some(logger)),
             sma_pw: sma_pw,
             sma_addr: sma_socket_addr,
-        });
+        })
     }
 
     // XXX: this function is much too long
     pub async fn run(&mut self) -> TaskResult {
-        let now = interval_sleep!(self);
+        let now = match self.base.sleep_aligned().await {
+            Ok(x) => x,
+            Err(e) => return e,
+        };
 
         let last_record = match SimpleMeter::into_single(
-            self.influx
-                .json_query(SimpleMeter::query_last(&self.name))
+            self.base
+                .influx
+                .json_query(SimpleMeter::query_last(&self.base.name))
                 .await,
         ) {
             InfluxResult::Some(x) => x,
@@ -81,8 +83,8 @@ impl SunnyBoySpeedwireSource {
             }
             InfluxResult::Err(e) => {
                 error!(
-                    self.logger,
-                    "Query {} database failed: {}", &self.name, e
+                    self.base.logger,
+                    "Query {} database failed: {}", &self.base.name, e
                 );
                 return TaskResult::Running;
             }
@@ -90,21 +92,27 @@ impl SunnyBoySpeedwireSource {
         let session = match self.sma_client.open().await {
             Ok(x) => x,
             Err(e) => {
-                error!(self.logger, "Could not open SMA Client session: {}", e);
+                error!(
+                    self.base.logger,
+                    "Could not open SMA Client session: {}", e
+                );
                 return TaskResult::Running;
             }
         };
         let identity =
             match self.sma_client.identify(&session, self.sma_addr).await {
                 Err(e) => {
-                    error!(self.logger, "Could not identify SMA device, {}", e);
+                    error!(
+                        self.base.logger,
+                        "Could not identify SMA device, {}", e
+                    );
                     return TaskResult::Running;
                 }
                 Ok(x) => x,
             };
 
         trace!(
-            self.logger,
+            self.base.logger,
             "{} is {:X}, {:X}",
             self.sma_addr,
             identity.susy_id,
@@ -118,16 +126,16 @@ impl SunnyBoySpeedwireSource {
         );
 
         if let Err(e) = self.sma_client.logout(&session).await {
-            error!(self.logger, "Logout failed: {}", e);
+            error!(self.base.logger, "Logout failed: {}", e);
             return TaskResult::Running;
         }
         if let Err(e) = self.sma_client.login(&session, &self.sma_pw).await {
-            error!(self.logger, "Login failed: {}", e);
+            error!(self.base.logger, "Login failed: {}", e);
             return TaskResult::Running;
         }
 
         trace!(
-            self.logger,
+            self.base.logger,
             "GetDayData from {} to {}",
             last_record.time,
             now
@@ -142,18 +150,18 @@ impl SunnyBoySpeedwireSource {
             .await
         {
             Err(e) => {
-                error!(self.logger, "Get Day Data failed: {}", e);
+                error!(self.base.logger, "Get Day Data failed: {}", e);
                 return TaskResult::Running;
             }
             Ok(points) => {
-                trace!(self.logger, "Get Day data returned {:?}", points);
+                trace!(self.base.logger, "Get Day data returned {:?}", points);
                 points
                     .into_iter()
                     .filter(|point| {
                         if point.timestamp as i64 == last_timestamp {
                             return false;
                         } else if point.value as u32 == 0xFFFFFFFF {
-                            debug!(self.logger, "Skipping NaN SMA record");
+                            debug!(self.base.logger, "Skipping NaN SMA record");
                             return false;
                         } else {
                             return true;
@@ -169,7 +177,7 @@ impl SunnyBoySpeedwireSource {
         // TODO: always UTC, handle DST transition
 
         if let Err(e) = self.sma_client.logout(&session).await {
-            error!(self.logger, "Logout failed: {}", e);
+            error!(self.base.logger, "Logout failed: {}", e);
         }
 
         let mut last_energy = last_record.energy as f64;
@@ -196,16 +204,22 @@ impl SunnyBoySpeedwireSource {
             last_energy = point.value as f64;
             last_timestamp = point.timestamp as i64;
 
-            if let Err(e) =
-                self.influx.query(&record.save_query(&self.name)).await
+            if let Err(e) = self
+                .base
+                .influx
+                .query(&record.save_query(&self.base.name))
+                .await
             {
-                error!(self.logger, "Save simple meter data failed, {}", e);
+                error!(
+                    self.base.logger,
+                    "Save simple meter data failed, {}", e
+                );
                 return TaskResult::Running;
             }
         }
 
         trace!(
-            self.logger,
+            self.base.logger,
             "Wrote {} simple meter records to database",
             num_points
         );

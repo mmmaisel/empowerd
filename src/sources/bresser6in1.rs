@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::interval_sleep;
+use super::SourceBase;
 use crate::models::{InfluxObject, Weather};
 use crate::task_group::{TaskResult, TaskState};
 use bresser6in1_usb::{Client as BresserClient, PID, VID};
@@ -24,11 +24,7 @@ use std::time::Duration;
 use tokio::sync::watch;
 
 pub struct Bresser6in1Source {
-    canceled: watch::Receiver<TaskState>,
-    influx: influxdb::Client,
-    name: String,
-    interval: Duration,
-    logger: Logger,
+    base: SourceBase,
     //bresser_client: BresserClient,
 }
 
@@ -40,19 +36,18 @@ impl Bresser6in1Source {
         interval: Duration,
         logger: Logger,
     ) -> Result<Self, String> {
-        return Ok(Self {
-            canceled: canceled,
-            influx: influx,
-            name: name,
-            interval: interval,
-            logger: logger.clone(),
-        });
+        Ok(Self {
+            base: SourceBase::new(canceled, influx, name, interval, logger),
+        })
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = interval_sleep!(self);
+        let now = match self.base.sleep_aligned().await {
+            Ok(x) => x,
+            Err(e) => return e,
+        };
 
-        let logger2 = self.logger.clone();
+        let logger2 = self.base.logger.clone();
         let weather_data = match tokio::task::spawn_blocking(move || {
             // TODO: move bresser client (allocated buffers, ...) back to Miner struct
             let mut bresser_client = BresserClient::new(Some(logger2.clone()));
@@ -95,7 +90,7 @@ impl Bresser6in1Source {
             Ok(x) => x,
             Err(e) => {
                 error!(
-                    self.logger,
+                    self.base.logger,
                     "Joining blocking Bresser USB task failed: {}", e
                 );
                 return TaskResult::Running;
@@ -105,7 +100,7 @@ impl Bresser6in1Source {
             Ok(x) => x,
             Err(e) => {
                 error!(
-                    self.logger,
+                    self.base.logger,
                     "Get weather data failed, {}, giving up!", e
                 );
                 return TaskResult::Running;
@@ -114,11 +109,15 @@ impl Bresser6in1Source {
         weather_data.timestamp = now as u32;
 
         let record = Weather::new(weather_data);
-        trace!(self.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
+        trace!(self.base.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self
+            .base
+            .influx
+            .query(&record.save_query(&self.base.name))
+            .await
         {
-            error!(self.logger, "Save weather data failed, {}", e);
+            error!(self.base.logger, "Save weather data failed, {}", e);
         }
-        return TaskResult::Running;
+        TaskResult::Running
     }
 }

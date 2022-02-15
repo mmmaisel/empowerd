@@ -15,36 +15,34 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::interval_sleep;
+use super::SourceBase;
 use crate::task_group::{TaskResult, TaskState};
 use slog::Logger;
 use std::time::Duration;
 use tokio::sync::watch;
 
 pub struct DummySource {
-    canceled: watch::Receiver<TaskState>,
-    name: String,
-    interval: Duration,
-    logger: Logger,
+    base: SourceBase,
 }
 
 impl DummySource {
     pub fn new(
         canceled: watch::Receiver<TaskState>,
+        influx: influxdb::Client,
         name: String,
         interval: Duration,
         logger: Logger,
-    ) -> Result<Self, String> {
-        return Ok(Self {
-            canceled: canceled,
-            name: name,
-            interval: interval,
-            logger: logger.clone(),
-        });
+    ) -> Self {
+        Self {
+            base: SourceBase::new(canceled, influx, name, interval, logger),
+        }
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        interval_sleep!(self);
-        return TaskResult::Running;
+        match self.base.sleep_aligned().await {
+            Ok(_) => (),
+            Err(e) => return e,
+        };
+        TaskResult::Running
     }
 }

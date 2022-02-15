@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::interval_sleep;
+use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
 use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
 use crate::task_group::{TaskResult, TaskState};
@@ -26,11 +26,7 @@ use sunspec_client::SunspecClient;
 use tokio::sync::watch;
 
 pub struct SunspecSolarSource {
-    canceled: watch::Receiver<TaskState>,
-    influx: influxdb::Client,
-    name: String,
-    interval: Duration,
-    logger: Logger,
+    base: SourceBase,
     client: SunspecClient,
 }
 
@@ -47,23 +43,25 @@ impl SunspecSolarSource {
         let address = parse_socketaddr_with_default(&address, 502)?;
         let client = SunspecClient::new(address, id, Some(logger.clone()));
 
-        return Ok(Self {
-            canceled: canceled,
-            influx: influx,
-            name: name,
-            interval: interval,
-            logger: logger,
-            client: client,
-        });
+        Ok(Self {
+            base: SourceBase::new(canceled, influx, name, interval, logger),
+            client,
+        })
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = interval_sleep!(self);
+        let now = match self.base.sleep_aligned().await {
+            Ok(x) => x,
+            Err(e) => return e,
+        };
 
         let mut context = match self.client.open().await {
             Ok(x) => x,
             Err(e) => {
-                error!(self.logger, "Could not open sunspec connection: {}", e);
+                error!(
+                    self.base.logger,
+                    "Could not open sunspec connection: {}", e
+                );
                 return TaskResult::Running;
             }
         };
@@ -71,7 +69,7 @@ impl SunspecSolarSource {
         if self.client.models().is_empty() {
             if let Err(e) = self.client.introspect(&mut context).await {
                 error!(
-                    self.logger,
+                    self.base.logger,
                     "Could not introspect sunspec device: {}", e
                 );
                 return TaskResult::Running;
@@ -81,27 +79,32 @@ impl SunspecSolarSource {
         let energy = match self.client.get_total_yield(&mut context).await {
             Ok(x) => x,
             Err(e) => {
-                error!(self.logger, "Could not read energy yield: {}", e);
+                error!(self.base.logger, "Could not read energy yield: {}", e);
                 return TaskResult::Running;
             }
         };
-        trace!(self.logger, "Total energy is {}", &energy);
+        trace!(self.base.logger, "Total energy is {}", &energy);
 
         let power = match SimpleMeter::into_single(
-            self.influx
-                .json_query(SimpleMeter::query_last(&self.name))
+            self.base
+                .influx
+                .json_query(SimpleMeter::query_last(&self.base.name))
                 .await,
         ) {
             InfluxResult::Some(last_record) => {
-                trace!(self.logger, "Read {:?} from database", last_record);
+                trace!(
+                    self.base.logger,
+                    "Read {:?} from database",
+                    last_record
+                );
                 3600.0 * (energy - last_record.energy)
                     / ((now - last_record.time.timestamp() as u64) as f64)
             }
             InfluxResult::None => 0.0,
             InfluxResult::Err(e) => {
                 error!(
-                    self.logger,
-                    "Query {} database failed: {}", &self.name, e
+                    self.base.logger,
+                    "Query {} database failed: {}", &self.base.name, e
                 );
                 return TaskResult::Running;
             }
@@ -112,10 +115,14 @@ impl SunspecSolarSource {
             energy,
             power,
         );
-        trace!(self.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
+        trace!(self.base.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self
+            .base
+            .influx
+            .query(&record.save_query(&self.base.name))
+            .await
         {
-            error!(self.logger, "Save simple meter data failed, {}", e);
+            error!(self.base.logger, "Save simple meter data failed, {}", e);
         }
         return TaskResult::Running;
     }

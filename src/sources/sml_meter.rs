@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::interval_sleep;
+use super::SourceBase;
 use crate::models::{BidirectionalMeter, InfluxObject, InfluxResult};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
@@ -25,11 +25,7 @@ use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::watch;
 
 pub struct SmlMeterSource {
-    canceled: watch::Receiver<TaskState>,
-    influx: influxdb::Client,
-    name: String,
-    interval: Duration,
-    logger: Logger,
+    base: SourceBase,
     sml_client: SmlClient,
     meter_device: String,
 }
@@ -47,23 +43,28 @@ impl SmlMeterSource {
         if interval < Duration::from_secs(5) {
             return Err("SmlMeterSource:poll_interval must be >= 5".into());
         }
-        return Ok(Self {
-            canceled: canceled,
-            influx: influx,
-            name: name,
-            interval: interval,
-            logger: logger.clone(),
+        Ok(Self {
+            base: SourceBase::new(
+                canceled,
+                influx,
+                name,
+                interval,
+                logger.clone(),
+            ),
             sml_client: SmlClient::new(
                 meter_device.clone(),
                 meter_baud,
                 Some(logger),
             ),
-            meter_device: meter_device,
-        });
+            meter_device,
+        })
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = interval_sleep!(self);
+        let now = match self.base.sleep_aligned().await {
+            Ok(x) => x,
+            Err(e) => return e,
+        };
 
         let mut meter_data = self.sml_client.get_consumed_produced().await;
         for i in 1..4u8 {
@@ -72,14 +73,14 @@ impl SmlMeterSource {
                     match usb_reset::reset_path(&self.meter_device) {
                         Ok(()) => {
                             warn!(
-                                self.logger,
+                                self.base.logger,
                                 "Reset device {}", &self.meter_device
                             );
                             tokio::time::sleep(Duration::from_secs(5)).await;
                         }
                         Err(e) => {
                             error!(
-                                self.logger,
+                                self.base.logger,
                                 "Reset device {} failed: {}",
                                 &self.meter_device,
                                 e
@@ -88,7 +89,7 @@ impl SmlMeterSource {
                     }
                 }
                 debug!(
-                    self.logger,
+                    self.base.logger,
                     "Get electric meter data failed, {}, retrying...", e
                 );
                 meter_data = self.sml_client.get_consumed_produced().await;
@@ -100,7 +101,7 @@ impl SmlMeterSource {
             Ok((x, y)) => (x, y),
             Err(e) => {
                 error!(
-                    self.logger,
+                    self.base.logger,
                     "Get electric meter data failed, {}, giving up!", e
                 );
                 return TaskResult::Running;
@@ -108,12 +109,17 @@ impl SmlMeterSource {
         };
 
         let power = match BidirectionalMeter::into_single(
-            self.influx
-                .json_query(BidirectionalMeter::query_last(&self.name))
+            self.base
+                .influx
+                .json_query(BidirectionalMeter::query_last(&self.base.name))
                 .await,
         ) {
             InfluxResult::Some(last_record) => {
-                trace!(self.logger, "Read {:?} from database", last_record);
+                trace!(
+                    self.base.logger,
+                    "Read {:?} from database",
+                    last_record
+                );
                 3600.0
                     * (consumed
                         - last_record.energy_consumed
@@ -123,8 +129,8 @@ impl SmlMeterSource {
             InfluxResult::None => 0.0,
             InfluxResult::Err(e) => {
                 error!(
-                    self.logger,
-                    "Query {} database failed: {}", &self.name, e
+                    self.base.logger,
+                    "Query {} database failed: {}", &self.base.name, e
                 );
                 return TaskResult::Running;
             }
@@ -136,10 +142,17 @@ impl SmlMeterSource {
             produced,
             power,
         );
-        trace!(self.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
+        trace!(self.base.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self
+            .base
+            .influx
+            .query(&record.save_query(&self.base.name))
+            .await
         {
-            error!(self.logger, "Save bidirectional meter data failed, {}", e);
+            error!(
+                self.base.logger,
+                "Save bidirectional meter data failed, {}", e
+            );
         }
         return TaskResult::Running;
     }
