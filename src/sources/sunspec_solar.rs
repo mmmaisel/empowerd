@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
+use crate::models::{InfluxResult, SimpleMeter};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
@@ -85,12 +85,7 @@ impl SunspecSolarSource {
         };
         trace!(self.base.logger, "Total energy is {}", &energy);
 
-        let power = match SimpleMeter::into_single(
-            self.base
-                .influx
-                .json_query(SimpleMeter::query_last(&self.base.name))
-                .await,
-        ) {
+        let power = match self.base.query_last::<SimpleMeter>().await {
             InfluxResult::Some(last_record) => {
                 trace!(
                     self.base.logger,

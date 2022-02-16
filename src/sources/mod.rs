@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::models::InfluxObject;
+use crate::models::{InfluxObject, InfluxResult};
 use crate::settings::{Settings, Source};
 use crate::task_group::{TaskGroup, TaskResult, TaskState};
 use crate::task_loop;
@@ -100,6 +100,13 @@ impl SourceBase {
             return Err(());
         }
         Ok(())
+    }
+
+    pub async fn query_last<T>(&self) -> InfluxResult<T>
+    where
+        T: 'static + Send + for<'de> serde::Deserialize<'de> + InfluxObject<T>,
+    {
+        T::into_single(self.influx.json_query(T::query_last(&self.name)).await)
     }
 }
 

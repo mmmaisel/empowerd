@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{Generator, InfluxObject, InfluxResult};
+use crate::models::{Generator, InfluxResult};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
@@ -95,12 +95,7 @@ impl DachsMsrSSource {
             }
         };
 
-        let power = match Generator::into_single(
-            self.base
-                .influx
-                .json_query(Generator::query_last(&self.base.name))
-                .await,
-        ) {
+        let power = match self.base.query_last::<Generator>().await {
             InfluxResult::Some(last_record) => {
                 // TODO: derive nonlinear power from delta timestamp and delta runtime
                 if dachs_runtime != last_record.runtime as i32 {

@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{Battery, InfluxObject, InfluxResult};
+use crate::models::{Battery, InfluxResult};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{error, Logger};
@@ -82,12 +82,7 @@ impl SunnyStorageSource {
                 }
             };
 
-        let power = match Battery::into_single(
-            self.base
-                .influx
-                .json_query(Battery::query_last(&self.base.name))
-                .await,
-        ) {
+        let power = match self.base.query_last::<Battery>().await {
             InfluxResult::Some(last_record) => {
                 3600.0
                     * (wh_in

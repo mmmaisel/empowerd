@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{BidirectionalMeter, InfluxObject, InfluxResult};
+use crate::models::{BidirectionalMeter, InfluxResult};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, warn, Logger};
@@ -108,12 +108,7 @@ impl SmlMeterSource {
             }
         };
 
-        let power = match BidirectionalMeter::into_single(
-            self.base
-                .influx
-                .json_query(BidirectionalMeter::query_last(&self.base.name))
-                .await,
-        ) {
+        let power = match self.base.query_last::<BidirectionalMeter>().await {
             InfluxResult::Some(last_record) => {
                 trace!(
                     self.base.logger,

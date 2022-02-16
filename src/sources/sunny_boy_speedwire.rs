@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{InfluxObject, InfluxResult, SimpleMeter};
+use crate::models::{InfluxResult, SimpleMeter};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, Logger};
@@ -71,12 +71,7 @@ impl SunnyBoySpeedwireSource {
             Err(e) => return e,
         };
 
-        let last_record = match SimpleMeter::into_single(
-            self.base
-                .influx
-                .json_query(SimpleMeter::query_last(&self.base.name))
-                .await,
-        ) {
+        let last_record = match self.base.query_last::<SimpleMeter>().await {
             InfluxResult::Some(x) => x,
             InfluxResult::None => {
                 SimpleMeter::new(DateTime::<Utc>::from(UNIX_EPOCH), 0.0, 0.0)
