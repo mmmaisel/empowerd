@@ -20,7 +20,7 @@ use crate::misc::parse_socketaddr_with_default;
 use crate::models::{Battery, InfluxObject, InfluxResult};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
-use slog::{error, trace, Logger};
+use slog::{error, Logger};
 use std::time::{Duration, UNIX_EPOCH};
 use sunny_storage_client::{
     SunnyBoyStorageClient, SunnyIslandClient, SunnyStorageClient,
@@ -112,16 +112,7 @@ impl SunnyStorageSource {
             wh_out,
             power,
         );
-
-        trace!(self.base.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self
-            .base
-            .influx
-            .query(&record.save_query(&self.base.name))
-            .await
-        {
-            error!(self.base.logger, "Save battery data failed, {}", e);
-        }
-        return TaskResult::Running;
+        let _: Result<(), ()> = self.base.save_record(record).await;
+        TaskResult::Running
     }
 }

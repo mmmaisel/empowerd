@@ -16,10 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{InfluxObject, Weather};
+use crate::models::Weather;
 use crate::task_group::{TaskResult, TaskState};
 use bresser6in1_usb::{Client as BresserClient, PID, VID};
-use slog::{debug, error, trace, warn, Logger};
+use slog::{debug, error, warn, Logger};
 use std::time::Duration;
 use tokio::sync::watch;
 
@@ -109,15 +109,7 @@ impl Bresser6in1Source {
         weather_data.timestamp = now as u32;
 
         let record = Weather::new(weather_data);
-        trace!(self.base.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self
-            .base
-            .influx
-            .query(&record.save_query(&self.base.name))
-            .await
-        {
-            error!(self.base.logger, "Save weather data failed, {}", e);
-        }
+        let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
     }
 }

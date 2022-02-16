@@ -204,16 +204,7 @@ impl SunnyBoySpeedwireSource {
             last_energy = point.value as f64;
             last_timestamp = point.timestamp as i64;
 
-            if let Err(e) = self
-                .base
-                .influx
-                .query(&record.save_query(&self.base.name))
-                .await
-            {
-                error!(
-                    self.base.logger,
-                    "Save simple meter data failed, {}", e
-                );
+            if self.base.save_record(record).await.is_err() {
                 return TaskResult::Running;
             }
         }
@@ -223,6 +214,6 @@ impl SunnyBoySpeedwireSource {
             "Wrote {} simple meter records to database",
             num_points
         );
-        return TaskResult::Running;
+        TaskResult::Running
     }
 }

@@ -15,11 +15,12 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use crate::models::InfluxObject;
 use crate::settings::{Settings, Source};
 use crate::task_group::{TaskGroup, TaskResult, TaskState};
 use crate::task_loop;
 use futures::stream::FuturesUnordered;
-use slog::{debug, trace, warn, Logger};
+use slog::{debug, error, trace, warn, Logger};
 use std::time::{Duration, SystemTime};
 use tokio::sync::watch;
 
@@ -80,6 +81,25 @@ impl SourceBase {
                 TaskState::Running(x) => Ok(x),
             },
         }
+    }
+
+    pub async fn save_record<U, T>(&self, record: T) -> Result<(), ()>
+    where
+        U: 'static + Send + for<'de> serde::Deserialize<'de>,
+        T: InfluxObject<U> + std::fmt::Debug,
+    {
+        trace!(self.logger, "Writing {:?} to database", &record);
+        if let Err(e) = self.influx.query(&record.save_query(&self.name)).await
+        {
+            error!(
+                self.logger,
+                "Save {} data failed, {}",
+                std::any::type_name::<T>(),
+                e
+            );
+            return Err(());
+        }
+        Ok(())
     }
 }
 

@@ -142,18 +142,7 @@ impl SmlMeterSource {
             produced,
             power,
         );
-        trace!(self.base.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self
-            .base
-            .influx
-            .query(&record.save_query(&self.base.name))
-            .await
-        {
-            error!(
-                self.base.logger,
-                "Save bidirectional meter data failed, {}", e
-            );
-        }
-        return TaskResult::Running;
+        let _: Result<(), ()> = self.base.save_record(record).await;
+        TaskResult::Running
     }
 }

@@ -126,15 +126,8 @@ impl DachsMsrSSource {
             dachs_runtime.into(),
         );
 
-        trace!(self.base.logger, "Writing {:?} to database", &record);
-        if let Err(e) = self
-            .base
-            .influx
-            .query(&record.save_query(&self.base.name))
-            .await
-        {
-            error!(self.base.logger, "Save generator data failed, {}", e);
-        }
-        return TaskResult::Running;
+
+        let _: Result<(), ()> = self.base.save_record(record).await;
+        TaskResult::Running
     }
 }
