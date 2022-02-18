@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{Generator, InfluxResult};
+use crate::models::{Generator, InfluxResult, Model};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
@@ -38,6 +38,7 @@ impl DachsMsrSSource {
         dachs_addr: String,
         dachs_pw: String,
         logger: Logger,
+        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
         Ok(Self {
             base: SourceBase::new(
@@ -46,6 +47,7 @@ impl DachsMsrSSource {
                 name,
                 interval,
                 logger.clone(),
+                processors,
             ),
             dachs_client: DachsClient::new(dachs_addr, dachs_pw, Some(logger)),
         })
@@ -121,7 +123,7 @@ impl DachsMsrSSource {
             dachs_runtime.into(),
         );
 
-
+        self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
     }

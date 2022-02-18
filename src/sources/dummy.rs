@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
+use crate::models::Model;
 use crate::task_group::{TaskResult, TaskState};
 use slog::Logger;
 use std::time::Duration;
@@ -32,9 +33,12 @@ impl DummySource {
         name: String,
         interval: Duration,
         logger: Logger,
+        processors: Option<watch::Sender<Model>>,
     ) -> Self {
         Self {
-            base: SourceBase::new(canceled, influx, name, interval, logger),
+            base: SourceBase::new(
+                canceled, influx, name, interval, logger, processors,
+            ),
         }
     }
 

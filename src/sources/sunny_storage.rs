@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{Battery, InfluxResult};
+use crate::models::{Battery, InfluxResult, Model};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{error, Logger};
@@ -41,6 +41,7 @@ impl SunnyStorageSource {
         interval: Duration,
         address: String,
         logger: Logger,
+        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
         let address = parse_socketaddr_with_default(&address, 502)?;
         let battery_client: Box<dyn SunnyStorageClient + Send + Sync> =
@@ -62,7 +63,9 @@ impl SunnyStorageSource {
             };
 
         Ok(Self {
-            base: SourceBase::new(canceled, influx, name, interval, logger),
+            base: SourceBase::new(
+                canceled, influx, name, interval, logger, processors,
+            ),
             battery_client: battery_client,
         })
     }
@@ -107,6 +110,7 @@ impl SunnyStorageSource {
             wh_out,
             power,
         );
+        self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
     }

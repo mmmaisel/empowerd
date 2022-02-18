@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::Weather;
+use crate::models::{Model, Weather};
 use crate::task_group::{TaskResult, TaskState};
 use bresser6in1_usb::{Client as BresserClient, PID, VID};
 use slog::{debug, error, warn, Logger};
@@ -35,9 +35,12 @@ impl Bresser6in1Source {
         name: String,
         interval: Duration,
         logger: Logger,
+        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
         Ok(Self {
-            base: SourceBase::new(canceled, influx, name, interval, logger),
+            base: SourceBase::new(
+                canceled, influx, name, interval, logger, processors,
+            ),
         })
     }
 
@@ -109,6 +112,7 @@ impl Bresser6in1Source {
         weather_data.timestamp = now as u32;
 
         let record = Weather::new(weather_data);
+        self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
     }

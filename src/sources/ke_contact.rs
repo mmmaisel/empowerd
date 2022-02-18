@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{InfluxResult, SimpleMeter};
+use crate::models::{InfluxResult, Model, SimpleMeter};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use kecontact_client::KeContactClient;
@@ -38,12 +38,15 @@ impl KeContactSource {
         interval: Duration,
         address: String,
         logger: Logger,
+        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
         let address = parse_socketaddr_with_default(&address, 7090)?;
         let client = KeContactClient::new(address, Some(logger.clone()));
 
         Ok(Self {
-            base: SourceBase::new(canceled, influx, name, interval, logger),
+            base: SourceBase::new(
+                canceled, influx, name, interval, logger, processors,
+            ),
             client,
         })
     }
@@ -111,6 +114,7 @@ impl KeContactSource {
             energy,
             power,
         );
+        self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
     }

@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{BidirectionalMeter, InfluxResult};
+use crate::models::{BidirectionalMeter, InfluxResult, Model};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, warn, Logger};
@@ -39,6 +39,7 @@ impl SmlMeterSource {
         meter_device: String,
         meter_baud: u32,
         logger: Logger,
+        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
         if interval < Duration::from_secs(5) {
             return Err("SmlMeterSource:poll_interval must be >= 5".into());
@@ -50,6 +51,7 @@ impl SmlMeterSource {
                 name,
                 interval,
                 logger.clone(),
+                processors,
             ),
             sml_client: SmlClient::new(
                 meter_device.clone(),
@@ -137,6 +139,7 @@ impl SmlMeterSource {
             produced,
             power,
         );
+        self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
     }

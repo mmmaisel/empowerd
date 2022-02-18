@@ -22,7 +22,7 @@ use influxdb::InfluxDbWriteable;
 use serde::Deserialize;
 use std::time::{Duration, UNIX_EPOCH};
 
-#[derive(Deserialize, Debug, InfluxDbWriteable)]
+#[derive(Clone, Deserialize, Debug, InfluxDbWriteable)]
 pub struct Weather {
     pub time: DateTime<Utc>,
     pub temperature_in: f32,

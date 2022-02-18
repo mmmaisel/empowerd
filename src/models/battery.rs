@@ -20,7 +20,7 @@ use chrono::{DateTime, Utc};
 use influxdb::InfluxDbWriteable;
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug, InfluxDbWriteable)]
+#[derive(Clone, Deserialize, Debug, InfluxDbWriteable)]
 pub struct Battery {
     pub time: DateTime<Utc>,
     pub charge: f64,

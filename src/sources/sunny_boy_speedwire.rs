@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{InfluxResult, SimpleMeter};
+use crate::models::{InfluxResult, Model, SimpleMeter};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, Logger};
@@ -41,6 +41,7 @@ impl SunnyBoySpeedwireSource {
         sma_pw: String,
         sma_addr: String,
         logger: Logger,
+        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
         let sma_socket_addr: SocketAddr =
             match SmaClient::sma_sock_addr(sma_addr) {
@@ -57,6 +58,7 @@ impl SunnyBoySpeedwireSource {
                 name,
                 interval,
                 logger.clone(),
+                processors,
             ),
             sma_client: SmaClient::new(Some(logger)),
             sma_pw: sma_pw,
@@ -199,6 +201,7 @@ impl SunnyBoySpeedwireSource {
             last_energy = point.value as f64;
             last_timestamp = point.timestamp as i64;
 
+            self.base.notify_processors(&record);
             if self.base.save_record(record).await.is_err() {
                 return TaskResult::Running;
             }

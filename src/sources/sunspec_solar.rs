@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{InfluxResult, SimpleMeter};
+use crate::models::{InfluxResult, Model, SimpleMeter};
 use crate::task_group::{TaskResult, TaskState};
 use chrono::{DateTime, Utc};
 use slog::{error, trace, Logger};
@@ -39,12 +39,15 @@ impl SunspecSolarSource {
         address: String,
         id: Option<u8>,
         logger: Logger,
+        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
         let address = parse_socketaddr_with_default(&address, 502)?;
         let client = SunspecClient::new(address, id, Some(logger.clone()));
 
         Ok(Self {
-            base: SourceBase::new(canceled, influx, name, interval, logger),
+            base: SourceBase::new(
+                canceled, influx, name, interval, logger, processors,
+            ),
             client,
         })
     }
@@ -110,6 +113,7 @@ impl SunspecSolarSource {
             energy,
             power,
         );
+        self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
     }

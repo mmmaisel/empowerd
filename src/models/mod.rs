@@ -44,6 +44,44 @@ pub enum InfluxSeriesResult<T> {
     Err(String),
 }
 
+#[derive(Clone, Debug)]
+pub enum Model {
+    Battery(Battery),
+    BidirectionalMeter(BidirectionalMeter),
+    Generator(Generator),
+    SimpleMeter(SimpleMeter),
+    Weather(Weather),
+}
+
+impl From<Battery> for Model {
+    fn from(record: Battery) -> Self {
+        Model::Battery(record)
+    }
+}
+
+impl From<BidirectionalMeter> for Model {
+    fn from(record: BidirectionalMeter) -> Self {
+        Model::BidirectionalMeter(record)
+    }
+}
+
+impl From<Generator> for Model {
+    fn from(record: Generator) -> Self {
+        Model::Generator(record)
+    }
+}
+
+impl From<SimpleMeter> for Model {
+    fn from(record: SimpleMeter) -> Self {
+        Model::SimpleMeter(record)
+    }
+}
+impl From<Weather> for Model {
+    fn from(record: Weather) -> Self {
+        Model::Weather(record)
+    }
+}
+
 pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
     InfluxDbWriteable
 {

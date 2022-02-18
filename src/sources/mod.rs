@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::models::{InfluxObject, InfluxResult};
+use crate::models::{InfluxObject, InfluxResult, Model};
 use crate::settings::{Settings, Source};
 use crate::task_group::{TaskGroup, TaskResult, TaskState};
 use crate::task_loop;
@@ -40,6 +40,7 @@ pub struct SourceBase {
     name: String,
     interval: Duration,
     logger: Logger,
+    processors: Option<watch::Sender<Model>>,
 }
 
 impl SourceBase {
@@ -49,6 +50,7 @@ impl SourceBase {
         name: String,
         interval: Duration,
         logger: Logger,
+        processors: Option<watch::Sender<Model>>,
     ) -> Self {
         Self {
             canceled,
@@ -56,6 +58,7 @@ impl SourceBase {
             name,
             interval,
             logger,
+            processors,
         }
     }
 
@@ -108,6 +111,19 @@ impl SourceBase {
     {
         T::into_single(self.influx.json_query(T::query_last(&self.name)).await)
     }
+
+    pub fn notify_processors<T>(&self, record: &T)
+    where T: Clone + Into<Model>
+    {
+        if let Some(processors) = &self.processors {
+            if let Err(e) = processors.send(record.clone().into()) {
+                error!(
+                    self.logger,
+                    "Notifying processors from {:} failed: {}", &self.name, e.to_string()
+                )
+            }
+        }
+    }
 }
 
 pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
@@ -133,6 +149,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     Duration::from_secs(settings.poll_interval),
                     settings.address.clone(),
                     logger.clone(),
+                    None,
                 )?;
                 sources.push(task_loop!(battery));
             }
@@ -145,6 +162,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     Duration::from_secs(settings.poll_interval),
                     settings.address.clone(),
                     logger.clone(),
+                    None,
                 )?;
                 sources.push(task_loop!(battery));
             }
@@ -157,6 +175,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     settings.address.clone(),
                     settings.modbus_id,
                     logger.clone(),
+                    None,
                 )?;
                 sources.push(task_loop!(sunspec));
             }
@@ -169,6 +188,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     settings.address.clone(),
                     settings.password.clone(),
                     logger.clone(),
+                    None,
                 )?;
                 sources.push(task_loop!(dachs));
             }
@@ -180,6 +200,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     Duration::from_secs(settings.poll_interval),
                     settings.address.clone(),
                     logger.clone(),
+                    None,
                 )?;
                 sources.push(task_loop!(kecontact));
             }
@@ -192,6 +213,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     settings.device.clone(),
                     settings.baud,
                     logger.clone(),
+                    None,
                 )?;
                 sources.push(task_loop!(meter));
             }
@@ -205,6 +227,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                         settings.password.clone(),
                         settings.address.clone(),
                         logger.clone(),
+                        None,
                     )?;
                 sources.push(task_loop!(solar));
             }
@@ -215,6 +238,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     settings.name.clone(),
                     Duration::from_secs(settings.poll_interval),
                     logger.clone(),
+                    None,
                 )?;
                 sources.push(task_loop!(weather));
             }
@@ -229,6 +253,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
             "dummy".into(),
             Duration::from_secs(86400),
             logger.clone(),
+            None,
         );
         sources.push(task_loop!(dummy));
     }
