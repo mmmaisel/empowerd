@@ -16,12 +16,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{Model, Weather};
-use crate::task_group::{TaskResult, TaskState};
+use crate::models::Weather;
+use crate::task_group::TaskResult;
 use bresser6in1_usb::{Client as BresserClient, PID, VID};
-use slog::{debug, error, warn, Logger};
+use slog::{debug, error, warn};
 use std::time::Duration;
-use tokio::sync::watch;
 
 pub struct Bresser6in1Source {
     base: SourceBase,
@@ -29,19 +28,8 @@ pub struct Bresser6in1Source {
 }
 
 impl Bresser6in1Source {
-    pub fn new(
-        canceled: watch::Receiver<TaskState>,
-        influx: influxdb::Client,
-        name: String,
-        interval: Duration,
-        logger: Logger,
-        processors: Option<watch::Sender<Model>>,
-    ) -> Result<Self, String> {
-        Ok(Self {
-            base: SourceBase::new(
-                canceled, influx, name, interval, logger, processors,
-            ),
-        })
+    pub fn new(base: SourceBase) -> Self {
+        Self { base }
     }
 
     pub async fn run(&mut self) -> TaskResult {

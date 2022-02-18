@@ -17,13 +17,12 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{InfluxResult, Model, SimpleMeter};
-use crate::task_group::{TaskResult, TaskState};
+use crate::models::{InfluxResult, SimpleMeter};
+use crate::task_group::TaskResult;
 use chrono::{DateTime, Utc};
 use kecontact_client::KeContactClient;
-use slog::{error, trace, Logger};
+use slog::{error, trace};
 use std::time::{Duration, UNIX_EPOCH};
-use tokio::sync::watch;
 
 pub struct KeContactSource {
     base: SourceBase,
@@ -31,24 +30,11 @@ pub struct KeContactSource {
 }
 
 impl KeContactSource {
-    pub fn new(
-        canceled: watch::Receiver<TaskState>,
-        influx: influxdb::Client,
-        name: String,
-        interval: Duration,
-        address: String,
-        logger: Logger,
-        processors: Option<watch::Sender<Model>>,
-    ) -> Result<Self, String> {
+    pub fn new(base: SourceBase, address: String) -> Result<Self, String> {
         let address = parse_socketaddr_with_default(&address, 7090)?;
-        let client = KeContactClient::new(address, Some(logger.clone()));
+        let client = KeContactClient::new(address, Some(base.logger.clone()));
 
-        Ok(Self {
-            base: SourceBase::new(
-                canceled, influx, name, interval, logger, processors,
-            ),
-            client,
-        })
+        Ok(Self { base, client })
     }
 
     pub async fn run(&mut self) -> TaskResult {

@@ -16,13 +16,12 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{BidirectionalMeter, InfluxResult, Model};
-use crate::task_group::{TaskResult, TaskState};
+use crate::models::{BidirectionalMeter, InfluxResult};
+use crate::task_group::TaskResult;
 use chrono::{DateTime, Utc};
-use slog::{debug, error, trace, warn, Logger};
+use slog::{debug, error, trace, warn};
 use sml_client::SmlClient;
 use std::time::{Duration, UNIX_EPOCH};
-use tokio::sync::watch;
 
 pub struct SmlMeterSource {
     base: SourceBase,
@@ -32,27 +31,16 @@ pub struct SmlMeterSource {
 
 impl SmlMeterSource {
     pub fn new(
-        canceled: watch::Receiver<TaskState>,
-        influx: influxdb::Client,
-        name: String,
-        interval: Duration,
+        base: SourceBase,
         meter_device: String,
         meter_baud: u32,
-        logger: Logger,
-        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
-        if interval < Duration::from_secs(5) {
+        if base.interval < Duration::from_secs(5) {
             return Err("SmlMeterSource:poll_interval must be >= 5".into());
         }
+        let logger = base.logger.clone();
         Ok(Self {
-            base: SourceBase::new(
-                canceled,
-                influx,
-                name,
-                interval,
-                logger.clone(),
-                processors,
-            ),
+            base,
             sml_client: SmlClient::new(
                 meter_device.clone(),
                 meter_baud,

@@ -16,30 +16,15 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::Model;
-use crate::task_group::{TaskResult, TaskState};
-use slog::Logger;
-use std::time::Duration;
-use tokio::sync::watch;
+use crate::task_group::TaskResult;
 
 pub struct DummySource {
     base: SourceBase,
 }
 
 impl DummySource {
-    pub fn new(
-        canceled: watch::Receiver<TaskState>,
-        influx: influxdb::Client,
-        name: String,
-        interval: Duration,
-        logger: Logger,
-        processors: Option<watch::Sender<Model>>,
-    ) -> Self {
-        Self {
-            base: SourceBase::new(
-                canceled, influx, name, interval, logger, processors,
-            ),
-        }
+    pub fn new(base: SourceBase) -> Self {
+        Self { base }
     }
 
     pub async fn run(&mut self) -> TaskResult {

@@ -17,15 +17,14 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{Battery, InfluxResult, Model};
-use crate::task_group::{TaskResult, TaskState};
+use crate::models::{Battery, InfluxResult};
+use crate::task_group::TaskResult;
 use chrono::{DateTime, Utc};
-use slog::{error, Logger};
+use slog::error;
 use std::time::{Duration, UNIX_EPOCH};
 use sunny_storage_client::{
     SunnyBoyStorageClient, SunnyIslandClient, SunnyStorageClient,
 };
-use tokio::sync::watch;
 
 pub struct SunnyStorageSource {
     base: SourceBase,
@@ -34,25 +33,20 @@ pub struct SunnyStorageSource {
 
 impl SunnyStorageSource {
     pub fn new(
-        canceled: watch::Receiver<TaskState>,
-        influx: influxdb::Client,
-        name: String,
+        base: SourceBase,
         r#type: &'static str,
-        interval: Duration,
         address: String,
-        logger: Logger,
-        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
         let address = parse_socketaddr_with_default(&address, 502)?;
         let battery_client: Box<dyn SunnyStorageClient + Send + Sync> =
             match r#type {
                 "sunny_island" => Box::new(SunnyIslandClient::new(
                     address,
-                    Some(logger.clone()),
+                    Some(base.logger.clone()),
                 )?),
                 "sunny_boy_storage" => Box::new(SunnyBoyStorageClient::new(
                     address,
-                    Some(logger.clone()),
+                    Some(base.logger.clone()),
                 )?),
                 _ => {
                     return Err(format!(
@@ -63,9 +57,7 @@ impl SunnyStorageSource {
             };
 
         Ok(Self {
-            base: SourceBase::new(
-                canceled, influx, name, interval, logger, processors,
-            ),
+            base,
             battery_client: battery_client,
         })
     }

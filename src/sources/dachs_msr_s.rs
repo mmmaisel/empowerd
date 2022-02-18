@@ -16,13 +16,12 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{Generator, InfluxResult, Model};
-use crate::task_group::{TaskResult, TaskState};
+use crate::models::{Generator, InfluxResult};
+use crate::task_group::TaskResult;
 use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
-use slog::{error, trace, Logger};
+use slog::{error, trace};
 use std::time::{Duration, UNIX_EPOCH};
-use tokio::sync::watch;
 
 pub struct DachsMsrSSource {
     base: SourceBase,
@@ -30,27 +29,12 @@ pub struct DachsMsrSSource {
 }
 
 impl DachsMsrSSource {
-    pub fn new(
-        canceled: watch::Receiver<TaskState>,
-        influx: influxdb::Client,
-        name: String,
-        interval: Duration,
-        dachs_addr: String,
-        dachs_pw: String,
-        logger: Logger,
-        processors: Option<watch::Sender<Model>>,
-    ) -> Result<Self, String> {
-        Ok(Self {
-            base: SourceBase::new(
-                canceled,
-                influx,
-                name,
-                interval,
-                logger.clone(),
-                processors,
-            ),
+    pub fn new(base: SourceBase, dachs_addr: String, dachs_pw: String) -> Self {
+        let logger = base.logger.clone();
+        Self {
+            base,
             dachs_client: DachsClient::new(dachs_addr, dachs_pw, Some(logger)),
-        })
+        }
     }
 
     pub async fn run(&mut self) -> TaskResult {

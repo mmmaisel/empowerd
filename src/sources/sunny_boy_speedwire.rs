@@ -16,14 +16,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{InfluxResult, Model, SimpleMeter};
-use crate::task_group::{TaskResult, TaskState};
+use crate::models::{InfluxResult, SimpleMeter};
+use crate::task_group::TaskResult;
 use chrono::{DateTime, Utc};
-use slog::{debug, error, trace, Logger};
+use slog::{debug, error, trace};
 use sma_client::{SmaClient, TimestampedInt};
 use std::net::SocketAddr;
 use std::time::{Duration, UNIX_EPOCH};
-use tokio::sync::watch;
 
 pub struct SunnyBoySpeedwireSource {
     base: SourceBase,
@@ -34,14 +33,9 @@ pub struct SunnyBoySpeedwireSource {
 
 impl SunnyBoySpeedwireSource {
     pub fn new(
-        canceled: watch::Receiver<TaskState>,
-        influx: influxdb::Client,
-        name: String,
-        interval: Duration,
+        base: SourceBase,
         sma_pw: String,
         sma_addr: String,
-        logger: Logger,
-        processors: Option<watch::Sender<Model>>,
     ) -> Result<Self, String> {
         let sma_socket_addr: SocketAddr =
             match SmaClient::sma_sock_addr(sma_addr) {
@@ -51,15 +45,9 @@ impl SunnyBoySpeedwireSource {
                 }
             };
 
+        let logger = base.logger.clone();
         Ok(Self {
-            base: SourceBase::new(
-                canceled,
-                influx,
-                name,
-                interval,
-                logger.clone(),
-                processors,
-            ),
+            base,
             sma_client: SmaClient::new(Some(logger)),
             sma_pw: sma_pw,
             sma_addr: sma_socket_addr,
