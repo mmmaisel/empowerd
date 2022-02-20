@@ -17,9 +17,8 @@
 \******************************************************************************/
 use crate::models::{InfluxObject, InfluxResult, Model};
 use crate::settings::{Settings, Source};
-use crate::task_group::{TaskGroup, TaskResult, TaskState};
+use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskResult, TaskState};
 use crate::task_loop;
-use futures::stream::FuturesUnordered;
 use slog::{debug, error, trace, warn, Logger};
 use std::time::{Duration, SystemTime};
 use tokio::sync::watch;
@@ -186,9 +185,7 @@ impl SourceBase {
 }
 
 pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
-    let sources = FuturesUnordered::new();
-    let (tx, rx) = watch::channel(TaskState::Running(0));
-
+    let tasks = TaskGroupBuilder::new("sources".into(), logger.clone());
     let influx_client = influxdb::Client::new(
         format!("http://{}", &settings.database.url),
         &settings.database.name,
@@ -198,7 +195,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
     for source in &settings.sources {
         let mut base_builder = SourceBaseBuilder::new(
             influx_client.clone(),
-            rx.clone(),
+            tasks.cancel_rx(),
             logger.clone(),
         );
 
@@ -208,7 +205,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     .name(settings.name.clone())
                     .interval(Duration::from_secs(settings.poll_interval));
                 let mut debug = debug::DebugSource::new(base_builder.build());
-                sources.push(task_loop!(debug));
+                tasks.add_task(task_loop!(debug));
             }
             Source::SunnyIsland(settings) => {
                 base_builder
@@ -219,7 +216,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     "sunny_island",
                     settings.address.clone(),
                 )?;
-                sources.push(task_loop!(battery));
+                tasks.add_task(task_loop!(battery));
             }
             Source::SunnyBoyStorage(settings) => {
                 base_builder
@@ -230,7 +227,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     "sunny_boy_storage",
                     settings.address.clone(),
                 )?;
-                sources.push(task_loop!(battery));
+                tasks.add_task(task_loop!(battery));
             }
             Source::SunspecSolar(settings) => {
                 base_builder
@@ -241,7 +238,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     settings.address.clone(),
                     settings.modbus_id,
                 )?;
-                sources.push(task_loop!(sunspec));
+                tasks.add_task(task_loop!(sunspec));
             }
             Source::DachsMsrS(settings) => {
                 base_builder
@@ -252,7 +249,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     settings.address.clone(),
                     settings.password.clone(),
                 );
-                sources.push(task_loop!(dachs));
+                tasks.add_task(task_loop!(dachs));
             }
             Source::KeContact(settings) => {
                 base_builder
@@ -262,7 +259,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     base_builder.build(),
                     settings.address.clone(),
                 )?;
-                sources.push(task_loop!(kecontact));
+                tasks.add_task(task_loop!(kecontact));
             }
             Source::SmlMeter(settings) => {
                 base_builder
@@ -273,7 +270,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     settings.device.clone(),
                     settings.baud,
                 )?;
-                sources.push(task_loop!(meter));
+                tasks.add_task(task_loop!(meter));
             }
             Source::SunnyBoySpeedwire(settings) => {
                 base_builder
@@ -285,7 +282,7 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                         settings.password.clone(),
                         settings.address.clone(),
                     )?;
-                sources.push(task_loop!(solar));
+                tasks.add_task(task_loop!(solar));
             }
             Source::Bresser6in1(settings) => {
                 base_builder
@@ -293,25 +290,25 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
                     .interval(Duration::from_secs(settings.poll_interval));
                 let mut weather =
                     bresser6in1::Bresser6in1Source::new(base_builder.build());
-                sources.push(task_loop!(weather));
+                tasks.add_task(task_loop!(weather));
             }
         }
     }
 
-    if sources.is_empty() {
+    if !tasks.has_tasks() {
         warn!(logger, "No sources enabled, using dummy");
         let mut dummy = dummy::DummySource::new(SourceBase::new(
             "dummy".into(),
             Duration::from_secs(86400),
             influx_client,
-            rx,
-            logger.clone(),
+            tasks.cancel_rx(),
+            logger,
             None,
         ));
-        sources.push(task_loop!(dummy));
+        tasks.add_task(task_loop!(dummy));
     }
 
-    Ok(TaskGroup::new("sources".into(), sources, logger, tx))
+    Ok(tasks.build())
 }
 
 fn sleep_duration(interval: u64, now: u64) -> Duration {

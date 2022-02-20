@@ -49,6 +49,43 @@ macro_rules! task_loop {
     };
 }
 
+pub struct TaskGroupBuilder {
+    name: String,
+    logger: Logger,
+    tasks: FuturesUnordered<JoinHandle<TaskResult>>,
+    cancel_tx: watch::Sender<TaskState>,
+    cancel_rx: watch::Receiver<TaskState>,
+}
+
+impl TaskGroupBuilder {
+    pub fn new(name: String, logger: Logger) -> Self {
+        let (cancel_tx, cancel_rx) = watch::channel(TaskState::Running(0));
+        Self {
+            name,
+            logger,
+            tasks: FuturesUnordered::new(),
+            cancel_tx,
+            cancel_rx,
+        }
+    }
+
+    pub fn add_task(&self, task: JoinHandle<TaskResult>) {
+        self.tasks.push(task);
+    }
+
+    pub fn cancel_rx(&self) -> watch::Receiver<TaskState> {
+        self.cancel_rx.clone()
+    }
+
+    pub fn has_tasks(&self) -> bool {
+        !self.tasks.is_empty()
+    }
+
+    pub fn build(self) -> TaskGroup {
+        TaskGroup::new(self.name, self.logger, self.tasks, self.cancel_tx)
+    }
+}
+
 pub struct TaskGroup {
     name: String,
     logger: Logger,
@@ -59,8 +96,8 @@ pub struct TaskGroup {
 impl TaskGroup {
     pub fn new(
         name: String,
-        tasks: FuturesUnordered<JoinHandle<TaskResult>>,
         logger: Logger,
+        tasks: FuturesUnordered<JoinHandle<TaskResult>>,
         cancel: watch::Sender<TaskState>,
     ) -> Self {
         Self {
