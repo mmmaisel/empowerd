@@ -24,9 +24,9 @@ use slog::{debug, error, trace, warn, Logger};
 use std::time::{Duration, SystemTime};
 use tokio::sync::watch;
 
-// TODO: add dummy source from file for testing
 mod bresser6in1;
 mod dachs_msr_s;
+mod debug;
 mod dummy;
 mod ke_contact;
 mod sml_meter;
@@ -203,6 +203,13 @@ pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
         );
 
         match source {
+            Source::Debug(settings) => {
+                base_builder
+                    .name(settings.name.clone())
+                    .interval(Duration::from_secs(settings.poll_interval));
+                let mut debug = debug::DebugSource::new(base_builder.build());
+                sources.push(task_loop!(debug));
+            }
             Source::SunnyIsland(settings) => {
                 base_builder
                     .name(settings.name.clone())

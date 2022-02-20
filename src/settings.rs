@@ -60,6 +60,12 @@ impl Default for GraphQL {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct DebugSource {
+    pub name: String,
+    pub poll_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct SunnyBoyStorage {
     pub name: String,
     pub address: String,
@@ -121,6 +127,7 @@ pub struct Bresser6in1 {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum Source {
+    Debug(DebugSource),
     SunnyBoyStorage(SunnyBoyStorage),
     SunnyIsland(SunnyIsland),
     SunspecSolar(SunspecSolar),
