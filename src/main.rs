@@ -47,12 +47,12 @@ mod sinks;
 mod sources;
 mod task_group;
 
-use settings::{Settings, Sink};
-
 use graphql::mutation::Mutation;
 use graphql::query::Query;
 use session_manager::SessionManager;
+use settings::{Settings, Sink};
 use sinks::gpio_switch::GpioSwitch;
+use task_group::TaskGroup;
 
 #[derive(Debug)]
 pub struct Globals {
@@ -118,6 +118,34 @@ fn main() {
     trace!(root_logger, "Exiting with result {}", retval);
     drop(root_logger);
     process::exit(retval);
+}
+
+fn check_task_result(result: Result<(), ()>, logger: &Logger) -> i32 {
+    match result {
+        Ok(_) => {
+            info!(logger, "Some task finished, exit.");
+            0
+        }
+        Err(_) => {
+            info!(logger, "Some task failed, exit.");
+            1
+        }
+    }
+}
+
+async fn shutdown_group(
+    mut group: TaskGroup,
+    logger: &Logger,
+) -> Result<(), ()> {
+    if let Err(e) = group.cancel() {
+        error!(logger, "Canceling {} failed: {}", group.name(), e);
+        return Err(());
+    }
+    if group.run().await.is_err() {
+        error!(logger, "Error occured during {} shutdown", group.name());
+        return Err(());
+    }
+    Ok(())
 }
 
 async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
@@ -216,47 +244,30 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
     let server = Server::bind(&address).serve(new_service);
     info!(logger, "Listening on http://{}", address);
 
-    let mut sources = match sources::new(logger.clone(), &settings) {
-        Ok(x) => x,
-        Err(e) => {
-            error!(logger, "Initializing sources failed: {}", e);
-            return 0;
-        }
-    };
+    let (mut processors, inputs) =
+        match processors::processor_tasks(logger.clone(), &settings) {
+            Ok(x) => x,
+            Err(e) => {
+                error!(logger, "Initializing processors failed: {}", e);
+                return 0;
+            }
+        };
 
-    let mut processors = match processors::new(logger.clone(), &settings) {
-        Ok(x) => x,
-        Err(e) => {
-            error!(logger, "Initializing processors failed: {}", e);
-            return 0;
-        }
-    };
+    let mut sources =
+        match sources::polling_tasks(logger.clone(), &settings, inputs) {
+            Ok(x) => x,
+            Err(e) => {
+                error!(logger, "Initializing sources failed: {}", e);
+                return 0;
+            }
+        };
 
     let retval = tokio::select! {
         x = sources.run() => {
-            match x {
-                Ok(_) => {
-                    info!(logger, "Some task finished, exit.");
-                    0
-                },
-                Err(_) => {
-                    info!(logger, "Some task failed, exit.");
-                    1
-                }
-            }
+            check_task_result(x, &logger)
         }
-        // TODO: dedup this
         x = processors.run() => {
-            match x {
-                Ok(_) => {
-                    info!(logger, "Some task finished, exit.");
-                    0
-                },
-                Err(_) => {
-                    info!(logger, "Some task failed, exit.");
-                    1
-                }
-            }
+            check_task_result(x, &logger)
         }
         _ = server => {
             info!(logger, "server!!!");
@@ -268,12 +279,12 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         }
     };
 
-    if let Err(e) = sources.cancel() {
-        error!(logger, "Canceling sources failed: {}", e);
+    let (source_result, processor_result) = tokio::join! {
+        shutdown_group(sources, &logger),
+        shutdown_group(processors, &logger),
+    };
+    if source_result.is_err() || processor_result.is_err() {
         return 2;
     }
-    if sources.run().await.is_err() {
-        error!(logger, "Error occured during sources shutdown");
-    }
-    return retval;
+    retval
 }

@@ -46,6 +46,7 @@ pub enum InfluxSeriesResult<T> {
 
 #[derive(Clone, Debug)]
 pub enum Model {
+    None,
     Battery(Battery),
     BidirectionalMeter(BidirectionalMeter),
     Generator(Generator),

@@ -15,11 +15,63 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::settings::Settings;
-use crate::task_group::TaskGroup;
+use crate::models::Model;
+use crate::settings::{Processor, Settings};
+use crate::sinks::ArcSink;
+use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskState};
+use crate::task_loop;
 use slog::Logger;
+use std::collections::BTreeMap;
+use tokio::sync::watch;
 
-// TODO: add dummy processor for testing
-pub fn new(logger: Logger, settings: &Settings) -> Result<TaskGroup, String> {
-    Err("Not implemented yet".into())
+mod debug;
+
+pub use debug::DebugProcessor;
+
+pub struct ProcessorBase {
+    name: String,
+    canceled: watch::Receiver<TaskState>,
+    logger: Logger,
+}
+
+impl ProcessorBase {
+    pub fn new(
+        name: String,
+        canceled: watch::Receiver<TaskState>,
+        logger: Logger,
+    ) -> Self {
+        Self {
+            name,
+            canceled,
+            logger,
+        }
+    }
+}
+
+pub fn processor_tasks(
+    logger: Logger,
+    settings: &Settings,
+) -> Result<(TaskGroup, BTreeMap<String, watch::Sender<Model>>), String> {
+    let mut inputs = BTreeMap::<String, watch::Sender<Model>>::new();
+    let tasks = TaskGroupBuilder::new("processors".into(), logger.clone());
+
+    for processor in &settings.processors {
+        match processor {
+            Processor::Debug(settings) => {
+                let (output, input) = watch::channel(Model::None);
+                let mut debug = DebugProcessor::new(
+                    ProcessorBase::new(
+                        settings.name.clone(),
+                        tasks.cancel_rx(),
+                        logger.clone(),
+                    ),
+                    input,
+                );
+                inputs.insert(settings.name.clone(), output);
+                tasks.add_task(task_loop!(debug));
+            }
+        }
+    }
+
+    Ok((tasks.build(), inputs))
 }

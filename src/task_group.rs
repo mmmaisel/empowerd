@@ -108,6 +108,10 @@ impl TaskGroup {
         }
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub async fn run(&mut self) -> Result<(), ()> {
         while let Some(join_result) = self.tasks.next().await {
             let result = match join_result {

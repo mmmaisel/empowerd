@@ -139,6 +139,19 @@ pub enum Source {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct DebugProcessor {
+    pub name: String,
+    pub input: String,
+    pub output: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum Processor {
+    Debug(DebugProcessor),
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub enum Icon {
     Valve,
 }
@@ -180,6 +193,8 @@ pub struct Settings {
 
     #[serde(rename = "source")]
     pub sources: Vec<Source>,
+    #[serde(rename = "processor")]
+    pub processors: Vec<Processor>,
     #[serde(rename = "sink")]
     pub sinks: Vec<Sink>,
 }
@@ -195,6 +210,7 @@ impl Default for Settings {
             database: Database::default(),
             graphql: GraphQL::default(),
             sources: Vec::new(),
+            processors: Vec::new(),
             sinks: Vec::new(),
         }
     }
