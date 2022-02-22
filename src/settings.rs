@@ -166,6 +166,11 @@ impl std::fmt::Display for Icon {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct DebugSink {
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct Gpio {
     pub name: String,
     pub icon: Icon,
@@ -177,6 +182,7 @@ pub struct Gpio {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum Sink {
+    Debug(DebugSink),
     Gpio(Gpio),
 }
 

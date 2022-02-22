@@ -15,7 +15,44 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use crate::settings::{Settings, Sink};
+use slog::Logger;
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
-// TODO: add dummy processor for testing
+pub mod debug;
 pub mod gpio_switch;
 pub mod ke_contact;
+
+pub use debug::DebugSink;
+pub use gpio_switch::GpioSwitch;
+pub use ke_contact::KeContactSink;
+
+#[derive(Clone)]
+pub enum ArcSink {
+    Debug(Arc<DebugSink>),
+    //GpioSwitch(Arc<GpioSwitch>), should be GpioPin
+}
+
+pub fn make_sinks(
+    logger: Logger,
+    settings: &Settings,
+) -> Result<BTreeMap<String, ArcSink>, String> {
+    let mut sinks = BTreeMap::new();
+    for sink in &settings.sinks {
+        match sink {
+            Sink::Debug(settings) => {
+                let debug =
+                    DebugSink::new(settings.name.clone(), logger.clone());
+                sinks.insert(
+                    settings.name.clone(),
+                    ArcSink::Debug(Arc::new(debug)),
+                );
+            }
+            _ => {
+                return Err("Not implemented yet".into());
+            }
+        }
+    }
+    Ok(sinks)
+}

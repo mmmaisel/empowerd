@@ -51,6 +51,7 @@ impl ProcessorBase {
 pub fn processor_tasks(
     logger: Logger,
     settings: &Settings,
+    sinks: BTreeMap<String, ArcSink>,
 ) -> Result<(TaskGroup, BTreeMap<String, watch::Sender<Model>>), String> {
     let mut inputs = BTreeMap::<String, watch::Sender<Model>>::new();
     let tasks = TaskGroupBuilder::new("processors".into(), logger.clone());
@@ -58,17 +59,33 @@ pub fn processor_tasks(
     for processor in &settings.processors {
         match processor {
             Processor::Debug(settings) => {
-                let (output, input) = watch::channel(Model::None);
-                let mut debug = DebugProcessor::new(
-                    ProcessorBase::new(
-                        settings.name.clone(),
-                        tasks.cancel_rx(),
-                        logger.clone(),
-                    ),
-                    input,
-                );
-                inputs.insert(settings.name.clone(), output);
-                tasks.add_task(task_loop!(debug));
+                let sink = match sinks.get(&settings.output) {
+                    Some(x) => x.to_owned(),
+                    None => {
+                        return Err(format!(
+                            "Missing sink for Processor {}",
+                            &settings.name
+                        ))
+                    }
+                };
+                if let ArcSink::Debug(sink) = sink {
+                    let (output, input) = watch::channel(Model::None);
+                    let mut debug = DebugProcessor::new(
+                        ProcessorBase::new(
+                            settings.name.clone(),
+                            tasks.cancel_rx(),
+                            logger.clone(),
+                        ),
+                        input,
+                        sink,
+                    );
+                    inputs.insert(settings.input.clone(), output);
+                    tasks.add_task(task_loop!(debug));
+                } else {
+                    return Err(
+                        "Unsupported sink type for DebugProcessor".into()
+                    );
+                }
             }
         }
     }

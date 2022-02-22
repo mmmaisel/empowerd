@@ -17,23 +17,28 @@
 \******************************************************************************/
 use super::ProcessorBase;
 use crate::models::Model;
+use crate::sinks::debug::DebugSink;
 use crate::task_group::TaskResult;
 use slog::debug;
+use std::sync::Arc;
 use tokio::sync::watch;
 
 pub struct DebugProcessor {
     base: ProcessorBase,
     input: watch::Receiver<Model>,
+    output: Arc<DebugSink>,
 }
 
 impl DebugProcessor {
     pub fn new(
         base: ProcessorBase,
         input: watch::Receiver<Model>,
+        output: Arc<DebugSink>,
     ) -> Self {
         Self {
             base,
             input,
+            output,
         }
     }
 
@@ -55,6 +60,7 @@ impl DebugProcessor {
                     self.base.name,
                     y,
                 );
+                self.output.log_value(y).await;
             }
         };
         TaskResult::Running
