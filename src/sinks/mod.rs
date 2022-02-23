@@ -31,6 +31,7 @@ pub use ke_contact::KeContactSink;
 #[derive(Clone)]
 pub enum ArcSink {
     Debug(Arc<DebugSink>),
+    KeContact(Arc<KeContactSink>),
     //GpioSwitch(Arc<GpioSwitch>), should be GpioPin
 }
 
@@ -41,12 +42,22 @@ pub fn make_sinks(
     let mut sinks = BTreeMap::new();
     for sink in &settings.sinks {
         match sink {
-            Sink::Debug(settings) => {
-                let debug =
-                    DebugSink::new(settings.name.clone(), logger.clone());
+            Sink::Debug(setting) => {
+                let sink = DebugSink::new(setting.name.clone(), logger.clone());
                 sinks.insert(
-                    settings.name.clone(),
-                    ArcSink::Debug(Arc::new(debug)),
+                    setting.name.clone(),
+                    ArcSink::Debug(Arc::new(sink)),
+                );
+            }
+            Sink::KeContact(setting) => {
+                let sink = KeContactSink::new(
+                    setting.name.clone(),
+                    setting.address.clone(),
+                    logger.clone(),
+                )?;
+                sinks.insert(
+                    setting.name.clone(),
+                    ArcSink::KeContact(Arc::new(sink)),
                 );
             }
             _ => {

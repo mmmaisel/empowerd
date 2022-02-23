@@ -186,10 +186,17 @@ pub struct Gpio {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct KeContactSink {
+    pub name: String,
+    pub address: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum Sink {
     Debug(DebugSink),
     Gpio(Gpio),
+    KeContact(KeContactSink),
 }
 
 #[derive(Clone, Debug, Deserialize)]
