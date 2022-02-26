@@ -145,6 +145,12 @@ pub struct DebugProcessor {
     pub output: String,
 }
 
+impl DebugProcessor {
+    fn has_source(&self, source: &str) -> bool {
+        self.input == source
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum Processor {
@@ -223,6 +229,14 @@ impl Default for Settings {
 }
 
 impl Settings {
+    pub fn has_processor(&self, source: &str) -> bool {
+        self.processors.iter().any({
+            |x| match x {
+                Processor::Debug(x) => x.has_source(source),
+            }
+        })
+    }
+
     pub fn load_from_file(filename: &str) -> Result<Settings, String> {
         let toml = std::fs::read_to_string(filename).map_err(|e| {
             format!("Could not read config file '{}': {}", &filename, e)

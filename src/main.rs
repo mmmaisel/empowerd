@@ -244,6 +244,15 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
     let server = Server::bind(&address).serve(new_service);
     info!(logger, "Listening on http://{}", address);
 
+    let (mut sources, outputs) =
+        match sources::polling_tasks(logger.clone(), &settings) {
+            Ok(x) => x,
+            Err(e) => {
+                error!(logger, "Initializing sources failed: {}", e);
+                return 0;
+            }
+        };
+
     let sinks = match sinks::make_sinks(logger.clone(), &settings) {
         Ok(x) => x,
         Err(e) => {
@@ -252,23 +261,18 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         }
     };
 
-    let (mut processors, inputs) =
-        match processors::processor_tasks(logger.clone(), &settings, sinks) {
-            Ok(x) => x,
-            Err(e) => {
-                error!(logger, "Initializing processors failed: {}", e);
-                return 0;
-            }
-        };
-
-    let mut sources =
-        match sources::polling_tasks(logger.clone(), &settings, inputs) {
-            Ok(x) => x,
-            Err(e) => {
-                error!(logger, "Initializing sources failed: {}", e);
-                return 0;
-            }
-        };
+    let mut processors = match processors::processor_tasks(
+        logger.clone(),
+        &settings,
+        outputs,
+        sinks,
+    ) {
+        Ok(x) => x,
+        Err(e) => {
+            error!(logger, "Initializing processors failed: {}", e);
+            return 0;
+        }
+    };
 
     let retval = tokio::select! {
         x = sources.run() => {

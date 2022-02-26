@@ -51,35 +51,42 @@ impl ProcessorBase {
 pub fn processor_tasks(
     logger: Logger,
     settings: &Settings,
+    inputs: BTreeMap<String, watch::Receiver<Model>>,
     sinks: BTreeMap<String, ArcSink>,
-) -> Result<(TaskGroup, BTreeMap<String, watch::Sender<Model>>), String> {
-    let mut inputs = BTreeMap::<String, watch::Sender<Model>>::new();
+) -> Result<TaskGroup, String> {
     let tasks = TaskGroupBuilder::new("processors".into(), logger.clone());
 
     for processor in &settings.processors {
         match processor {
-            Processor::Debug(settings) => {
-                let sink = match sinks.get(&settings.output) {
+            Processor::Debug(setting) => {
+                let sink = match sinks.get(&setting.output) {
                     Some(x) => x.to_owned(),
                     None => {
                         return Err(format!(
                             "Missing sink for Processor {}",
-                            &settings.name
+                            &setting.name
+                        ))
+                    }
+                };
+                let source = match inputs.get(&setting.input) {
+                    Some(x) => x.clone(),
+                    None => {
+                        return Err(format!(
+                            "Missing source for Processor {}",
+                            &setting.name
                         ))
                     }
                 };
                 if let ArcSink::Debug(sink) = sink {
-                    let (output, input) = watch::channel(Model::None);
                     let mut debug = DebugProcessor::new(
                         ProcessorBase::new(
-                            settings.name.clone(),
+                            setting.name.clone(),
                             tasks.cancel_rx(),
                             logger.clone(),
                         ),
-                        input,
+                        source,
                         sink,
                     );
-                    inputs.insert(settings.input.clone(), output);
                     tasks.add_task(task_loop!(debug));
                 } else {
                     return Err(
@@ -90,5 +97,5 @@ pub fn processor_tasks(
         }
     }
 
-    Ok((tasks.build(), inputs))
+    Ok(tasks.build())
 }
