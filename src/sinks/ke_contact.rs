@@ -37,10 +37,14 @@ impl KeContactSink {
     }
 
     pub async fn set_max_current(&self, current: u16) -> Result<(), String> {
-        self.client.set_max_current(current).await
+        self.client.set_max_current(current).await.map_err(|e| {
+            format!("Setting max corrent for {} failed: {}", self.name, e)
+        })
     }
 
     pub async fn set_enable(&self, enabled: bool) -> Result<(), String> {
-        self.client.set_enable(enabled).await
+        self.client.set_enable(enabled).await.map_err(|e| {
+            format!("Setting max corrent for {} failed: {}", self.name, e)
+        })
     }
 }
