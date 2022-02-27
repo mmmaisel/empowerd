@@ -60,8 +60,8 @@ pub fn make_sinks(
                     ArcSink::KeContact(Arc::new(sink)),
                 );
             }
-            _ => {
-                return Err("Not implemented yet".into());
+            Sink::Gpio(_) => {
+                // Ignore Gpio for now, they are handled by GraphQL
             }
         }
     }
