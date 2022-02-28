@@ -206,7 +206,7 @@ pub struct Settings {
     pub pid_file: String,
     pub wrk_dir: String,
     pub logfile: String,
-    pub log_level: u8,
+    pub log_level: sloggers::types::Severity,
     pub database: Database,
     pub graphql: GraphQL,
 
@@ -225,7 +225,7 @@ impl Default for Settings {
             pid_file: "/run/empowerd/pid".into(),
             wrk_dir: "/".into(),
             logfile: "/var/log/empowerd.log".into(),
-            log_level: 0,
+            log_level: sloggers::types::Severity::Info,
             database: Database::default(),
             graphql: GraphQL::default(),
             sources: Vec::new(),

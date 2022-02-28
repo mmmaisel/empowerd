@@ -24,7 +24,7 @@ use slog::{debug, error, info, trace, Logger};
 use sloggers::{
     file::FileLoggerBuilder,
     terminal::{Destination, TerminalLoggerBuilder},
-    types::{OverflowStrategy, Severity},
+    types::OverflowStrategy,
     Build,
 };
 
@@ -91,14 +91,13 @@ fn main() {
     }
 
     let root_logger = if settings.daemonize {
-        // TODO: evaluate log level here
         FileLoggerBuilder::new(&settings.logfile)
-            .level(Severity::Info)
+            .level(settings.log_level)
             .overflow_strategy(OverflowStrategy::Block)
             .build()
     } else {
         TerminalLoggerBuilder::new()
-            .level(Severity::Trace)
+            .level(settings.log_level)
             .overflow_strategy(OverflowStrategy::Block)
             .destination(Destination::Stdout)
             .build()
