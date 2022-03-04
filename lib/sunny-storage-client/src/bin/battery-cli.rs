@@ -17,7 +17,7 @@
 \******************************************************************************/
 #![forbid(unsafe_code)]
 
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use std::net::SocketAddr;
 use tokio_modbus::client::tcp::connect_slave;
 use tokio_modbus::prelude::{Reader, Writer};
@@ -31,17 +31,17 @@ fn watt_to_modbus_s32_fix0(watt: i32) -> Vec<u16> {
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let matches = App::new("Battery-CLI")
+    let matches = Command::new("Battery-CLI")
         .version("0.1")
         .arg(
-            Arg::with_name("address")
-                .short("a")
+            Arg::new("address")
+                .short('a')
                 .long("addr")
                 .help("Target IP address and port")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("power")
+            Arg::new("power")
                 .long("power")
                 .help("Target net power")
                 .takes_value(true),

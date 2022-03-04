@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use hmac::{Hmac, NewMac};
+use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use jwt::VerifyWithKey;
 use ring::rand::{SecureRandom, SystemRandom};
@@ -84,6 +84,7 @@ pub struct SessionManager {
     rand: SystemRandom,
     lifetime: u64,
     // TODO: trace content of sessions
+    // TODO: this should be a tokio::mutex
     sessions: Mutex<HashMap<String, Session>>,
     key: Hmac<Sha256>,
 }
@@ -96,7 +97,7 @@ impl SessionManager {
             return Err(format!("Could not get random key: {}", e));
         }
 
-        let key = Hmac::new_varkey(&key)
+        let key = Hmac::new_from_slice(&key)
             .map_err(|e| format!("Could not create HMAC: {}", e))?;
 
         return Ok(SessionManager {

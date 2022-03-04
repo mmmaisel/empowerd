@@ -78,8 +78,8 @@ juniper = ">=0.15.7"
 hyper = { version = ">=0.14", features = ["server", "runtime"] }
 juniper_hyper = ">=0.8.0"
 
-jwt = "0.10.0"
-hmac = "0.8.1"
+jwt = ">=0.10.0"
+hmac = ">=0.8.1"
 sha2 = "*"
 ring = "*"
 base64 = "*"

@@ -17,24 +17,24 @@
 \******************************************************************************/
 #![forbid(unsafe_code)]
 
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use std::net::SocketAddr;
 use sunspec_client::SunspecClient;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let matches = App::new("Battery-CLI")
+    let matches = Command::new("Battery-CLI")
         .version("0.1")
         .arg(
-            Arg::with_name("address")
-                .short("a")
+            Arg::new("address")
+                .short('a')
                 .long("addr")
                 .help("Target IP address and port")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("id")
-                .short("i")
+            Arg::new("id")
+                .short('i')
                 .long("id")
                 .help("Modbus ID for multiplexed diveces")
                 .takes_value(true),

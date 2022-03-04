@@ -17,7 +17,7 @@
 \******************************************************************************/
 #![forbid(unsafe_code)]
 
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use empowerd::{
     models::Battery, settings::Settings, InfluxObject, InfluxSeriesResult,
 };
@@ -72,39 +72,39 @@ async fn migrate_batch(
 
 #[tokio::main]
 async fn main() {
-    let matches = App::new("Empowerd Migration: convert battery charge")
+    let matches = Command::new("Empowerd Migration: convert battery charge")
         .version("0.3.2")
         .arg(
-            Arg::with_name("config")
-                .short("c")
+            Arg::new("config")
+                .short('c')
                 .long("config")
                 .help("empowerd config file location")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("from")
+            Arg::new("from")
                 .long("from")
                 .help("first timestamp of the data to migrate")
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("to")
+            Arg::new("to")
                 .long("to")
                 .help("last timestamp of the data to migrate")
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("capacity")
+            Arg::new("capacity")
                 .long("capacity")
                 .help("capacity of the battery in Wh")
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("measurement")
-                .short("m")
+            Arg::new("measurement")
+                .short('m')
                 .long("measurement")
                 .help("name of the measurement to migrate")
                 .required(true)
