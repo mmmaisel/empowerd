@@ -24,8 +24,10 @@ use slog::Logger;
 use std::collections::BTreeMap;
 use tokio::sync::watch;
 
+mod charging;
 mod debug;
 
+pub use charging::ChargingProcessor;
 pub use debug::DebugProcessor;
 
 pub struct ProcessorBase {
@@ -78,7 +80,7 @@ pub fn processor_tasks(
                     }
                 };
                 if let ArcSink::Debug(sink) = sink {
-                    let mut debug = DebugProcessor::new(
+                    let mut processor = DebugProcessor::new(
                         ProcessorBase::new(
                             setting.name.clone(),
                             tasks.cancel_rx(),
@@ -87,10 +89,66 @@ pub fn processor_tasks(
                         source,
                         sink,
                     );
-                    tasks.add_task(task_loop!(debug));
+                    tasks.add_task(task_loop!(processor));
                 } else {
                     return Err(
                         "Unsupported sink type for DebugProcessor".into()
+                    );
+                }
+            }
+            Processor::Charging(setting) => {
+                let sink = match sinks.get(&setting.wallbox_output) {
+                    Some(x) => x.to_owned(),
+                    None => {
+                        return Err(format!(
+                            "Missing sink 'wallbox_output' for Processor {}",
+                            &setting.name
+                        ))
+                    }
+                };
+                let meter_source = match inputs.get(&setting.meter_input) {
+                    Some(x) => x.clone(),
+                    None => {
+                        return Err(format!(
+                            "Missing meter for Processor {}",
+                            &setting.name
+                        ))
+                    }
+                };
+                let battery_source = match inputs.get(&setting.battery_input) {
+                    Some(x) => x.clone(),
+                    None => {
+                        return Err(format!(
+                            "Missing battery source for Processor {}",
+                            &setting.name
+                        ))
+                    }
+                };
+                let wallbox_source = match inputs.get(&setting.wallbox_input) {
+                    Some(x) => x.clone(),
+                    None => {
+                        return Err(format!(
+                            "Missing wallbox source for Processor {}",
+                            &setting.name
+                        ))
+                    }
+                };
+                if let ArcSink::KeContact(sink) = sink {
+                    let mut processor = ChargingProcessor::new(
+                        ProcessorBase::new(
+                            setting.name.clone(),
+                            tasks.cancel_rx(),
+                            logger.clone(),
+                        ),
+                        meter_source,
+                        battery_source,
+                        wallbox_source,
+                        sink,
+                    );
+                    tasks.add_task(task_loop!(processor));
+                } else {
+                    return Err(
+                        "Unsupported sink type for ChargingProcessor".into()
                     );
                 }
             }

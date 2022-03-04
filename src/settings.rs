@@ -152,9 +152,27 @@ impl DebugProcessor {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct ChargingProcessor {
+    pub name: String,
+    pub meter_input: String,
+    pub battery_input: String,
+    pub wallbox_input: String,
+    pub wallbox_output: String,
+}
+
+impl ChargingProcessor {
+    fn has_source(&self, source: &str) -> bool {
+        self.meter_input == source
+            || self.battery_input == source
+            || self.wallbox_input == source
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum Processor {
     Debug(DebugProcessor),
+    Charging(ChargingProcessor),
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -240,6 +258,7 @@ impl Settings {
         self.processors.iter().any({
             |x| match x {
                 Processor::Debug(x) => x.has_source(source),
+                Processor::Charging(x) => x.has_source(source),
             }
         })
     }
