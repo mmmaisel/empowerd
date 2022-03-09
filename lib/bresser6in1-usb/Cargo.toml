@@ -9,10 +9,10 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-chrono = "*"
-bytes = "*"
-hidapi = "*"
-slog = "*"
+chrono = ">=0.4.19"
+bytes = ">=1.1.0"
+hidapi = ">=1.3.3"
+slog = ">=2.7"
 
 [dev-dependencies]
 byte-strings = "*"
