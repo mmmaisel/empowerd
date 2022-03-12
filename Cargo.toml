@@ -11,6 +11,7 @@ rust-version = "1.59.0"
 [package.metadata.deb]
 assets = [
     ["target/release/empowerd", "bin/", "755"],
+    ["target/release/modbus-tcp", "bin/", "755"],
     ["target/release/sunspec-enum", "bin/", "755"],
     ["target/release/00001_convert_battery_charge", "usr/libexec/empowerd/", "755"],
     ["data/empowerd.conf", "etc/empowerd/", "600"],
@@ -41,7 +42,8 @@ members = [
     "lib/sunny-storage-client",
     "lib/sunspec-client",
     "lib/usb-reset",
-    "migrations/"
+    "migrations/",
+    "utils/"
 ]
 
 [lib]
