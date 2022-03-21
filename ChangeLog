@@ -1,5 +1,10 @@
-empowerd (0.5.0) bullseye; urgency=low
+empowerd (0.5.1) bullseye; urgency=low
 
+  * Fix issue when no processors are configured.
+
+ -- Max Maisel <max.maisel@posteo.de> Mon, 21 Mar 2022 19:07:00 +0100
+
+empowerd (0.5.0) bullseye; urgency=low
   * Add "processor" concept which allows event driven processing of input
     data.
   * Add KeContact sink.
