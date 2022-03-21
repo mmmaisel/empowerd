@@ -20,15 +20,17 @@ use crate::settings::{Processor, Settings};
 use crate::sinks::ArcSink;
 use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskState};
 use crate::task_loop;
-use slog::Logger;
+use slog::{debug, Logger};
 use std::collections::BTreeMap;
 use tokio::sync::watch;
 
 mod charging;
 mod debug;
+mod dummy;
 
 pub use charging::ChargingProcessor;
 pub use debug::DebugProcessor;
+pub use dummy::DummyProcessor;
 
 pub struct ProcessorBase {
     name: String,
@@ -153,6 +155,16 @@ pub fn processor_tasks(
                 }
             }
         }
+    }
+
+    if !tasks.has_tasks() {
+        debug!(logger, "No processors enabled, using dummy");
+        let mut dummy = DummyProcessor::new(ProcessorBase::new(
+            "dummy".into(),
+            tasks.cancel_rx(),
+            logger,
+        ));
+        tasks.add_task(task_loop!(dummy));
     }
 
     Ok(tasks.build())

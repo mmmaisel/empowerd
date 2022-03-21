@@ -19,7 +19,7 @@ use crate::models::{InfluxObject, InfluxResult, Model};
 use crate::settings::{Settings, Source};
 use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskResult, TaskState};
 use crate::task_loop;
-use slog::{debug, error, trace, warn, Logger};
+use slog::{debug, error, trace, Logger};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 use tokio::sync::watch;
@@ -324,8 +324,8 @@ pub fn polling_tasks(
     }
 
     if !tasks.has_tasks() {
-        warn!(logger, "No sources enabled, using dummy");
-        let mut dummy = dummy::DummySource::new(SourceBase::new(
+        debug!(logger, "No sources enabled, using dummy");
+        let mut dummy = DummySource::new(SourceBase::new(
             "dummy".into(),
             Duration::from_secs(86400),
             influx_client,

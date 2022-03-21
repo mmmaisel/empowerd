@@ -37,7 +37,7 @@ enum RegisterType {
 
 #[derive(Debug, Parser)]
 #[clap(group(ArgGroup::new("rw").required(true).args(&["read", "write"])))]
-#[clap(name="modbus-tcp", version="0.1")]
+#[clap(name = "modbus-tcp", version = "0.1")]
 struct Args {
     /// Device IP address and port
     #[clap(short, long)]
