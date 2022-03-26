@@ -1,4 +1,5 @@
 /var/log/empowerd/empowerd.log {
+  su empowerd adm
   rotate 12
   daily
   compress
