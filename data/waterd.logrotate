@@ -1,7 +1,0 @@
-/var/log/waterd/waterd.log {
-  rotate 12
-  daily
-  compress
-  missingok
-  notifempty
-}
