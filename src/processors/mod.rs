@@ -146,6 +146,7 @@ pub fn processor_tasks(
                         battery_source,
                         wallbox_source,
                         sink,
+                        setting.tau,
                     );
                     tasks.add_task(task_loop!(processor));
                 } else {

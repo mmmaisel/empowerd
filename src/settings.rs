@@ -158,6 +158,7 @@ pub struct ChargingProcessor {
     pub battery_input: String,
     pub wallbox_input: String,
     pub wallbox_output: String,
+    pub tau: f64,
 }
 
 impl ChargingProcessor {

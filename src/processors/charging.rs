@@ -19,6 +19,7 @@ use super::ProcessorBase;
 use crate::models::Model;
 use crate::sinks::ke_contact::KeContactSink;
 use crate::task_group::TaskResult;
+use chrono::{DateTime, Utc};
 use slog::{debug, error, warn};
 use std::sync::Arc;
 use tokio::sync::watch;
@@ -30,6 +31,9 @@ pub struct ChargingProcessor {
     wallbox_input: watch::Receiver<Model>,
     wallbox_output: Arc<KeContactSink>,
     skipped_events: u8,
+    charging_power: f64,
+    last_execution: DateTime<Utc>,
+    tau: f64,
 }
 
 impl ChargingProcessor {
@@ -39,6 +43,7 @@ impl ChargingProcessor {
         battery_input: watch::Receiver<Model>,
         wallbox_input: watch::Receiver<Model>,
         wallbox_output: Arc<KeContactSink>,
+        tau: f64,
     ) -> Self {
         Self {
             base,
@@ -47,6 +52,9 @@ impl ChargingProcessor {
             wallbox_input,
             wallbox_output,
             skipped_events: 0,
+            charging_power: 0.0,
+            last_execution: Utc::now(),
+            tau,
         }
     }
 
@@ -134,12 +142,16 @@ impl ChargingProcessor {
         }
         self.skipped_events = 0;
 
-        // TODO: reduce slew rate: PID control
-        let charging_power =
-            (wallbox.power + battery.power - meter.power).clamp(0.0, 16000.0);
+        self.charging_power += ((wallbox.time - self.last_execution)
+            .num_milliseconds() as f64
+            / 1000.0)
+            / self.tau
+            * ((wallbox.power + battery.power - meter.power)
+                - self.charging_power)
+                .clamp(0.0, 16000.0);
 
-        if charging_power < 6.0 * 230.0 && wallbox.power < 10.0
-            || charging_power < 7.0 * 230.0 && wallbox.power >= 10.0
+        if self.charging_power < 6.0 * 230.0 && wallbox.power < 10.0
+            || self.charging_power < 7.0 * 230.0 && wallbox.power >= 10.0
         {
             debug!(self.base.logger, "Disable charging");
             if let Err(e) = self.wallbox_output.set_enable(false).await {
@@ -147,7 +159,8 @@ impl ChargingProcessor {
                 return TaskResult::Running;
             }
         } else {
-            let charging_current = (charging_power / 230.0 * 1000.0) as u16;
+            let charging_current =
+                (self.charging_power / 230.0 * 1000.0) as u16;
             debug!(self.base.logger, "Set current to {} mA", charging_current);
             if let Err(e) =
                 self.wallbox_output.set_max_current(charging_current).await
