@@ -1,3 +1,10 @@
+empowerd (0.5.2) bullseye; urgency=low
+
+  * Add logs to "adm" group.
+  * Add PT1 filter to charging controller.
+
+ -- Max Maisel <max.maisel@posteo.de> Fri, 8 Apr 2022 17:48:00 +0200
+
 empowerd (0.5.1) bullseye; urgency=low
 
   * Fix issue when no processors are configured.
