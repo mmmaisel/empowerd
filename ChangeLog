@@ -1,3 +1,9 @@
+empowerd (0.5.3) bullseye; urgency=low
+
+  * Fix PT1 filter issue.
+
+ -- Max Maisel <max.maisel@posteo.de> Tue, 12 Apr 2022 17:19:00 +0200
+
 empowerd (0.5.2) bullseye; urgency=low
 
   * Add logs to "adm" group.
