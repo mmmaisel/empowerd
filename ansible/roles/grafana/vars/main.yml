@@ -1,0 +1,4 @@
+---
+# TODO: set used grafana version
+grafana_version: "8.1.2"
+grafana_package: "grafana_{{ grafana_version }}_{{ debian_architecture }}.deb"

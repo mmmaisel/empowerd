@@ -1,0 +1,21 @@
+---
+- block:
+  - name: Copy backup script
+    copy:
+      src: "host_vars/{{ inventory_hostname }}/files/backup.sh"
+      dest: "/root/backup.sh"
+      mode: 0500
+      owner: root
+      group: root
+
+  - name: Execute backup script with cron
+    cron:
+      name: Nightly Backup
+      cron_file: /etc/crontab
+      hour: 20
+      minute: 0
+      job: /root/backup.sh
+      user: root
+      state: present
+
+  tags: backup

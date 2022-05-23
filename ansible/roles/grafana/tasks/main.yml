@@ -1,0 +1,73 @@
+---
+- block:
+  - name: Prepare package upload
+    file:
+      dest: "/root/packages/"
+      state: directory
+
+  - name: Upload grafana package
+    copy:
+      src: "packages/{{ grafana_package }}"
+      dest: "/root/packages/{{ grafana_package }}"
+
+  - name: Install grafana package
+    apt:
+      deb: "/root/packages/{{ grafana_package }}"
+      state: present
+
+  - name: Create directories
+    file:
+      dest: "{{ item }}"
+      owner: grafana
+      group: root
+      mode: 0755
+      state: directory
+    with_items:
+      - /srv/grafana
+      - /srv/grafana/dashboards
+      - /srv/grafana/plugins
+      - /srv/grafana/png
+      - /srv/grafana/provisioning
+      - /srv/grafana/provisioning/datasources
+      - /srv/grafana/provisioning/dashboards
+      - /var/log/grafana
+
+  - name: Configure grafana
+    template:
+      src: files/grafana.ini.j2
+      dest: /etc/grafana/grafana.ini
+      mode: 0400
+      owner: grafana
+      group: root
+
+  - name: Remove unnecessary config
+    file:
+      dest: "{{ item }}"
+      state: absent
+    with_items:
+      - /etc/grafana/ldap.toml
+      - /etc/grafana/provisioning
+      - /var/lib/grafana
+
+  - name: Provisioning grafana
+    template:
+      src: "host_vars/{{ inventory_hostname }}/files/{{ item.src }}.j2"
+      dest: "/srv/grafana/provisioning/{{ item.type }}/{{ item.src }}"
+      mode: 0400
+      owner: grafana
+      group: root
+    with_items:
+      - { type: datasources, src: grafana_sources.yml }
+      - { type: dashboards, src: grafana_dashboards.yml }
+
+  - name: Install dashboards
+    copy:
+      src: "host_vars/{{ inventory_hostname }}/files/{{ item }}_dashboard.json"
+      dest: "/srv/grafana/dashboards/{{ item }}_dashboard.json"
+      mode: 0644
+      owner: grafana
+      group: root
+    with_items: "{{ grafana.dashboards }}"
+
+  tags: grafana
+  notify: Restart Grafana

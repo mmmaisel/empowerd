@@ -1,0 +1,45 @@
+port=53
+
+# Never forward plain names (without a dot or domain part)
+domain-needed
+# Never forward addresses in the non-routed address spaces.
+bogus-priv
+# Filter useless windows-originated DNS requests.
+filterwin2k
+
+# Use local domain
+domain={{ dnsmasq_domain }}
+local=/{{ dnsmasq_domain }}/
+strict-order
+
+# Use custom resolvers:
+no-hosts
+no-poll
+no-resolv
+
+{% for item in dnsmasq_servers %}
+server={{ item }}
+{% endfor %}
+
+{% for item in dnsmasq_interfaces %}
+interface={{ item }}
+{% endfor %}
+
+{% if dhcpd_enabled %}
+dhcp-authoritative
+{% endif %}
+
+# Remove the comment to NOT bind to the wildcard address:
+#bind-interfaces
+
+# Enable router advertisement for IPv6:
+#enable-ra
+
+# debugging port
+{% if dhcpd_enabled and dhcp_debug_range is defined%}
+dhcp-range={{ dhcp_debug_range }},3600
+{% endif %}
+
+#no mac in query
+
+conf-dir=/etc/dnsmasq.d/,*.conf

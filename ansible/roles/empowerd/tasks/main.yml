@@ -1,0 +1,28 @@
+---
+- block:
+  - name: Prepare package upload
+    file:
+      dest: "/root/packages/"
+      state: directory
+
+  - name: Upload empowerd package
+    copy:
+      src: "packages/{{ empowerd_package }}"
+      dest: "/root/packages/{{ empowerd_package }}"
+
+  - name: Install empowerd package
+    apt:
+      deb: "/root/packages/{{ empowerd_package }}"
+      state: present
+    notify: Restart empowerd
+
+  - name: Configure empowerd
+    template:
+      src: "host_vars/{{ inventory_hostname }}/files/empowerd.conf.j2"
+      dest: "/etc/empowerd/empowerd.conf"
+      owner: empowerd
+      group: root
+      mode: 0400
+    notify: Restart empowerd
+
+  tags: empowerd

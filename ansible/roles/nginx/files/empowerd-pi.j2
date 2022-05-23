@@ -1,0 +1,13 @@
+server {
+{% for addr in item.listen %}
+  listen {{ addr }}:443 ssl;
+{% endfor %}
+
+  server_name {{ item.server_name }};
+  root {{ item.server_root | default('/srv/www') }};
+  access_log {{ item.server_log | default('/var/log/nginx/access_http.log') }};
+
+  location /grafana {
+    proxy_pass http://127.0.0.1:3000;
+  }
+}

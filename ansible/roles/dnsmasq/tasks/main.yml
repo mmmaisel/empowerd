@@ -1,0 +1,30 @@
+---
+- block:
+  - name: Install dnsmasq
+    apt:
+      name: dnsmasq
+      state: present
+
+  - name: Install common dnsmasq config
+    template:
+      src: "files/{{ item.src }}.j2"
+      dest: "/etc/{{ item.dest }}"
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - { src: dnsmasq.conf, dest: dnsmasq.conf }
+
+  - name: Install specific dnsmasq config
+    template:
+      src: "group_vars/dnsmasq_servers/files/{{ item }}.conf.j2"
+      dest: "/etc/dnsmasq.d/{{ item }}.conf"
+      owner: root
+      group: root
+      mode: 0644
+    with_items: "{{ dnsmasq_configs }}"
+  notify:
+    - Clear DHCP cache
+    - Restart dnsmasq
+
+  tags: dnsmasq

@@ -1,0 +1,20 @@
+---
+- block:
+  - name: Install unattended-upgrades
+    apt:
+      name: unattended-upgrades
+      state: present
+
+  - name: Configure unattended-upgrades
+    copy:
+      src: "files/{{ item }}"
+      dest: "/etc/apt/apt.conf.d/{{ item }}"
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - 20auto-upgrades
+      - 50unattended-upgrades
+
+  tags: unattended-upgrades
+  notify: Restart unattended-upgrades

@@ -1,0 +1,4 @@
+---
+# TODO: set used empowerd version
+empowerd_version: "0.3.1"
+empowerd_package: "empowerd_{{ empowerd_version }}_{{ debian_architecture }}.deb"

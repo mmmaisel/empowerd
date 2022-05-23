@@ -1,0 +1,8 @@
+---
+ssl_certificate: /etc/nginx/cert.pem
+ssl_certificate_key: /etc/nginx/key.pem
+nginx_certs:
+  - type: cert
+    src: 'host_vars/{{ inventory_hostname }}/files/nginx.cert.pem'
+  - type: key
+    src: 'host_vars/{{ inventory_hostname }}/files/nginx.key.pem'

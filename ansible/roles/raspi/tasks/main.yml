@@ -1,0 +1,13 @@
+---
+- block:
+  - name: Disable root login
+    user:
+      name: root
+      password: "!"
+
+  - name: Remove pi_nopasswd sudoers entry
+    file:
+      path: '/etc/sudoers.d/010_pi-nopasswd'
+      state: absent
+
+  tags: raspi

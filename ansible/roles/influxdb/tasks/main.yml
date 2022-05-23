@@ -1,0 +1,81 @@
+---
+- block:
+  - name: Install influxdb
+    apt:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - influxdb
+      - influxdb-client
+
+  - name: Configure influxdb
+    template:
+      src: "files/influxdb.conf.j2"
+      dest: "/etc/influxdb/influxdb.conf"
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Create influxdb directories
+    file:
+      dest: "{{ influxdb.root_dir}}/{{ item }}"
+      owner: influxdb
+      group: influxdb
+      mode: 0750
+      state: directory
+    with_items:
+      - "data"
+      - "meta"
+      - "wal"
+
+  - name: Restart influxdb
+    systemd:
+      name: influxdb
+      enabled: true
+      masked: false
+      state: restarted
+      daemon_reload: true
+
+  - name: Try to enumerate influxdb users
+    command:
+      cmd: "influx -execute 'SHOW USERS'"
+    register: result
+    failed_when: false
+    changed_when: false
+    check_mode: false
+
+  - name: Create influxdb admin user
+    command:
+      cmd: >-
+        influx -execute "CREATE USER admin WITH PASSWORD
+        '{{ influxdb.password }}' WITH ALL PRIVILEGES"
+    when: "'create admin user first or disable authentication' in result.stdout"
+
+  - name: Create influx databases
+    command:
+      cmd: >-
+        influx -username admin -password '{{ influxdb.password }}'
+        -execute "CREATE DATABASE {{ item }}"
+    with_items:
+      "{{ influxdb.databases }}"
+
+  - name: Create influxdb users
+    command:
+      cmd: >-
+        influx -username admin -password '{{ influxdb.password }}'
+        -execute "CREATE USER \"{{ item.key }}\" WITH PASSWORD
+        '{{ item.value.password }}'"
+    with_items:
+      "{{ influxdb.users | dict2items }}"
+    no_log: true
+
+  - name: Set influxdb user permissions
+    command:
+      cmd: >-
+        influx -username admin -password '{{ influxdb.password }}'
+        -execute 'GRANT ALL ON "{{ item.value.database }}" TO "{{ item.key }}"'
+    with_items:
+      "{{ influxdb.users | dict2items }}"
+    no_log: true
+
+  tags: influxdb

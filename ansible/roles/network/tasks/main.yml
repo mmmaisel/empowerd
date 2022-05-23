@@ -1,0 +1,55 @@
+---
+- name: Set hostname
+  hostname:
+    name: "{{ inventory_hostname }}"
+    use: debian
+  tags: hostname
+
+- name: Update /etc/hosts
+  template:
+    src: 'files/hosts.j2'
+    dest: '/etc/hosts'
+    owner: root
+    group: root
+    mode: 0644
+  tags: hostname
+
+- name: Configure network
+  systemd_networkd:
+    networks: "{{ networks }}"
+    mode: 0644
+    owner: root
+    group: root
+  tags: network_interfaces
+  notify: Restart systemd-networkd
+
+- name: Configure resolved
+  copy:
+    src: files/resolved.conf
+    dest: /etc/systemd/resolved.conf
+    mode: 0644
+    owner: root
+    group: root
+  tags: network_resolved
+  notify: Restart systemd-resolved
+
+- name: Enable rp_filter
+  sysctl:
+    name: "{{ item }}"
+    value: 1
+    state: present
+    sysctl_set: true
+    reload: yes
+  with_items:
+    - "net.ipv4.conf.default.rp_filter"
+    - "net.ipv4.conf.all.rp_filter"
+  tags: network_sysctl
+
+- name: Configure routing
+  sysctl:
+    name: "net.ipv4.ip_forward"
+    value: "{{ 1 if (enable_routing | default(false)) else 0 }}"
+    state: present
+    sysctl_set: true
+    reload: yes
+  tags: network_sysctl

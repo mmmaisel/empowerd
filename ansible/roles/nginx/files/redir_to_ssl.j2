@@ -1,0 +1,16 @@
+server {
+{% for addr in item.listen %}
+  listen {{ addr }}:80;
+{% endfor %}
+
+  server_name {{ item.server_name }};
+  root {{ item.server_root | default('/srv/www') }};
+  access_log {{ item.server_log | default('/var/log/nginx/access_http.log') }};
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+  location /.well-known {
+    try_files $uri =404;
+  }
+}

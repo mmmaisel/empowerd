@@ -1,0 +1,155 @@
+[paths]
+data = /srv/grafana
+logs = /var/log/grafana
+plugins = /srv/grafana/plugins
+provisioning = /srv/grafana/provisioning
+
+[server]
+protocol = http
+http_addr = 127.0.0.1
+http_port = 3000
+domain = {{ grafana.domain }}
+root_url = %(protocol)s://%(domain)s:%(http_port)s/{{ grafana.url }}
+serve_from_sub_path = true
+enable_gzip = true
+
+[database]
+type = sqlite3
+
+[analytics]
+reporting_enabled = false
+check_for_updates = false
+
+[security]
+disable_initial_admin_creation = false
+admin_user = admin
+admin_password = """{{ grafana.admin_pw }}"""
+secret_key = """{{ grafana.secret }}"""
+disable_gravatar = true
+cookie_secure = true
+cookie_samesite = strict
+content_security_policy = true
+content_security_policy_template = """script-src 'unsafe-eval' 'strict-dynamic' $NONCE;object-src 'none';font-src 'self';style-src 'self' 'unsafe-inline';img-src 'self' data:;base-uri 'self';connect-src 'self';manifest-src 'self';media-src 'none';form-action 'self';"""
+
+[snapshots]
+external_enabled = false
+public_mode = false
+
+[dashboards]
+versions_to_keep = 20
+min_refresh_interval = 5s
+default_home_dashboard_path = {{ grafana.home_dashboard }}
+
+[users]
+allow_sign_up = false
+allow_org_create = false
+auto_assign_org = true
+auto_assign_org_id = 1
+auto_assign_org_role = Viewer
+verify_email_enabled = false
+
+[auth]
+[auth.anonymous]
+enabled = true
+org_name = Main Org.
+org_role = Viewer
+
+[auth.github]
+enabled = false
+
+[auth.gitlab]
+enabled = false
+
+[auth.google]
+enabled = false
+
+[auth.grafana_com]
+enabled = false
+
+[auth.azuread]
+enabled = false
+
+[auth.okta]
+enabled = false
+
+[auth.generic_oauth]
+enabled = false
+
+[auth.basic]
+enabled = true
+
+[auth.proxy]
+enabled = false
+
+[auth.ldap]
+enabled = false
+
+[aws]
+allowed_auth_providers =
+assume_role_enabled = false
+
+[smtp]
+enabled = false
+
+[emails]
+welcome_email_on_sign_up = false
+
+[log]
+mode = console file
+level = info
+
+[log.file]
+log_rotate = true
+max_lines = 1000000
+max_size_shift = 28
+daily_rotate = true
+max_days = 7
+
+[log.frontend]
+enabled = false
+
+[quota]
+enabled = false
+
+[alerting]
+enabled = false
+
+[explore]
+enabled = false
+
+[metrics]
+enabled = false
+disable_total_stats = true
+
+[metrics.graphite]
+address =
+
+[grafana_com]
+url =
+
+[tracing.jaeger]
+address =
+
+[external_image_storage]
+provider =
+
+[external_image_storage.local]
+
+[feature_toggles]
+enable =
+
+[date_formats]
+full_date = DD.MM.YYYY HH:mm:ss
+
+interval_second = HH:mm:ss
+interval_minute = HH:mm
+interval_hour = DD.MM HH:mm
+interval_day = DD.MM
+interval_month = MM.YYYY
+interval_year = YYYY
+
+use_browser_locale = true
+default_timezone = browser
+
+[expressions]
+enabled = false

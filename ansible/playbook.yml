@@ -1,0 +1,14 @@
+---
+- hosts: empowerd-pi
+  roles:
+    - network
+    - raspi
+    - sshd
+    - unattended-upgrades
+    - dnsmasq
+    - influxdb
+    - grafana
+    - nginx
+    - ntp
+    - empowerd
+    - backup

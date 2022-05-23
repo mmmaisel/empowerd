@@ -1,0 +1,32 @@
+---
+- block:
+  - name: Install sshd
+    apt:
+      name: openssh-server
+      force_apt_get: true
+      state: present
+      install_recommends: false
+
+  - name: Configure sshd
+    template:
+      src: files/sshd_config.j2
+      dest: /etc/ssh/sshd_config
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Generate secure hostkey
+    shell:
+      cmd: "ssh-keygen -b 4096 -N '' -f /etc/ssh/ssh_host_rsa_4096_key"
+      creates: /etc/ssh/ssh_host_rsa_4096_key
+
+  - name: Set systemd to autorestart mode if network is not ready
+    copy:
+      src: files/sshd.service
+      dest: /etc/systemd/system/sshd.service
+      owner: root
+      group: root
+      mode: 0644
+
+  tags: sshd
+  notify: Restart sshd

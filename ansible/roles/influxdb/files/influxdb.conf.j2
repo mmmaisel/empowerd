@@ -1,0 +1,45 @@
+[meta]
+  dir = "{{ influxdb.root_dir }}/meta"
+
+[data]
+  dir = "{{ influxdb.root_dir }}/data"
+  wal-dir = "{{ influxdb.root_dir }}/wal"
+
+[coordinator]
+
+[retention]
+
+[shard-precreation]
+
+[monitor]
+
+[http]
+  enabled = true
+  bind-address = "{{ influxdb.bind_addr }}"
+  auth-enabled = true
+  realm = "InfluxDB"
+  https-enabled = false
+
+[ifql]
+
+[logging]
+  level = "warn"
+
+[subscriber]
+
+[[graphite]]
+  enabled = false
+
+[[collectd]]
+  enabled = false
+
+[[opentsdb]]
+  enabled = false
+
+[[udp]]
+  enabled = false
+
+[continuous_queries]
+  enabled = false
+
+[tls]

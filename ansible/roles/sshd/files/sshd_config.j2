@@ -1,0 +1,33 @@
+Port 22
+AddressFamily any
+{% for addr in sshd.listen %}
+ListenAddress {{ addr }}
+{% endfor %}
+
+HostKey /etc/ssh/ssh_host_rsa_4096_key
+PermitRootLogin no
+StrictModes yes
+
+LoginGraceTime 1m
+ClientAliveInterval 60
+ClientAliveCountMax 3
+
+PasswordAuthentication yes
+PermitEmptyPasswords no
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+ChallengeResponseAuthentication no
+HostbasedAuthentication no
+
+UsePAM yes
+X11Forwarding {{ "yes" if sshd.x11_forwarding | default(false) else "no" }}
+AllowAgentForwarding {{ "yes" if sshd.agent_forwarding | default(false) else "no" }}
+AllowTcpForwarding {{ "yes" if sshd.tcp_forwarding | default(false) else "no" }}
+TCPKeepAlive yes
+
+AcceptEnv LANG LC_*
+Subsystem sftp internal-sftp
+
+{% if sshd.extra_config is defined %}
+{{ sshd.extra_config }}
+{% endif %}

@@ -1,0 +1,8 @@
+---
+- name: Restart unattended-upgrades
+  systemd:
+    name: apt-daily-upgrade.timer
+    enabled: true
+    masked: false
+    state: restarted
+    daemon_reload: true

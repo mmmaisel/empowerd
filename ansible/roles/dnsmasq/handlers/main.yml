@@ -1,0 +1,13 @@
+---
+- name: Clear DHCP cache
+  file:
+    dest: /var/lib/misc/dnsmasq.leases
+    state: absent
+
+- name: Restart dnsmasq
+  systemd:
+    name: dnsmasq
+    enabled: true
+    masked: false
+    state: restarted
+    daemon_reload: true

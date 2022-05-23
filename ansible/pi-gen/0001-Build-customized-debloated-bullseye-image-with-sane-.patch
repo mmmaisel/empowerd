@@ -1,0 +1,216 @@
+From ec46be714b44dc4a9a6a035c283a0d2d879403b2 Mon Sep 17 00:00:00 2001
+From: Max <max.maisel@posteo.de>
+Date: Sat, 28 Dec 2019 10:28:55 +0100
+Subject: [PATCH] Build customized, debloated bullseye image with sane network
+ defaults.
+
+---
+ config                                        | 15 +++++++++++
+ export-image/02-network/files/resolv.conf     |  2 +-
+ stage1/00-boot-files/files/config.txt         |  1 +
+ stage2/01-sys-tweaks/00-packages              | 21 +++++----------
+ stage2/01-sys-tweaks/00-patches/02-swap.diff  | 13 ---------
+ stage2/01-sys-tweaks/00-patches/series        |  1 -
+ stage2/02-net-tweaks/00-packages              |  5 ++--
+ stage2/02-net-tweaks/01-run.sh                | 27 ++++---------------
+ stage2/02-net-tweaks/files/10-eth0.network    |  5 ++++
+ stage2/02-net-tweaks/files/wait.conf          |  3 ---
+ .../02-net-tweaks/files/wpa_supplicant.conf   |  2 --
+ stage2/03-accept-mathematica-eula/00-debconf  |  2 --
+ 12 files changed, 36 insertions(+), 61 deletions(-)
+ create mode 100644 config
+ delete mode 100644 stage2/01-sys-tweaks/00-patches/02-swap.diff
+ create mode 100644 stage2/02-net-tweaks/files/10-eth0.network
+ delete mode 100644 stage2/02-net-tweaks/files/wait.conf
+ delete mode 100644 stage2/02-net-tweaks/files/wpa_supplicant.conf
+ delete mode 100644 stage2/03-accept-mathematica-eula/00-debconf
+
+diff --git a/config b/config
+new file mode 100644
+index 0000000..d07fe30
+--- /dev/null
++++ b/config
+@@ -0,0 +1,15 @@
++#!/bin/bash
++
++export IMG_NAME="Raspbian-11-custom"
++export RELEASE="bullseye"
++export STAGE_LIST="stage0 stage1 stage2"
++
++export HOSTNAME="empowerd-pi"
++
++export ENABLE_SSH=1
+diff --git a/export-image/02-network/files/resolv.conf b/export-image/02-network/files/resolv.conf
+index cae093a..79c29fe 100644
+--- a/export-image/02-network/files/resolv.conf
++++ b/export-image/02-network/files/resolv.conf
+@@ -1 +1 @@
+-nameserver 8.8.8.8
++nameserver 192.168.2.1
+diff --git a/stage1/00-boot-files/files/config.txt b/stage1/00-boot-files/files/config.txt
+index 548f4ac..c8ac91f 100644
+--- a/stage1/00-boot-files/files/config.txt
++++ b/stage1/00-boot-files/files/config.txt
+@@ -63,3 +63,4 @@ max_framebuffers=2
+ 
+ [all]
+ #dtoverlay=vc4-fkms-v3d
++enable_uart=1
+diff --git a/stage2/01-sys-tweaks/00-packages b/stage2/01-sys-tweaks/00-packages
+index a1f4b59..9f13960 100644
+--- a/stage2/01-sys-tweaks/00-packages
++++ b/stage2/01-sys-tweaks/00-packages
+@@ -1,19 +1,11 @@
+-ssh less fbset sudo psmisc strace ed ncdu crda
+-console-setup keyboard-configuration debconf-utils parted unzip
+-build-essential manpages-dev python bash-completion gdb pkg-config
+-python-rpi.gpio v4l-utils
+-python-gpiozero
+-python3-gpiozero
+-avahi-daemon
+-lua5.1
+-luajit
++ssh less fbset sudo psmisc strace ncdu crda
++console-setup keyboard-configuration debconf-utils unzip
++manpages-dev python bash-completion pkg-config
+ hardlink ca-certificates curl
+-fake-hwclock nfs-common usbutils
++fake-hwclock usbutils
+ libraspberrypi-dev libraspberrypi-doc libfreetype6-dev
+ dosfstools
+-dphys-swapfile
+ raspberrypi-sys-mods
+-pi-bluetooth
+ apt-listchanges
+ usb-modeswitch
+ libpam-chksshpwd
+@@ -26,8 +18,9 @@ policykit-1
+ ssh-import-id
+ rng-tools
+ ethtool
+-vl805fw
+-ntfs-3g
+ pciutils
+ rpi-eeprom
+ raspinfo
++vlan
++tmux
++vim
+diff --git a/stage2/01-sys-tweaks/00-patches/02-swap.diff b/stage2/01-sys-tweaks/00-patches/02-swap.diff
+deleted file mode 100644
+index 745a344..0000000
+--- a/stage2/01-sys-tweaks/00-patches/02-swap.diff
++++ /dev/null
+@@ -1,13 +0,0 @@
+-Index: jessie-stage2/rootfs/etc/dphys-swapfile
+-===================================================================
+---- jessie-stage2.orig/rootfs/etc/dphys-swapfile
+-+++ jessie-stage2/rootfs/etc/dphys-swapfile
+-@@ -13,7 +13,7 @@
+- 
+- # set size to absolute value, leaving empty (default) then uses computed value
+- #   you most likely don't want this, unless you have an special disk situation
+--#CONF_SWAPSIZE=
+-+CONF_SWAPSIZE=100
+- 
+- # set size to computed value, this times RAM size, dynamically adapts,
+- #   guarantees that there is enough swap without wasting disk space on excess
+diff --git a/stage2/01-sys-tweaks/00-patches/series b/stage2/01-sys-tweaks/00-patches/series
+index aee0402..c5d8e4b 100644
+--- a/stage2/01-sys-tweaks/00-patches/series
++++ b/stage2/01-sys-tweaks/00-patches/series
+@@ -1,5 +1,4 @@
+ 01-useradd.diff
+-02-swap.diff
+ 04-inputrc.diff
+ 05-path.diff
+ 07-resize-init.diff
+diff --git a/stage2/02-net-tweaks/00-packages b/stage2/02-net-tweaks/00-packages
+index cc4a68e..c9e8f1b 100644
+--- a/stage2/02-net-tweaks/00-packages
++++ b/stage2/02-net-tweaks/00-packages
+@@ -1,4 +1,3 @@
+-wpasupplicant wireless-tools firmware-atheros firmware-brcm80211 firmware-libertas firmware-misc-nonfree firmware-realtek
++firmware-atheros firmware-brcm80211 firmware-libertas firmware-misc-nonfree firmware-realtek
+ raspberrypi-net-mods
+-dhcpcd5
+-net-tools
++dnsutils
+diff --git a/stage2/02-net-tweaks/01-run.sh b/stage2/02-net-tweaks/01-run.sh
+index d82381b..3cc0ce4 100755
+--- a/stage2/02-net-tweaks/01-run.sh
++++ b/stage2/02-net-tweaks/01-run.sh
+@@ -1,29 +1,12 @@
+ #!/bin/bash -e
+ 
+-install -v -d					"${ROOTFS_DIR}/etc/systemd/system/dhcpcd.service.d"
+-install -v -m 644 files/wait.conf		"${ROOTFS_DIR}/etc/systemd/system/dhcpcd.service.d/"
++install -m 644 files/10-eth0.network "${ROOTFS_DIR}/etc/systemd/network/"
+ 
+-install -v -d					"${ROOTFS_DIR}/etc/wpa_supplicant"
+-install -v -m 600 files/wpa_supplicant.conf	"${ROOTFS_DIR}/etc/wpa_supplicant/"
+-
+-if [ -v WPA_COUNTRY ]; then
+-	echo "country=${WPA_COUNTRY}" >> "${ROOTFS_DIR}/etc/wpa_supplicant/wpa_supplicant.conf"
+-fi
+-
+-if [ -v WPA_ESSID ] && [ -v WPA_PASSWORD ]; then
+-on_chroot <<EOF
+-set -o pipefail
+-wpa_passphrase "${WPA_ESSID}" "${WPA_PASSWORD}" | tee -a "/etc/wpa_supplicant/wpa_supplicant.conf"
++on_chroot << EOF
++systemctl enable systemd-networkd
++systemctl enable systemd-resolved
++systemctl disable dhcpcd
+ EOF
+-elif [ -v WPA_ESSID ]; then
+-cat >> "${ROOTFS_DIR}/etc/wpa_supplicant/wpa_supplicant.conf" << EOL
+-
+-network={
+-	ssid="${WPA_ESSID}"
+-	key_mgmt=NONE
+-}
+-EOL
+-fi
+ 
+ # Disable wifi on 5GHz models if WPA_COUNTRY is not set
+ mkdir -p "${ROOTFS_DIR}/var/lib/systemd/rfkill/"
+diff --git a/stage2/02-net-tweaks/files/10-eth0.network b/stage2/02-net-tweaks/files/10-eth0.network
+new file mode 100644
+index 0000000..457d565
+--- /dev/null
++++ b/stage2/02-net-tweaks/files/10-eth0.network
+@@ -0,0 +1,5 @@
++[Match]
++Name=eth0
++
++[Network]
++DHCP=ipv4
+diff --git a/stage2/02-net-tweaks/files/wait.conf b/stage2/02-net-tweaks/files/wait.conf
+deleted file mode 100644
+index 595cc2d..0000000
+--- a/stage2/02-net-tweaks/files/wait.conf
++++ /dev/null
+@@ -1,3 +0,0 @@
+-[Service]
+-ExecStart=
+-ExecStart=/usr/lib/dhcpcd5/dhcpcd -q -w
+diff --git a/stage2/02-net-tweaks/files/wpa_supplicant.conf b/stage2/02-net-tweaks/files/wpa_supplicant.conf
+deleted file mode 100644
+index 0fc335e..0000000
+--- a/stage2/02-net-tweaks/files/wpa_supplicant.conf
++++ /dev/null
+@@ -1,2 +0,0 @@
+-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+-update_config=1
+diff --git a/stage2/03-accept-mathematica-eula/00-debconf b/stage2/03-accept-mathematica-eula/00-debconf
+deleted file mode 100644
+index d9743fe..0000000
+--- a/stage2/03-accept-mathematica-eula/00-debconf
++++ /dev/null
+@@ -1,2 +0,0 @@
+-# Do you accept the Wolfram - Raspberry Pi® Bundle License Agreement?
+-wolfram-engine  shared/accepted-wolfram-eula    boolean true
+-- 
+2.30.2
+

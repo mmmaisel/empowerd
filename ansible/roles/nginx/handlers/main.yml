@@ -1,0 +1,8 @@
+---
+- name: Restart nginx
+  systemd:
+    name: nginx
+    enabled: true
+    masked: false
+    state: restarted
+    daemon_reload: true
