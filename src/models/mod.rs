@@ -20,12 +20,14 @@ use influxdb::{
     Error, InfluxDbWriteable, Query, ReadQuery, WriteQuery,
 };
 
+pub mod available_power;
 pub mod battery;
 pub mod bidirectional_meter;
 pub mod generator;
 pub mod simple_meter;
 pub mod weather;
 
+pub use available_power::AvailablePower;
 pub use battery::Battery;
 pub use bidirectional_meter::BidirectionalMeter;
 pub use generator::Generator;
@@ -47,11 +49,18 @@ pub enum InfluxSeriesResult<T> {
 #[derive(Clone, Debug)]
 pub enum Model {
     None,
+    AvailablePower(AvailablePower),
     Battery(Battery),
     BidirectionalMeter(BidirectionalMeter),
     Generator(Generator),
     SimpleMeter(SimpleMeter),
     Weather(Weather),
+}
+
+impl From<AvailablePower> for Model {
+    fn from(record: AvailablePower) -> Self {
+        Model::AvailablePower(record)
+    }
 }
 
 impl From<Battery> for Model {
