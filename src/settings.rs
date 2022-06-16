@@ -18,6 +18,7 @@
 use getopts::Options;
 use serde::Deserialize;
 use std::env;
+use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
@@ -138,6 +139,22 @@ pub enum Source {
     Bresser6in1(Bresser6in1),
 }
 
+impl Source {
+    fn get_name(&self) -> &str {
+        match self {
+            Self::Debug(x) => &x.name,
+            Self::SunnyBoyStorage(x) => &x.name,
+            Self::SunnyIsland(x) => &x.name,
+            Self::SunspecSolar(x) => &x.name,
+            Self::DachsMsrS(x) => &x.name,
+            Self::KeContact(x) => &x.name,
+            Self::SmlMeter(x) => &x.name,
+            Self::SunnyBoySpeedwire(x) => &x.name,
+            Self::Bresser6in1(x) => &x.name,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct DebugProcessor {
     pub name: String,
@@ -174,6 +191,15 @@ impl ChargingProcessor {
 pub enum Processor {
     Debug(DebugProcessor),
     Charging(ChargingProcessor),
+}
+
+impl Processor {
+    fn get_name(&self) -> &str {
+        match self  {
+            Self::Debug(x) => &x.name,
+            Self::Charging(x) => &x.name,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -216,6 +242,16 @@ pub enum Sink {
     Debug(DebugSink),
     Gpio(Gpio),
     KeContact(KeContactSink),
+}
+
+impl Sink {
+    fn get_name(&self) -> &str {
+        match self {
+            Self::Debug(x) => &x.name,
+            Self::Gpio(x) => &x.name,
+            Self::KeContact(x) => &x.name,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -272,6 +308,36 @@ impl Settings {
             .map_err(|e| format!("Could not parse config: {}", e));
     }
 
+    fn validate(&self) -> Result<(), String> {
+        let mut names = BTreeSet::new();
+
+        for source in &self.sources {
+            let name = source.get_name();
+            if names.contains(name) {
+                return Err(format!("Duplicate name in config file: '{}'", name));
+            }
+            names.insert(name);
+        }
+
+        for processor in &self.processors {
+            let name = processor.get_name();
+            if names.contains(name) {
+                return Err(format!("Duplicate name in config file: '{}'", name));
+            }
+            names.insert(name);
+        }
+
+        for sink in &self.sinks {
+            let name = sink.get_name();
+            if names.contains(name) {
+                return Err(format!("Duplicate name in config file: '{}'", name));
+            }
+            names.insert(name);
+        }
+
+        Ok(())
+    }
+
     pub fn load() -> Result<Settings, String> {
         let mut options = Options::new();
         options.optopt("c", "", "config filename", "NAME").optflag(
@@ -293,6 +359,7 @@ impl Settings {
             settings.daemonize = false;
         }
 
+        settings.validate()?;
         return Ok(settings);
     }
 }
