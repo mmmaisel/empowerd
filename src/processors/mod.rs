@@ -24,10 +24,12 @@ use slog::{debug, Logger};
 use std::collections::BTreeMap;
 use tokio::sync::watch;
 
+mod available_power;
 mod charging;
 mod debug;
 mod dummy;
 
+pub use available_power::AvailablePowerProcessor;
 pub use charging::ChargingProcessor;
 pub use debug::DebugProcessor;
 pub use dummy::DummyProcessor;
@@ -69,6 +71,46 @@ pub fn processor_tasks(
 
     for processor in &settings.processors {
         match &processor.variant {
+            ProcessorType::AvailablePower(setting) => {
+                let battery_source = match inputs.get(&setting.battery_input) {
+                    Some(x) => x.clone(),
+                    None => {
+                        return Err(format!(
+                            "Missing battery input for Processor {}",
+                            &processor.name
+                        ))
+                    }
+                };
+                let meter_source = match inputs.get(&setting.meter_input) {
+                    Some(x) => x.clone(),
+                    None => {
+                        return Err(format!(
+                            "Missing meter input for Processor {}",
+                            &processor.name
+                        ))
+                    }
+                };
+                let power_output = match outputs.remove(&processor.name) {
+                    Some(x) => x,
+                    None => {
+                        return Err(format!(
+                            "Missing power output for Processor {}",
+                            &processor.name
+                        ))
+                    }
+                };
+                let mut processor = AvailablePowerProcessor::new(
+                    ProcessorBase::new(
+                        processor.name.clone(),
+                        tasks.cancel_rx(),
+                        logger.clone(),
+                    ),
+                    battery_source,
+                    meter_source,
+                    power_output,
+                );
+                tasks.add_task(task_loop!(processor));
+            }
             ProcessorType::Debug(setting) => {
                 let sink = match sinks.get(&setting.output) {
                     Some(x) => x.to_owned(),
@@ -106,33 +148,25 @@ pub fn processor_tasks(
                 }
             }
             ProcessorType::Charging(setting) => {
-                let sink = match sinks.get(&setting.wallbox_output) {
-                    Some(x) => x.to_owned(),
-                    None => {
-                        return Err(format!(
-                            "Missing sink 'wallbox_output' for Processor {}",
-                            &processor.name
-                        ))
-                    }
-                };
-                let meter_source = match inputs.get(&setting.meter_input) {
+                let power_source = match inputs.get(&setting.power_input) {
                     Some(x) => x.clone(),
                     None => {
                         return Err(format!(
-                            "Missing meter for Processor {}",
+                            "Missing power input for Processor {}",
                             &processor.name
                         ))
                     }
                 };
-                let battery_source = match inputs.get(&setting.battery_input) {
-                    Some(x) => x.clone(),
-                    None => {
-                        return Err(format!(
-                            "Missing battery source for Processor {}",
-                            &processor.name
-                        ))
-                    }
-                };
+                let power_sink: watch::Sender<Model> =
+                    match outputs.remove(&processor.name) {
+                        Some(x) => x,
+                        None => {
+                            return Err(format!(
+                                "Missing power output for Processor {}",
+                                &processor.name
+                            ))
+                        }
+                    };
                 let wallbox_source = match inputs.get(&setting.wallbox_input) {
                     Some(x) => x.clone(),
                     None => {
@@ -142,17 +176,26 @@ pub fn processor_tasks(
                         ))
                     }
                 };
-                if let ArcSink::KeContact(sink) = sink {
+                let wallbox_sink = match sinks.get(&setting.wallbox_output) {
+                    Some(x) => x.to_owned(),
+                    None => {
+                        return Err(format!(
+                            "Missing sink 'wallbox_output' for Processor {}",
+                            &processor.name
+                        ))
+                    }
+                };
+                if let ArcSink::KeContact(wallbox_sink) = wallbox_sink {
                     let mut processor = ChargingProcessor::new(
                         ProcessorBase::new(
                             processor.name.clone(),
                             tasks.cancel_rx(),
                             logger.clone(),
                         ),
-                        meter_source,
-                        battery_source,
+                        power_source,
                         wallbox_source,
-                        sink,
+                        power_sink,
+                        wallbox_sink,
                         setting.tau,
                     );
                     tasks.add_task(task_loop!(processor));
