@@ -189,14 +189,7 @@ impl SourceBase {
         T: Clone + Into<Model>,
     {
         if let Some(processors) = &self.processors {
-            if let Err(e) = processors.send(record.clone().into()) {
-                error!(
-                    self.logger,
-                    "Notifying processors from {} failed: {}",
-                    &self.name,
-                    e.to_string()
-                )
-            }
+            processors.send_replace(record.clone().into());
         }
     }
 }

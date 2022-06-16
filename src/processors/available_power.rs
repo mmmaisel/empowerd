@@ -111,14 +111,7 @@ impl AvailablePowerProcessor {
             "Available power: {}", available_power.power
         );
 
-        if let Err(e) = self.power_output.send(available_power.into()) {
-            error!(
-                self.base.logger,
-                "Sending available power from {} failed: {}",
-                &self.base.name,
-                e.to_string()
-            )
-        }
+        self.power_output.send_replace(available_power.into());
 
         TaskResult::Running
     }

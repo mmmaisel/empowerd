@@ -143,15 +143,13 @@ impl ChargingProcessor {
         }
 
         available_power.power -= wallbox.power;
-
-        if let Err(e) = self.power_output.send(available_power.into()) {
-            error!(
-                self.base.logger,
-                "Sending available power from {} failed: {}",
-                &self.base.name,
-                e.to_string()
-            )
-        }
+        debug!(
+            self.base.logger,
+            "Available power after {}: {}",
+            self.base.name,
+            available_power.power
+        );
+        self.power_output.send_replace(available_power.into());
 
         TaskResult::Running
     }
