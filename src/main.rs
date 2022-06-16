@@ -51,7 +51,7 @@ mod task_group;
 use graphql::mutation::Mutation;
 use graphql::query::Query;
 use session_manager::SessionManager;
-use settings::{Settings, Sink};
+use settings::{Settings, SinkType};
 use sinks::gpio_switch::GpioSwitch;
 use task_group::TaskGroup;
 
@@ -162,8 +162,8 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         .sinks
         .clone()
         .into_iter()
-        .filter_map(|sink| match sink {
-            Sink::Gpio(gpio) => Some(gpio),
+        .filter_map(|sink| match sink.variant {
+            SinkType::Gpio(gpio) => Some((sink.name, gpio)),
             _ => None,
         })
         .collect();

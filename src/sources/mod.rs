@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::models::{InfluxObject, InfluxResult, Model};
-use crate::settings::{Settings, Source};
+use crate::settings::{Settings, SourceType};
 use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskResult, TaskState};
 use crate::task_loop;
 use slog::{debug, error, trace, Logger};
@@ -192,7 +192,7 @@ impl SourceBase {
             if let Err(e) = processors.send(record.clone().into()) {
                 error!(
                     self.logger,
-                    "Notifying processors from {:} failed: {}",
+                    "Notifying processors from {} failed: {}",
                     &self.name,
                     e.to_string()
                 )
@@ -220,20 +220,20 @@ pub fn polling_tasks(
             logger.clone(),
         );
 
-        match source {
-            Source::Debug(setting) => {
+        match &source.variant {
+            SourceType::Debug(setting) => {
                 base_builder
-                    .name(setting.name.clone())
+                    .name(source.name.clone())
                     .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&setting.name, settings, &mut outputs);
+                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = DebugSource::new(base_builder.build());
                 tasks.add_task(task_loop!(source));
             }
-            Source::SunnyIsland(setting) => {
+            SourceType::SunnyIsland(setting) => {
                 base_builder
-                    .name(setting.name.clone())
+                    .name(source.name.clone())
                     .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&setting.name, settings, &mut outputs);
+                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SunnyStorageSource::new(
                     base_builder.build(),
                     "sunny_island",
@@ -241,11 +241,11 @@ pub fn polling_tasks(
                 )?;
                 tasks.add_task(task_loop!(source));
             }
-            Source::SunnyBoyStorage(setting) => {
+            SourceType::SunnyBoyStorage(setting) => {
                 base_builder
-                    .name(setting.name.clone())
+                    .name(source.name.clone())
                     .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&setting.name, settings, &mut outputs);
+                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SunnyStorageSource::new(
                     base_builder.build(),
                     "sunny_boy_storage",
@@ -253,11 +253,11 @@ pub fn polling_tasks(
                 )?;
                 tasks.add_task(task_loop!(source));
             }
-            Source::SunspecSolar(setting) => {
+            SourceType::SunspecSolar(setting) => {
                 base_builder
-                    .name(setting.name.clone())
+                    .name(source.name.clone())
                     .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&setting.name, settings, &mut outputs);
+                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SunspecSolarSource::new(
                     base_builder.build(),
                     setting.address.clone(),
@@ -265,11 +265,11 @@ pub fn polling_tasks(
                 )?;
                 tasks.add_task(task_loop!(source));
             }
-            Source::DachsMsrS(setting) => {
+            SourceType::DachsMsrS(setting) => {
                 base_builder
-                    .name(setting.name.clone())
+                    .name(source.name.clone())
                     .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&setting.name, settings, &mut outputs);
+                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = DachsMsrSSource::new(
                     base_builder.build(),
                     setting.address.clone(),
@@ -277,22 +277,22 @@ pub fn polling_tasks(
                 );
                 tasks.add_task(task_loop!(source));
             }
-            Source::KeContact(setting) => {
+            SourceType::KeContact(setting) => {
                 base_builder
-                    .name(setting.name.clone())
+                    .name(source.name.clone())
                     .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&setting.name, settings, &mut outputs);
+                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = KeContactSource::new(
                     base_builder.build(),
                     setting.address.clone(),
                 )?;
                 tasks.add_task(task_loop!(source));
             }
-            Source::SmlMeter(setting) => {
+            SourceType::SmlMeter(setting) => {
                 base_builder
-                    .name(setting.name.clone())
+                    .name(source.name.clone())
                     .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&setting.name, settings, &mut outputs);
+                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SmlMeterSource::new(
                     base_builder.build(),
                     setting.device.clone(),
@@ -300,11 +300,11 @@ pub fn polling_tasks(
                 )?;
                 tasks.add_task(task_loop!(source));
             }
-            Source::SunnyBoySpeedwire(setting) => {
+            SourceType::SunnyBoySpeedwire(setting) => {
                 base_builder
-                    .name(setting.name.clone())
+                    .name(source.name.clone())
                     .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&setting.name, settings, &mut outputs);
+                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SunnyBoySpeedwireSource::new(
                     base_builder.build(),
                     setting.password.clone(),
@@ -312,11 +312,11 @@ pub fn polling_tasks(
                 )?;
                 tasks.add_task(task_loop!(source));
             }
-            Source::Bresser6in1(setting) => {
+            SourceType::Bresser6in1(setting) => {
                 base_builder
-                    .name(setting.name.clone())
+                    .name(source.name.clone())
                     .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&setting.name, settings, &mut outputs);
+                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = Bresser6in1Source::new(base_builder.build());
                 tasks.add_task(task_loop!(source));
             }

@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::settings::{Settings, Sink};
+use crate::settings::{Settings, SinkType};
 use slog::Logger;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -41,26 +41,23 @@ pub fn make_sinks(
 ) -> Result<BTreeMap<String, ArcSink>, String> {
     let mut sinks = BTreeMap::new();
     for sink in &settings.sinks {
-        match sink {
-            Sink::Debug(setting) => {
-                let sink = DebugSink::new(setting.name.clone(), logger.clone());
-                sinks.insert(
-                    setting.name.clone(),
-                    ArcSink::Debug(Arc::new(sink)),
-                );
+        match &sink.variant {
+            SinkType::Debug => {
+                let obj = DebugSink::new(sink.name.clone(), logger.clone());
+                sinks.insert(sink.name.clone(), ArcSink::Debug(Arc::new(obj)));
             }
-            Sink::KeContact(setting) => {
-                let sink = KeContactSink::new(
-                    setting.name.clone(),
+            SinkType::KeContact(setting) => {
+                let obj = KeContactSink::new(
+                    sink.name.clone(),
                     setting.address.clone(),
                     logger.clone(),
                 )?;
                 sinks.insert(
-                    setting.name.clone(),
-                    ArcSink::KeContact(Arc::new(sink)),
+                    sink.name.clone(),
+                    ArcSink::KeContact(Arc::new(obj)),
                 );
             }
-            Sink::Gpio(_) => {
+            SinkType::Gpio(_) => {
                 // Ignore Gpio for now, they are handled by GraphQL
             }
         }

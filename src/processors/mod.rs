@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::models::Model;
-use crate::settings::{Processor, Settings};
+use crate::settings::{ProcessorType, Settings};
 use crate::sinks::ArcSink;
 use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskState};
 use crate::task_loop;
@@ -61,14 +61,14 @@ pub fn processor_tasks(
     let tasks = TaskGroupBuilder::new("processors".into(), logger.clone());
 
     for processor in &settings.processors {
-        match processor {
-            Processor::Debug(setting) => {
+        match &processor.variant {
+            ProcessorType::Debug(setting) => {
                 let sink = match sinks.get(&setting.output) {
                     Some(x) => x.to_owned(),
                     None => {
                         return Err(format!(
                             "Missing sink for Processor {}",
-                            &setting.name
+                            &processor.name
                         ))
                     }
                 };
@@ -77,14 +77,14 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing source for Processor {}",
-                            &setting.name
+                            &processor.name
                         ))
                     }
                 };
                 if let ArcSink::Debug(sink) = sink {
                     let mut processor = DebugProcessor::new(
                         ProcessorBase::new(
-                            setting.name.clone(),
+                            processor.name.clone(),
                             tasks.cancel_rx(),
                             logger.clone(),
                         ),
@@ -98,13 +98,13 @@ pub fn processor_tasks(
                     );
                 }
             }
-            Processor::Charging(setting) => {
+            ProcessorType::Charging(setting) => {
                 let sink = match sinks.get(&setting.wallbox_output) {
                     Some(x) => x.to_owned(),
                     None => {
                         return Err(format!(
                             "Missing sink 'wallbox_output' for Processor {}",
-                            &setting.name
+                            &processor.name
                         ))
                     }
                 };
@@ -113,7 +113,7 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing meter for Processor {}",
-                            &setting.name
+                            &processor.name
                         ))
                     }
                 };
@@ -122,7 +122,7 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing battery source for Processor {}",
-                            &setting.name
+                            &processor.name
                         ))
                     }
                 };
@@ -131,14 +131,14 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing wallbox source for Processor {}",
-                            &setting.name
+                            &processor.name
                         ))
                     }
                 };
                 if let ArcSink::KeContact(sink) = sink {
                     let mut processor = ChargingProcessor::new(
                         ProcessorBase::new(
-                            setting.name.clone(),
+                            processor.name.clone(),
                             tasks.cancel_rx(),
                             logger.clone(),
                         ),

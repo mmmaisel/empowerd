@@ -17,8 +17,8 @@
 \******************************************************************************/
 use getopts::Options;
 use serde::Deserialize;
-use std::env;
 use std::collections::BTreeSet;
+use std::env;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
@@ -62,27 +62,23 @@ impl Default for GraphQL {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DebugSource {
-    pub name: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct SunnyBoyStorage {
-    pub name: String,
     pub address: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct SunnyIsland {
-    pub name: String,
     pub address: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct SunspecSolar {
-    pub name: String,
     pub address: String,
     pub modbus_id: Option<u8>,
     pub poll_interval: u64,
@@ -90,7 +86,6 @@ pub struct SunspecSolar {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DachsMsrS {
-    pub name: String,
     pub address: String,
     pub password: String,
     pub poll_interval: u64,
@@ -98,14 +93,12 @@ pub struct DachsMsrS {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct KeContact {
-    pub name: String,
     pub address: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct SmlMeter {
-    pub name: String,
     pub device: String,
     pub baud: u32,
     pub poll_interval: u64,
@@ -113,7 +106,6 @@ pub struct SmlMeter {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct SunnyBoySpeedwire {
-    pub name: String,
     pub address: String,
     pub password: String,
     pub poll_interval: u64,
@@ -121,13 +113,12 @@ pub struct SunnyBoySpeedwire {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Bresser6in1 {
-    pub name: String,
     pub poll_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
-pub enum Source {
+pub enum SourceType {
     Debug(DebugSource),
     SunnyBoyStorage(SunnyBoyStorage),
     SunnyIsland(SunnyIsland),
@@ -139,25 +130,15 @@ pub enum Source {
     Bresser6in1(Bresser6in1),
 }
 
-impl Source {
-    fn get_name(&self) -> &str {
-        match self {
-            Self::Debug(x) => &x.name,
-            Self::SunnyBoyStorage(x) => &x.name,
-            Self::SunnyIsland(x) => &x.name,
-            Self::SunspecSolar(x) => &x.name,
-            Self::DachsMsrS(x) => &x.name,
-            Self::KeContact(x) => &x.name,
-            Self::SmlMeter(x) => &x.name,
-            Self::SunnyBoySpeedwire(x) => &x.name,
-            Self::Bresser6in1(x) => &x.name,
-        }
-    }
+#[derive(Clone, Debug, Deserialize)]
+pub struct Source {
+    pub name: String,
+    #[serde(flatten)]
+    pub variant: SourceType,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DebugProcessor {
-    pub name: String,
     pub input: String,
     pub output: String,
 }
@@ -170,7 +151,6 @@ impl DebugProcessor {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct ChargingProcessor {
-    pub name: String,
     pub meter_input: String,
     pub battery_input: String,
     pub wallbox_input: String,
@@ -188,18 +168,16 @@ impl ChargingProcessor {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
-pub enum Processor {
+pub enum ProcessorType {
     Debug(DebugProcessor),
     Charging(ChargingProcessor),
 }
 
-impl Processor {
-    fn get_name(&self) -> &str {
-        match self  {
-            Self::Debug(x) => &x.name,
-            Self::Charging(x) => &x.name,
-        }
-    }
+#[derive(Clone, Debug, Deserialize)]
+pub struct Processor {
+    pub name: String,
+    #[serde(flatten)]
+    pub variant: ProcessorType,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -217,13 +195,7 @@ impl std::fmt::Display for Icon {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct DebugSink {
-    pub name: String,
-}
-
-#[derive(Clone, Debug, Deserialize)]
 pub struct Gpio {
-    pub name: String,
     pub icon: Icon,
     pub dev: String,
     #[serde(rename = "pin_num")]
@@ -232,26 +204,22 @@ pub struct Gpio {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct KeContactSink {
-    pub name: String,
     pub address: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
-pub enum Sink {
-    Debug(DebugSink),
+pub enum SinkType {
+    Debug,
     Gpio(Gpio),
     KeContact(KeContactSink),
 }
 
-impl Sink {
-    fn get_name(&self) -> &str {
-        match self {
-            Self::Debug(x) => &x.name,
-            Self::Gpio(x) => &x.name,
-            Self::KeContact(x) => &x.name,
-        }
-    }
+#[derive(Clone, Debug, Deserialize)]
+pub struct Sink {
+    pub name: String,
+    #[serde(flatten)]
+    pub variant: SinkType,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -293,9 +261,9 @@ impl Default for Settings {
 impl Settings {
     pub fn has_processor(&self, source: &str) -> bool {
         self.processors.iter().any({
-            |x| match x {
-                Processor::Debug(x) => x.has_source(source),
-                Processor::Charging(x) => x.has_source(source),
+            |x| match &x.variant {
+                ProcessorType::Debug(x) => x.has_source(source),
+                ProcessorType::Charging(x) => x.has_source(source),
             }
         })
     }
@@ -312,27 +280,33 @@ impl Settings {
         let mut names = BTreeSet::new();
 
         for source in &self.sources {
-            let name = source.get_name();
-            if names.contains(name) {
-                return Err(format!("Duplicate name in config file: '{}'", name));
+            if names.contains(&source.name) {
+                return Err(format!(
+                    "Duplicate name in config file: '{}'",
+                    &source.name
+                ));
             }
-            names.insert(name);
+            names.insert(&source.name);
         }
 
         for processor in &self.processors {
-            let name = processor.get_name();
-            if names.contains(name) {
-                return Err(format!("Duplicate name in config file: '{}'", name));
+            if names.contains(&processor.name) {
+                return Err(format!(
+                    "Duplicate name in config file: '{}'",
+                    &processor.name
+                ));
             }
-            names.insert(name);
+            names.insert(&processor.name);
         }
 
         for sink in &self.sinks {
-            let name = sink.get_name();
-            if names.contains(name) {
-                return Err(format!("Duplicate name in config file: '{}'", name));
+            if names.contains(&sink.name) {
+                return Err(format!(
+                    "Duplicate name in config file: '{}'",
+                    &sink.name
+                ));
             }
-            names.insert(name);
+            names.insert(&sink.name);
         }
 
         Ok(())

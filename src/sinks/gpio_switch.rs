@@ -44,10 +44,10 @@ impl Drop for GpioSwitch {
 }
 
 impl GpioSwitch {
-    pub fn new(gpios: Vec<Gpio>) -> Result<Self, String> {
+    pub fn new(gpios: Vec<(String, Gpio)>) -> Result<Self, String> {
         let channels = gpios
             .into_iter()
-            .map(|gpio| {
+            .map(|(name, gpio)| {
                 let mut chip = Chip::new(&gpio.dev).map_err(|e| {
                     format!("Could not open {}: {}", &gpio.dev, e)
                 })?;
@@ -55,7 +55,7 @@ impl GpioSwitch {
                     format!("Could not open gpio {}: {}", &gpio.num, e)
                 })?;
                 let pin = line
-                    .request(LineRequestFlags::OUTPUT, 1, &gpio.name)
+                    .request(LineRequestFlags::OUTPUT, 1, &name)
                     .map_err(|e| {
                         format!(
                             "Could not get handle for gpio {}: {}",
@@ -65,7 +65,7 @@ impl GpioSwitch {
                 return Ok(Channel {
                     pin,
                     line,
-                    name: gpio.name,
+                    name: name,
                     icon: gpio.icon,
                 });
             })
