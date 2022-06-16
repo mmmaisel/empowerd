@@ -55,10 +55,17 @@ impl ProcessorBase {
 pub fn processor_tasks(
     logger: Logger,
     settings: &Settings,
-    inputs: BTreeMap<String, watch::Receiver<Model>>,
+    mut inputs: BTreeMap<String, watch::Receiver<Model>>,
     sinks: BTreeMap<String, ArcSink>,
 ) -> Result<TaskGroup, String> {
     let tasks = TaskGroupBuilder::new("processors".into(), logger.clone());
+    let mut outputs = BTreeMap::<String, watch::Sender<Model>>::new();
+
+    for processor in &settings.processors {
+        let (tx, rx) = watch::channel(Model::None);
+        inputs.insert(processor.name.clone(), rx);
+        outputs.insert(processor.name.clone(), tx);
+    }
 
     for processor in &settings.processors {
         match &processor.variant {
