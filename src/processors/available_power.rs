@@ -66,8 +66,9 @@ impl AvailablePowerProcessor {
             }
         };
 
-        let meter = match *self.meter_input.borrow() {
-            Model::BidirectionalMeter(ref x) => x.clone(),
+        let (meter_time, meter_power) = match *self.meter_input.borrow() {
+            Model::BidirectionalMeter(ref x) => (x.time, x.power),
+            Model::SimpleMeter(ref x) => (x.time, x.power),
             Model::None => return TaskResult::Running,
             _ => {
                 error!(
@@ -92,7 +93,7 @@ impl AvailablePowerProcessor {
             }
         };
 
-        if (meter.time - battery.time).num_seconds().abs() > 15 {
+        if (meter_time - battery.time).num_seconds().abs() > 15 {
             self.skipped_events += 1;
             if self.skipped_events >= 2 {
                 warn!(
@@ -105,7 +106,7 @@ impl AvailablePowerProcessor {
         self.skipped_events = 0;
 
         let available_power =
-            AvailablePower::new(meter.time, battery.power - meter.power);
+            AvailablePower::new(meter_time, battery.power - meter_power);
         debug!(
             self.base.logger,
             "Available power: {}", available_power.power
