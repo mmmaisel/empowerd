@@ -126,9 +126,11 @@ impl SunnyBoySpeedwireSource {
             now
         );
 
+        let mut last_timestamp = last_record.time.timestamp() as i64;
+        let mut last_energy = last_record.energy as u32;
+
         // TODO: this command is not accepted by SMA, needs -86400 ?
         //   this data is delayed by about one hour?
-        let last_timestamp = last_record.time.timestamp();
         let points: Vec<TimestampedInt> = match self
             .sma_client
             .get_day_data(&session, last_timestamp as u32, now as u32)
@@ -145,10 +147,15 @@ impl SunnyBoySpeedwireSource {
                     .filter(|point| {
                         if point.timestamp as i64 == last_timestamp {
                             return false;
+                        } else if point.value < last_energy {
+                            // Sometimes, the last value from speedwire is just garbage.
+                            debug!(self.base.logger, "Energy meter run backwards. Ignoring point.");
+                            return false;
                         } else if point.value as u32 == 0xFFFFFFFF {
                             debug!(self.base.logger, "Skipping NaN SMA record");
                             return false;
                         } else {
+                            last_energy = point.value;
                             return true;
                         }
                     })
@@ -160,13 +167,11 @@ impl SunnyBoySpeedwireSource {
         //   (handled in database?) and missing ones (delta_t > 300)
         // TODO: handle NaN (0xFFFFFFFF, 0xFFFF) values(in SMA client validators)
         // TODO: always UTC, handle DST transition
+        let mut last_energy = last_record.energy as f64;
 
         if let Err(e) = self.sma_client.logout(&session).await {
             error!(self.base.logger, "Logout failed: {}", e);
         }
-
-        let mut last_energy = last_record.energy as f64;
-        let mut last_timestamp = last_timestamp as i64;
 
         // TODO: move this calculation to model
         let num_points = points.len();
