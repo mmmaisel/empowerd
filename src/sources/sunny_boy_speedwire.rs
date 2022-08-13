@@ -149,7 +149,10 @@ impl SunnyBoySpeedwireSource {
                             return false;
                         } else if point.value < last_energy {
                             // Sometimes, the last value from speedwire is just garbage.
-                            debug!(self.base.logger, "Energy meter run backwards. Ignoring point.");
+                            debug!(
+                                self.base.logger,
+                                "Energy meter run backwards. Ignoring point."
+                            );
                             return false;
                         } else if point.value as u32 == 0xFFFFFFFF {
                             debug!(self.base.logger, "Skipping NaN SMA record");
