@@ -287,37 +287,32 @@ impl Settings {
             .map_err(|e| format!("Could not parse config: {}", e));
     }
 
+    fn validate_name<'a>(
+        names: &mut BTreeSet<&'a str>,
+        name: &'a str,
+    ) -> Result<(), String> {
+        if names.contains(&name) {
+            return Err(format!("Duplicate name in config file: '{}'", &name));
+        } else if name.starts_with("_") {
+            return Err(format!("Names must not start with '_': '{}'", &name));
+        }
+        names.insert(name);
+        Ok(())
+    }
+
     fn validate(&self) -> Result<(), String> {
         let mut names = BTreeSet::new();
 
         for source in &self.sources {
-            if names.contains(&source.name) {
-                return Err(format!(
-                    "Duplicate name in config file: '{}'",
-                    &source.name
-                ));
-            }
-            names.insert(&source.name);
+            Self::validate_name(&mut names, &source.name)?;
         }
 
         for processor in &self.processors {
-            if names.contains(&processor.name) {
-                return Err(format!(
-                    "Duplicate name in config file: '{}'",
-                    &processor.name
-                ));
-            }
-            names.insert(&processor.name);
+            Self::validate_name(&mut names, &processor.name)?;
         }
 
         for sink in &self.sinks {
-            if names.contains(&sink.name) {
-                return Err(format!(
-                    "Duplicate name in config file: '{}'",
-                    &sink.name
-                ));
-            }
-            names.insert(&sink.name);
+            Self::validate_name(&mut names, &sink.name)?;
         }
 
         Ok(())
