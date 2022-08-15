@@ -19,7 +19,7 @@ use crate::settings::{Gpio, Icon};
 use gpio_cdev::{Chip, Line, LineHandle, LineRequestFlags};
 
 #[derive(Debug)]
-struct Channel {
+pub struct Channel {
     pub line: Line,
     pub pin: LineHandle,
     pub name: String,
@@ -74,16 +74,27 @@ impl GpioSwitch {
         return Ok(Self { channels });
     }
 
-    pub fn set_open(&self, channel: usize, open: bool) -> Result<(), String> {
-        match self.channels.get(channel) {
-            Some(channel) => {
-                match channel.pin.set_value(if open { 0 } else { 1 }) {
-                    Ok(_) => return Ok(()),
-                    Err(e) => return Err(e.to_string()),
-                }
-            }
-            None => return Err("Switch index not found".into()),
-        };
+    pub fn set_open(&self, id: usize, open: bool) -> Result<(), String> {
+        let channel = self.get_channel(id)?;
+        return self.set_open_raw(channel, open);
+    }
+
+    pub fn set_open_raw(
+        &self,
+        channel: &Channel,
+        open: bool,
+    ) -> Result<(), String> {
+        if let Err(e) = channel.pin.set_value(if open { 0 } else { 1 }) {
+            return Err(e.to_string());
+        }
+
+        Ok(())
+    }
+
+    pub fn get_channel(&self, id: usize) -> Result<&Channel, String> {
+        self.channels
+            .get(id)
+            .ok_or(format!("Channel index '{}' not found", id))
     }
 
     pub fn get_ids(&self) -> Vec<usize> {
@@ -95,27 +106,28 @@ impl GpioSwitch {
             .collect();
     }
 
-    pub fn get_name(&self, channel: usize) -> Result<String, String> {
-        match self.channels.get(channel) {
-            Some(channel) => return Ok(channel.name.clone()),
-            None => return Err("Switch index not found".into()),
-        };
+    pub fn get_id_by_name(&self, name: &str) -> Result<usize, String> {
+        self.channels
+            .iter()
+            .position(|x| x.name == name)
+            .ok_or(format!("Switch with name '{}' does not exist.", name))
     }
 
-    pub fn get_icon(&self, channel: usize) -> Result<String, String> {
-        match self.channels.get(channel) {
-            Some(channel) => return Ok(channel.icon.to_string()),
-            None => return Err("Switch index not found".into()),
-        };
+    pub fn get_name(&self, id: usize) -> Result<String, String> {
+        let channel = self.get_channel(id)?;
+        Ok(channel.name.clone())
     }
 
-    pub fn get_open(&self, channel: usize) -> Result<bool, String> {
-        match self.channels.get(channel) {
-            Some(channel) => match channel.pin.get_value() {
-                Ok(x) => Ok(x == 0),
-                Err(e) => Err(e.to_string()),
-            },
-            None => return Err("Switch index not found".into()),
+    pub fn get_icon(&self, id: usize) -> Result<String, String> {
+        let channel = self.get_channel(id)?;
+        Ok(channel.icon.to_string())
+    }
+
+    pub fn get_open(&self, id: usize) -> Result<bool, String> {
+        let channel = self.get_channel(id)?;
+        match channel.pin.get_value() {
+            Ok(x) => Ok(x == 0),
+            Err(e) => Err(e.to_string()),
         }
     }
 }
