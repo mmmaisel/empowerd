@@ -28,11 +28,13 @@ mod available_power;
 mod charging;
 mod debug;
 mod dummy;
+mod poweroff_timer;
 
 pub use available_power::AvailablePowerProcessor;
 pub use charging::ChargingProcessor;
 pub use debug::DebugProcessor;
 pub use dummy::DummyProcessor;
+pub use poweroff_timer::PoweroffTimerProcessor;
 
 pub struct ProcessorBase {
     name: String,
