@@ -210,6 +210,14 @@ pub struct Gpio {
     pub dev: String,
     #[serde(rename = "pin_num")]
     pub num: u32,
+    #[serde(default = "Gpio::max_on_time")]
+    pub on_time: u64,
+}
+
+impl Gpio {
+    pub fn max_on_time() -> u64 {
+        u64::MAX
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
