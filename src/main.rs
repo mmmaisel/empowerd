@@ -158,7 +158,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
             }
         };
 
-    let sinks =
+    let (sinks, gpio_proc_info) =
         match sinks::make_sinks(logger.clone(), &settings) {
             Ok(x) => x,
             Err(e) => {
@@ -187,6 +187,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         &settings,
         outputs,
         sinks,
+        gpio_proc_info,
     ) {
         Ok(x) => x,
         Err(e) => {

@@ -17,6 +17,7 @@
 \******************************************************************************/
 use crate::settings::Icon;
 use gpio_cdev::{Chip, Line, LineHandle, LineRequestFlags};
+use tokio::sync::watch;
 
 #[derive(Debug)]
 pub struct Channel {
@@ -24,6 +25,7 @@ pub struct Channel {
     pub pin: LineHandle,
     pub name: String,
     pub icon: Icon,
+    pub processor: Option<watch::Sender<bool>>,
 }
 
 pub struct GpioCreateInfo {
@@ -31,6 +33,7 @@ pub struct GpioCreateInfo {
     pub icon: Icon,
     pub dev: String,
     pub num: u32,
+    pub processor: Option<watch::Sender<bool>>,
 }
 
 #[derive(Debug)]
@@ -74,6 +77,7 @@ impl GpioSwitch {
                     line,
                     name: gpio.name,
                     icon: gpio.icon,
+                    processor: gpio.processor,
                 });
             })
             .collect::<Result<Vec<Channel>, String>>()?;
@@ -83,7 +87,13 @@ impl GpioSwitch {
 
     pub fn set_open(&self, id: usize, open: bool) -> Result<(), String> {
         let channel = self.get_channel(id)?;
-        return self.set_open_raw(channel, open);
+        if let Some(processor) = &channel.processor {
+            processor.send_replace(open);
+        } else {
+            return self.set_open_raw(channel, open);
+        }
+
+        Ok(())
     }
 
     pub fn set_open_raw(

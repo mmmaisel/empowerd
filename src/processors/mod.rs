@@ -17,11 +17,12 @@
 \******************************************************************************/
 use crate::models::Model;
 use crate::settings::{ProcessorType, Settings};
-use crate::sinks::ArcSink;
+use crate::sinks::{ArcSink, GpioProcCreateInfo};
 use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskState};
 use crate::task_loop;
 use slog::{debug, Logger};
 use std::collections::BTreeMap;
+use std::time::Duration;
 use tokio::sync::watch;
 
 mod available_power;
@@ -61,6 +62,7 @@ pub fn processor_tasks(
     settings: &Settings,
     mut inputs: BTreeMap<String, watch::Receiver<Model>>,
     sinks: BTreeMap<String, ArcSink>,
+    gpio_info: Vec<GpioProcCreateInfo>,
 ) -> Result<TaskGroup, String> {
     let tasks = TaskGroupBuilder::new("processors".into(), logger.clone());
     let mut outputs = BTreeMap::<String, watch::Sender<Model>>::new();
@@ -207,6 +209,29 @@ pub fn processor_tasks(
                     );
                 }
             }
+        }
+    }
+
+    if let Some(x) = sinks.get("_GpioSwitch") {
+        match x {
+            ArcSink::GpioSwitch(gpio_switch) => {
+                for gpio in gpio_info.into_iter() {
+                    let id = gpio_switch.get_id_by_name(&gpio.name)?;
+                    let mut processor = PoweroffTimerProcessor::new(
+                        ProcessorBase::new(
+                            format!("_PoweroffTimerProcessor_{}", gpio.name),
+                            tasks.cancel_rx(),
+                            logger.clone(),
+                        ),
+                        gpio.channel,
+                        gpio_switch.to_owned(),
+                        id,
+                        Duration::from_secs(gpio.on_time),
+                    );
+                    tasks.add_task(task_loop!(processor));
+                }
+            }
+            _ => return Err("Unsupported sink type for GpioSwitch".into()),
         }
     }
 

@@ -15,11 +15,12 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::settings::{Settings, SinkType};
+use crate::settings::{Gpio, Settings, SinkType};
 use gpio_switch::GpioCreateInfo;
 use slog::Logger;
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use tokio::sync::watch;
 
 pub mod debug;
 pub mod gpio_switch;
@@ -36,12 +37,19 @@ pub enum ArcSink {
     GpioSwitch(Arc<GpioSwitch>),
 }
 
+pub struct GpioProcCreateInfo {
+    pub name: String,
+    pub channel: watch::Receiver<bool>,
+    pub on_time: u64,
+}
+
 pub fn make_sinks(
     logger: Logger,
     settings: &Settings,
-) -> Result<BTreeMap<String, ArcSink>, String> {
+) -> Result<(BTreeMap<String, ArcSink>, Vec<GpioProcCreateInfo>), String> {
     let mut sinks = BTreeMap::new();
     let mut gpios = Vec::new();
+    let mut gpio_proc_info = Vec::new();
 
     for sink in &settings.sinks {
         match &sink.variant {
@@ -61,11 +69,24 @@ pub fn make_sinks(
                 );
             }
             SinkType::Gpio(gpio) => {
+                let processor = if gpio.on_time != Gpio::max_on_time() {
+                    let (tx, rx) = watch::channel(false);
+                    gpio_proc_info.push(GpioProcCreateInfo {
+                        name: sink.name.clone(),
+                        channel: rx,
+                        on_time: gpio.on_time,
+                    });
+                    Some(tx)
+                } else {
+                    None
+                };
+
                 gpios.push(GpioCreateInfo {
                     name: sink.name.clone(),
                     icon: gpio.icon.clone(),
                     dev: gpio.dev.clone(),
                     num: gpio.num,
+                    processor: processor,
                 });
             }
         }
@@ -77,5 +98,5 @@ pub fn make_sinks(
         "_GpioSwitch".into(),
         ArcSink::GpioSwitch(Arc::new(gpio_switch)),
     );
-    Ok(sinks)
+    Ok((sinks, gpio_proc_info))
 }
