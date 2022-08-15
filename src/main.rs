@@ -51,7 +51,7 @@ mod task_group;
 use graphql::mutation::Mutation;
 use graphql::query::Query;
 use session_manager::SessionManager;
-use settings::{Settings, SinkType};
+use settings::Settings;
 use sinks::gpio_switch::GpioSwitch;
 use task_group::TaskGroup;
 
@@ -61,7 +61,7 @@ pub struct Globals {
     username: String,
     hashed_pw: String,
     session_manager: SessionManager,
-    gpio_switch: GpioSwitch,
+    gpio_switch: Arc<GpioSwitch>,
 }
 
 #[derive(Debug)]
@@ -149,6 +149,52 @@ async fn shutdown_group(
 }
 
 async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
+    let (mut sources, outputs) =
+        match sources::polling_tasks(logger.clone(), &settings) {
+            Ok(x) => x,
+            Err(e) => {
+                error!(logger, "Initializing sources failed: {}", e);
+                return 0;
+            }
+        };
+
+    let sinks =
+        match sinks::make_sinks(logger.clone(), &settings) {
+            Ok(x) => x,
+            Err(e) => {
+                error!(logger, "Initializing sinks failed: {}", e);
+                return 0;
+            }
+        };
+
+    let gpio_switch = match sinks.get("_GpioSwitch") {
+        Some(x) => match x {
+            sinks::ArcSink::GpioSwitch(x) => x.clone(),
+            _ => {
+                error!(logger, "GpioSwitch has invalid type");
+                return 2;
+            }
+        }
+        .clone(),
+        None => {
+            error!(logger, "Could not find GpioSwitch sink");
+            return 2;
+        }
+    };
+
+    let mut processors = match processors::processor_tasks(
+        logger.clone(),
+        &settings,
+        outputs,
+        sinks,
+    ) {
+        Ok(x) => x,
+        Err(e) => {
+            error!(logger, "Initializing processors failed: {}", e);
+            return 0;
+        }
+    };
+
     let session_manager =
         match SessionManager::new(settings.graphql.session_timeout) {
             Ok(x) => x,
@@ -157,23 +203,6 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
                 return 2;
             }
         };
-
-    let gpios = settings
-        .sinks
-        .clone()
-        .into_iter()
-        .filter_map(|sink| match sink.variant {
-            SinkType::Gpio(gpio) => Some((sink.name, gpio)),
-            _ => None,
-        })
-        .collect();
-    let gpio_switch = match GpioSwitch::new(gpios) {
-        Ok(x) => x,
-        Err(e) => {
-            error!(logger, "Could not create water switch: {}", e);
-            return 2;
-        }
-    };
 
     let globals = Arc::new(Globals {
         logger: logger.clone(),
@@ -243,36 +272,6 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
 
     let server = Server::bind(&address).serve(new_service);
     info!(logger, "Listening on http://{}", address);
-
-    let (mut sources, outputs) =
-        match sources::polling_tasks(logger.clone(), &settings) {
-            Ok(x) => x,
-            Err(e) => {
-                error!(logger, "Initializing sources failed: {}", e);
-                return 0;
-            }
-        };
-
-    let sinks = match sinks::make_sinks(logger.clone(), &settings) {
-        Ok(x) => x,
-        Err(e) => {
-            error!(logger, "Initializing sinks failed: {}", e);
-            return 0;
-        }
-    };
-
-    let mut processors = match processors::processor_tasks(
-        logger.clone(),
-        &settings,
-        outputs,
-        sinks,
-    ) {
-        Ok(x) => x,
-        Err(e) => {
-            error!(logger, "Initializing processors failed: {}", e);
-            return 0;
-        }
-    };
 
     let retval = tokio::select! {
         x = sources.run() => {

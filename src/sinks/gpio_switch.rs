@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::settings::{Gpio, Icon};
+use crate::settings::Icon;
 use gpio_cdev::{Chip, Line, LineHandle, LineRequestFlags};
 
 #[derive(Debug)]
@@ -24,6 +24,13 @@ pub struct Channel {
     pub pin: LineHandle,
     pub name: String,
     pub icon: Icon,
+}
+
+pub struct GpioCreateInfo {
+    pub name: String,
+    pub icon: Icon,
+    pub dev: String,
+    pub num: u32,
 }
 
 #[derive(Debug)]
@@ -44,10 +51,10 @@ impl Drop for GpioSwitch {
 }
 
 impl GpioSwitch {
-    pub fn new(gpios: Vec<(String, Gpio)>) -> Result<Self, String> {
+    pub fn new(gpios: Vec<GpioCreateInfo>) -> Result<Self, String> {
         let channels = gpios
             .into_iter()
-            .map(|(name, gpio)| {
+            .map(|gpio| {
                 let mut chip = Chip::new(&gpio.dev).map_err(|e| {
                     format!("Could not open {}: {}", &gpio.dev, e)
                 })?;
@@ -55,7 +62,7 @@ impl GpioSwitch {
                     format!("Could not open gpio {}: {}", &gpio.num, e)
                 })?;
                 let pin = line
-                    .request(LineRequestFlags::OUTPUT, 1, &name)
+                    .request(LineRequestFlags::OUTPUT, 1, &gpio.name)
                     .map_err(|e| {
                         format!(
                             "Could not get handle for gpio {}: {}",
@@ -65,7 +72,7 @@ impl GpioSwitch {
                 return Ok(Channel {
                     pin,
                     line,
-                    name: name,
+                    name: gpio.name,
                     icon: gpio.icon,
                 });
             })

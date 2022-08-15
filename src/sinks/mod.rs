@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::settings::{Settings, SinkType};
+use gpio_switch::GpioCreateInfo;
 use slog::Logger;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -32,7 +33,7 @@ pub use ke_contact::KeContactSink;
 pub enum ArcSink {
     Debug(Arc<DebugSink>),
     KeContact(Arc<KeContactSink>),
-    //GpioSwitch(Arc<GpioSwitch>), should be GpioPin
+    GpioSwitch(Arc<GpioSwitch>),
 }
 
 pub fn make_sinks(
@@ -40,6 +41,8 @@ pub fn make_sinks(
     settings: &Settings,
 ) -> Result<BTreeMap<String, ArcSink>, String> {
     let mut sinks = BTreeMap::new();
+    let mut gpios = Vec::new();
+
     for sink in &settings.sinks {
         match &sink.variant {
             SinkType::Debug => {
@@ -57,10 +60,22 @@ pub fn make_sinks(
                     ArcSink::KeContact(Arc::new(obj)),
                 );
             }
-            SinkType::Gpio(_) => {
-                // Ignore Gpio for now, they are handled by GraphQL
+            SinkType::Gpio(gpio) => {
+                gpios.push(GpioCreateInfo {
+                    name: sink.name.clone(),
+                    icon: gpio.icon.clone(),
+                    dev: gpio.dev.clone(),
+                    num: gpio.num,
+                });
             }
         }
     }
+
+    let gpio_switch = GpioSwitch::new(gpios)
+        .map_err(|e| format!("Could not create GPIO switch: {}", e))?;
+    sinks.insert(
+        "_GpioSwitch".into(),
+        ArcSink::GpioSwitch(Arc::new(gpio_switch)),
+    );
     Ok(sinks)
 }
