@@ -26,6 +26,7 @@ pub struct AvailablePowerProcessor {
     battery_input: watch::Receiver<Model>,
     meter_input: watch::Receiver<Model>,
     power_output: watch::Sender<Model>,
+    battery_threshold: f64,
     skipped_events: u8,
 }
 
@@ -35,12 +36,14 @@ impl AvailablePowerProcessor {
         battery_input: watch::Receiver<Model>,
         meter_input: watch::Receiver<Model>,
         power_output: watch::Sender<Model>,
+        battery_threshold: f64,
     ) -> Self {
         Self {
             base,
             battery_input,
             meter_input,
             power_output,
+            battery_threshold,
             skipped_events: 0,
         }
     }
@@ -105,8 +108,11 @@ impl AvailablePowerProcessor {
         }
         self.skipped_events = 0;
 
-        let available_power =
-            AvailablePower::new(meter_time, battery.power - meter_power);
+        let available_power = if battery.charge < self.battery_threshold {
+            AvailablePower::new(meter_time, 0.0)
+        } else {
+            AvailablePower::new(meter_time, battery.power - meter_power)
+        };
         debug!(
             self.base.logger,
             "Available power: {}", available_power.power

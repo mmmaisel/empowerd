@@ -112,6 +112,7 @@ pub fn processor_tasks(
                     battery_source,
                     meter_source,
                     power_output,
+                    setting.battery_threshold,
                 );
                 tasks.add_task(task_loop!(processor));
             }

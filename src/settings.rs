@@ -153,6 +153,7 @@ impl DebugProcessor {
 pub struct AvailablePowerProcessor {
     pub battery_input: String,
     pub meter_input: String,
+    pub battery_threshold: f64,
 }
 
 impl AvailablePowerProcessor {
