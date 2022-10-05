@@ -111,22 +111,22 @@ impl SmaPacketHeader {
 
     fn validate(&self) -> Result<(), String> {
         /*if self.sma_fourcc != SmaPacketHeader::SMA_FOURCC {
-            return Err("Invalid packet FOURCC".to_string());
+            return Err("Invalid packet FOURCC".into());
         }*/
         if self.hdr_len != SmaPacketHeader::LENGTH / 4 {
-            return Err("Invalid header len".to_string());
+            return Err("Invalid header len".into());
         }
         if self.magic != SmaPacketHeader::SMA_MAGIC {
-            return Err("Invalid magic number".to_string());
+            return Err("Invalid magic number".into());
         }
         if self.group != SmaPacketHeader::SMA_GROUP {
-            return Err("Invalid group".to_string());
+            return Err("Invalid group".into());
         }
         if self.version != SmaPacketHeader::SMA_VERSION {
-            return Err("Invalid version".to_string());
+            return Err("Invalid version".into());
         }
         if self.protocol_id != SmaPacketHeader::SMA_PROTOCOL_ID {
-            return Err("Invalid protocol ID".to_string());
+            return Err("Invalid protocol ID".into());
         }
         return Ok(());
     }
@@ -226,7 +226,7 @@ impl SmaDataHeader {
         self.dst.validate()?;
         self.app.validate()?;
         if self.error_code != 0 {
-            return Err("Device returned an error".to_string());
+            return Err("Device returned an error".into());
         }
         return Ok(());
     }
@@ -295,7 +295,7 @@ impl SmaEndToken {
 
     pub fn validate(&self) -> Result<(), String> {
         if self.end != 0 {
-            return Err("Invalid value at end of packet".to_string());
+            return Err("Invalid value at end of packet".into());
         }
         return Ok(());
     }
@@ -324,12 +324,12 @@ pub fn parse_response(
                         Err(e) => return Err(e),
                     }
                 } else {
-                    return Err("💩️ Garbage at end of buffer".to_string());
+                    return Err("Garbage at end of buffer".into());
                 }
             }
         } else {
             //buffer.advance(buffer.remaining());
-            return Err("💩️ Garbage at end of buffer".to_string());
+            return Err("Garbage at end of buffer".into());
         }
     }
     return Ok(data);
@@ -352,9 +352,7 @@ fn parse_command(
     match cmd_word.opcode() {
         SmaCmdIdentify::OPCODE => {
             if buffer.remaining() < SmaPayloadIdentify::LENGTH {
-                return Err(
-                    "💩️ Received incomplete SmaIdentify packet".to_string()
-                );
+                return Err("Received incomplete SmaIdentify packet".into());
             }
             let payload = SmaPayloadIdentify::deserialize(buffer);
             let end = SmaEndToken::deserialize(buffer);
@@ -368,9 +366,7 @@ fn parse_command(
         }
         SmaCmdLogin::OPCODE => {
             if buffer.remaining() < SmaPayloadLogin::LENGTH_MIN {
-                return Err(
-                    "💩️ Received incomplete SmaLogin packet".to_string()
-                );
+                return Err("Received incomplete SmaLogin packet".into());
             }
             let payload = SmaPayloadLogin::deserialize(buffer);
             let end = SmaEndToken::deserialize(buffer);
@@ -384,7 +380,7 @@ fn parse_command(
         }
         SmaCmdGetDayData::OPCODE => {
             if buffer.remaining() < SmaPayloadGetDayData::MIN_LENGTH {
-                return Err("💩️ Received packet is too small".to_string());
+                return Err("Received packet is too small".into());
             }
             let payload =
                 SmaPayloadGetDayData::deserialize(buffer, pkt_header.data_len);

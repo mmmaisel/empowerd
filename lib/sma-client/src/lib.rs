@@ -130,14 +130,14 @@ impl SmaClient {
 
                 if response.packet_id() & 0x7FFF != self.packet_id - 1 {
                     return Err(format!(
-                        "💩️ received packet ID {:X}, expected {:X}",
+                        "Received packet ID {:X}, expected {:X}",
                         response.packet_id() & 0x7FFF,
                         self.packet_id - 1
                     ));
                 }
                 if response.opcode() != cmd.opcode() {
                     return Err(format!(
-                        "💩️ received opcode {:X}, expected {:X}",
+                        "Received opcode {:X}, expected {:X}",
                         response.opcode(),
                         cmd.opcode()
                     ));
@@ -177,7 +177,7 @@ impl SmaClient {
         let dst_addr = format!("{}:9522", addr).parse::<SocketAddr>();
         match dst_addr {
             Ok(x) => return Ok(x),
-            Err(_) => return Err(format!("💩️ {} is not an IP address", addr)),
+            Err(_) => return Err(format!("{} is not an IP address", addr)),
         }
     }
 
@@ -201,7 +201,9 @@ impl SmaClient {
         match self.issue_command(socket, &cmd, dst_addr).await {
             Ok(x) => match x {
                 SmaData::Endpoint(x) => return Ok(x),
-                _ => return Err("💩️ received unexpected data type".to_string()),
+                _ => {
+                    return Err("Received type is not SmaData::Endpoint".into())
+                }
             },
             Err(e) => return Err(e),
         }
@@ -222,7 +224,7 @@ impl SmaClient {
         match self.issue_command(socket, &cmd, self.dst_addr).await {
             Ok(x) => match x {
                 SmaData::None() => return Ok(()),
-                _ => return Err("💩️ received unexpected data type".to_string()),
+                _ => return Err("Received type is not SmaData::None".into()),
             },
             Err(e) => return Err(e),
         }
@@ -258,7 +260,11 @@ impl SmaClient {
         match self.issue_command(socket, &cmd, self.dst_addr).await {
             Ok(x) => match x {
                 SmaData::IntTimeSeries(x) => return Ok(x),
-                _ => return Err("💩️ received unexpected data type".to_string()),
+                _ => {
+                    return Err(
+                        "Received type is not SmaData::IntTimeSeries".into()
+                    )
+                }
             },
             Err(e) => return Err(e),
         }
@@ -301,7 +307,7 @@ impl SmaClient {
 
         if src_addr != dst_addr {
             return Err(format!(
-                "💩️ received data from {}, expected {}",
+                "Received data from {}, expected {}",
                 src_addr, self.dst_addr
             ));
         }
