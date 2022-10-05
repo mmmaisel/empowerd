@@ -20,7 +20,7 @@ use bytes::{Buf, BufMut, BytesMut};
 
 pub struct SmaCmdIdentify {
     pub pkt_header: SmaPacketHeader,
-    pub data_header: SmaDataHeader,
+    pub inv_header: SmaInvHeader,
     pub cmd: SmaCmdWord,
     pub _padding: [u8; 8],
     pub end: SmaEndToken,
@@ -29,7 +29,7 @@ pub struct SmaCmdIdentify {
 impl SmaCmd for SmaCmdIdentify {
     fn serialize(&self, buffer: &mut BytesMut) {
         self.pkt_header.serialize(buffer);
-        self.data_header.serialize(buffer);
+        self.inv_header.serialize(buffer);
         self.cmd.serialize(buffer);
         buffer.put_slice(&self._padding);
         self.end.serialize(buffer);
@@ -47,17 +47,17 @@ impl SmaCmdIdentify {
     pub fn new() -> SmaCmdIdentify {
         let mut retval = SmaCmdIdentify {
             pkt_header: SmaPacketHeader::new(
-                SmaDataHeader::LENGTH + SmaCmdIdentify::LENGTH,
+                SmaInvHeader::LENGTH + SmaCmdIdentify::LENGTH,
             ),
-            data_header: SmaDataHeader::new(),
+            inv_header: SmaInvHeader::new(),
             cmd: SmaCmdWord::new(0, SmaCmdIdentify::OPCODE),
             _padding: [0; 8],
             end: SmaEndToken::new(),
         };
         retval
-            .data_header
+            .inv_header
             .infer_wordcount(retval.pkt_header.data_len);
-        retval.data_header.class = SmaDataHeader::CMD_CLASS_A0;
+        retval.inv_header.class = SmaInvHeader::CMD_CLASS_A0;
         return retval;
     }
 }
@@ -84,7 +84,7 @@ impl SmaPayloadIdentify {
 
 pub struct SmaResponseIdentify {
     pub pkt_header: SmaPacketHeader,
-    pub data_header: SmaDataHeader,
+    pub inv_header: SmaInvHeader,
     pub cmd: SmaCmdWord,
     pub payload: SmaPayloadIdentify,
     pub end: SmaEndToken,
@@ -93,9 +93,9 @@ pub struct SmaResponseIdentify {
 impl SmaResponse for SmaResponseIdentify {
     fn extract_data(&self) -> SmaData {
         return SmaData::Endpoint(SmaEndpoint {
-            susy_id: self.data_header.app.susy_id,
-            serial: self.data_header.app.serial,
-            ctrl: self.data_header.app.ctrl,
+            susy_id: self.inv_header.app.susy_id,
+            serial: self.inv_header.app.serial,
+            ctrl: self.inv_header.app.ctrl,
         });
     }
 
@@ -104,7 +104,7 @@ impl SmaResponse for SmaResponseIdentify {
         if self.pkt_header.data_len != SmaResponseIdentify::LENGTH {
             return Err("SmaResponseIdentify has invalid length".to_string());
         }
-        self.data_header.validate()?;
+        self.inv_header.validate()?;
         self.cmd.validate()?;
         self.payload.validate()?;
         self.end.validate()?;
@@ -112,11 +112,11 @@ impl SmaResponse for SmaResponseIdentify {
     }
 
     fn fragment_id(&self) -> u16 {
-        return self.data_header.fragment_id;
+        return self.inv_header.fragment_id;
     }
 
     fn packet_id(&self) -> u16 {
-        return self.data_header.packet_id;
+        return self.inv_header.packet_id;
     }
 
     fn opcode(&self) -> u32 {

@@ -73,7 +73,7 @@ impl SmaPacketHeader {
     const SMA_FOURCC: u32 = 0x00414D53; // SMA\0
     const SMA_MAGIC: u16 = 0x02A0;
     const SMA_GROUP: u32 = 1;
-    const SMA_PROTOCOL_ID: u16 = 0x6065;
+    const SMA_PROTOCOL_INV: u16 = 0x6065;
     const SMA_VERSION: u16 = 0x10;
 
     fn new(len: u16) -> SmaPacketHeader {
@@ -83,7 +83,7 @@ impl SmaPacketHeader {
             group: SmaPacketHeader::SMA_GROUP,
             data_len: len,
             version: SmaPacketHeader::SMA_VERSION,
-            protocol_id: SmaPacketHeader::SMA_PROTOCOL_ID,
+            protocol_id: SmaPacketHeader::SMA_PROTOCOL_INV,
         };
     }
 
@@ -125,7 +125,7 @@ impl SmaPacketHeader {
         if self.version != SmaPacketHeader::SMA_VERSION {
             return Err("Invalid version".into());
         }
-        if self.protocol_id != SmaPacketHeader::SMA_PROTOCOL_ID {
+        if self.protocol_id != SmaPacketHeader::SMA_PROTOCOL_INV {
             return Err("Invalid protocol ID".into());
         }
         return Ok(());
@@ -168,7 +168,7 @@ impl SmaEndpoint {
     }
 }
 
-pub struct SmaDataHeader {
+pub struct SmaInvHeader {
     pub wordcount: u8,
     pub class: u8,
     pub dst: SmaEndpoint,
@@ -178,13 +178,13 @@ pub struct SmaDataHeader {
     pub packet_id: u16,
 }
 
-impl SmaDataHeader {
+impl SmaInvHeader {
     const LENGTH: u16 = 26;
     const CMD_CLASS_A0: u8 = 0xA0;
     const CMD_CLASS_E0: u8 = 0xE0;
 
-    fn new() -> SmaDataHeader {
-        return SmaDataHeader {
+    fn new() -> Self {
+        Self {
             wordcount: 0,
             class: 0,
             dst: SmaEndpoint::new(),
@@ -192,7 +192,7 @@ impl SmaDataHeader {
             error_code: 0,
             fragment_id: 0,
             packet_id: 0,
-        };
+        }
     }
 
     fn infer_wordcount(&mut self, packet_len_bytes: u16) {
@@ -209,8 +209,8 @@ impl SmaDataHeader {
         buffer.put_u16_le(self.packet_id);
     }
 
-    fn deserialize(buffer: &mut dyn Buf) -> SmaDataHeader {
-        return SmaDataHeader {
+    fn deserialize(buffer: &mut dyn Buf) -> Self {
+        Self {
             wordcount: buffer.get_u8(),
             class: buffer.get_u8(),
             dst: SmaEndpoint::deserialize(buffer),
@@ -218,7 +218,7 @@ impl SmaDataHeader {
             error_code: buffer.get_u16(),
             fragment_id: buffer.get_u16_le(),
             packet_id: buffer.get_u16_le(),
-        };
+        }
     }
 
     fn validate(&self) -> Result<(), String> {
@@ -315,7 +315,7 @@ pub fn parse_response(
                 buffer.advance(4);
             } else if word == SmaPacketHeader::SMA_FOURCC {
                 if buffer.remaining()
-                    >= (SmaPacketHeader::LENGTH + SmaDataHeader::LENGTH + 4)
+                    >= (SmaPacketHeader::LENGTH + SmaInvHeader::LENGTH + 4)
                         as usize
                 {
                     let packet = parse_command(&mut buffer, logger);
@@ -336,11 +336,27 @@ pub fn parse_response(
 }
 
 fn parse_command(
-    buffer: &mut dyn Buf,
+    mut buffer: &mut dyn Buf,
     logger: &Option<Logger>,
 ) -> Result<Box<dyn SmaResponse>, String> {
     let pkt_header = SmaPacketHeader::deserialize(buffer);
-    let data_header = SmaDataHeader::deserialize(buffer);
+
+    if pkt_header.protocol_id == SmaPacketHeader::SMA_PROTOCOL_INV {
+        return parse_inv_command(&mut buffer, logger, pkt_header);
+    } else {
+        return Err(format!(
+            "Received invalid protocol ID {}",
+            pkt_header.protocol_id
+        ));
+    }
+}
+
+fn parse_inv_command(
+    buffer: &mut dyn Buf,
+    logger: &Option<Logger>,
+    pkt_header: SmaPacketHeader,
+) -> Result<Box<dyn SmaResponse>, String> {
+    let inv_header = SmaInvHeader::deserialize(buffer);
 
     let cmd_word = SmaCmdWord::deserialize(buffer);
     match &logger {
@@ -358,7 +374,7 @@ fn parse_command(
             let end = SmaEndToken::deserialize(buffer);
             packet = Box::new(SmaResponseIdentify {
                 pkt_header: pkt_header,
-                data_header: data_header,
+                inv_header: inv_header,
                 cmd: cmd_word,
                 payload: payload,
                 end: end,
@@ -372,7 +388,7 @@ fn parse_command(
             let end = SmaEndToken::deserialize(buffer);
             packet = Box::new(SmaResponseLogin {
                 pkt_header: pkt_header,
-                data_header: data_header,
+                inv_header: inv_header,
                 cmd: cmd_word,
                 payload: payload,
                 end: end,
@@ -388,7 +404,7 @@ fn parse_command(
             // TODO: use macro to de-duplicate this
             packet = Box::new(SmaResponseGetDayData {
                 pkt_header: pkt_header,
-                data_header: data_header,
+                inv_header: inv_header,
                 cmd: cmd_word,
                 payload: payload,
                 end: end,

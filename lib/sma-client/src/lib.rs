@@ -151,9 +151,9 @@ impl SmaClient {
         return Ok(data);
     }
 
-    fn init_cmd_data_header(
+    fn init_cmd_inv_header(
         &mut self,
-        header: &mut SmaDataHeader,
+        header: &mut SmaInvHeader,
         broadcast: bool,
     ) {
         header.packet_id = self.packet_id | 0x8000;
@@ -197,7 +197,7 @@ impl SmaClient {
             None => (),
         }
         let mut cmd = SmaCmdIdentify::new();
-        self.init_cmd_data_header(&mut cmd.data_header, true);
+        self.init_cmd_inv_header(&mut cmd.inv_header, true);
         match self.issue_command(socket, &cmd, dst_addr).await {
             Ok(x) => match x {
                 SmaData::Endpoint(x) => return Ok(x),
@@ -219,7 +219,7 @@ impl SmaClient {
             None => (),
         }
         let mut cmd = SmaCmdLogin::new(&self.logger);
-        self.init_cmd_data_header(&mut cmd.data_header, true);
+        self.init_cmd_inv_header(&mut cmd.inv_header, true);
         cmd.set_password(passwd);
         match self.issue_command(socket, &cmd, self.dst_addr).await {
             Ok(x) => match x {
@@ -236,7 +236,7 @@ impl SmaClient {
             None => (),
         }
         let mut cmd = SmaCmdLogout::new();
-        self.init_cmd_data_header(&mut cmd.data_header, true);
+        self.init_cmd_inv_header(&mut cmd.inv_header, true);
         self.buffer.clear();
         cmd.serialize(&mut self.buffer);
         self.write(socket, self.dst_addr).await?;
@@ -254,7 +254,7 @@ impl SmaClient {
             None => (),
         }
         let mut cmd = SmaCmdGetDayData::new();
-        self.init_cmd_data_header(&mut cmd.data_header, false);
+        self.init_cmd_inv_header(&mut cmd.inv_header, false);
         cmd.start_time = start_time;
         cmd.end_time = end_time;
         match self.issue_command(socket, &cmd, self.dst_addr).await {

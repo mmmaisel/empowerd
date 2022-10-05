@@ -20,7 +20,7 @@ use bytes::{BufMut, BytesMut};
 
 pub struct SmaCmdLogout {
     pub pkt_header: SmaPacketHeader,
-    pub data_header: SmaDataHeader,
+    pub inv_header: SmaInvHeader,
     pub cmd: SmaCmdWord,
     pub _padding: u32,
     pub end: SmaEndToken,
@@ -29,7 +29,7 @@ pub struct SmaCmdLogout {
 impl SmaCmd for SmaCmdLogout {
     fn serialize(&self, buffer: &mut BytesMut) {
         self.pkt_header.serialize(buffer);
-        self.data_header.serialize(buffer);
+        self.inv_header.serialize(buffer);
         self.cmd.serialize(buffer);
         buffer.put_u32_le(self._padding);
         self.end.serialize(buffer);
@@ -47,30 +47,30 @@ impl SmaCmdLogout {
     pub fn new() -> SmaCmdLogout {
         let mut retval = SmaCmdLogout {
             pkt_header: SmaPacketHeader::new(
-                SmaDataHeader::LENGTH + SmaCmdLogout::LENGTH,
+                SmaInvHeader::LENGTH + SmaCmdLogout::LENGTH,
             ),
-            data_header: SmaDataHeader::new(),
+            inv_header: SmaInvHeader::new(),
             cmd: SmaCmdWord::new(0x0E, SmaCmdLogout::OPCODE),
             _padding: 0xFFFFFFFF,
             end: SmaEndToken::new(),
         };
         retval
-            .data_header
+            .inv_header
             .infer_wordcount(retval.pkt_header.data_len);
-        retval.data_header.class = SmaDataHeader::CMD_CLASS_A0;
-        retval.data_header.app.ctrl = 3;
-        retval.data_header.dst.ctrl = 3;
+        retval.inv_header.class = SmaInvHeader::CMD_CLASS_A0;
+        retval.inv_header.app.ctrl = 3;
+        retval.inv_header.dst.ctrl = 3;
         return retval;
     }
 
     #[allow(unused)]
     fn fragment_id(&self) -> u16 {
-        return self.data_header.fragment_id;
+        return self.inv_header.fragment_id;
     }
 
     #[allow(unused)]
     fn packet_id(&self) -> u16 {
-        return self.data_header.packet_id;
+        return self.inv_header.packet_id;
     }
 
     #[allow(unused)]

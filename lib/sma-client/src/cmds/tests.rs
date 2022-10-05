@@ -22,7 +22,7 @@ use std::io::Cursor;
 const BUFFER_SIZE: usize = 128;
 const SMA_FOURCC: u32 = 0x534d4100;
 
-fn setup_header(header: &mut SmaDataHeader) {
+fn setup_inv_header(header: &mut SmaInvHeader) {
     header.dst.susy_id = 0xFFFF;
     header.dst.serial = 0xFFFFFFFF;
     header.packet_id = 0x8001;
@@ -43,7 +43,7 @@ fn serialize_identify() {
     ];
     let mut buffer = BytesMut::with_capacity(BUFFER_SIZE);
     let mut cmd = SmaCmdIdentify::new();
-    setup_header(&mut cmd.data_header);
+    setup_inv_header(&mut cmd.inv_header);
     cmd.serialize(&mut buffer);
 
     assert_eq!(
@@ -96,7 +96,7 @@ fn serialize_login() {
     ];
     let mut buffer = BytesMut::with_capacity(BUFFER_SIZE);
     let mut cmd = SmaCmdLogin::new(&None);
-    setup_header(&mut cmd.data_header);
+    setup_inv_header(&mut cmd.inv_header);
     cmd.set_password(&"0000".to_string());
     cmd.timestamp = 0x5cbad4fc;
     cmd.serialize(&mut buffer);
@@ -180,7 +180,7 @@ fn serialize_logout() {
     ];
     let mut buffer = BytesMut::with_capacity(BUFFER_SIZE);
     let mut cmd = SmaCmdLogout::new();
-    setup_header(&mut cmd.data_header);
+    setup_inv_header(&mut cmd.inv_header);
     cmd.serialize(&mut buffer);
 
     assert_eq!(expected_binary, buffer.to_vec());
@@ -197,7 +197,7 @@ fn serialize_get_day_data() {
     ];
     let mut buffer = BytesMut::with_capacity(BUFFER_SIZE);
     let mut cmd = SmaCmdGetDayData::new();
-    setup_header(&mut cmd.data_header);
+    setup_inv_header(&mut cmd.inv_header);
     cmd.start_time = 0x5cccb8b4;
     cmd.end_time = 0x5cce0a34;
     cmd.serialize(&mut buffer);

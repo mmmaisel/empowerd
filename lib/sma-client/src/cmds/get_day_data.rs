@@ -20,7 +20,7 @@ use bytes::{Buf, BufMut, BytesMut};
 
 pub struct SmaCmdGetDayData {
     pub pkt_header: SmaPacketHeader,
-    pub data_header: SmaDataHeader,
+    pub inv_header: SmaInvHeader,
     pub cmd: SmaCmdWord,
     pub start_time: u32,
     pub end_time: u32,
@@ -30,7 +30,7 @@ pub struct SmaCmdGetDayData {
 impl SmaCmd for SmaCmdGetDayData {
     fn serialize(&self, buffer: &mut BytesMut) {
         self.pkt_header.serialize(buffer);
-        self.data_header.serialize(buffer);
+        self.inv_header.serialize(buffer);
         self.cmd.serialize(buffer);
         buffer.put_u32_le(self.start_time);
         buffer.put_u32_le(self.end_time);
@@ -49,18 +49,18 @@ impl SmaCmdGetDayData {
     pub fn new() -> SmaCmdGetDayData {
         let mut retval = SmaCmdGetDayData {
             pkt_header: SmaPacketHeader::new(
-                SmaDataHeader::LENGTH + SmaCmdGetDayData::LENGTH,
+                SmaInvHeader::LENGTH + SmaCmdGetDayData::LENGTH,
             ),
-            data_header: SmaDataHeader::new(),
+            inv_header: SmaInvHeader::new(),
             cmd: SmaCmdWord::new(0, SmaCmdGetDayData::OPCODE),
             start_time: 0,
             end_time: 0,
             end: SmaEndToken::new(),
         };
         retval
-            .data_header
+            .inv_header
             .infer_wordcount(retval.pkt_header.data_len);
-        retval.data_header.class = SmaDataHeader::CMD_CLASS_E0;
+        retval.inv_header.class = SmaInvHeader::CMD_CLASS_E0;
         return retval;
     }
 }
@@ -136,7 +136,7 @@ impl SmaPayloadGetDayData {
 
 pub struct SmaResponseGetDayData {
     pub pkt_header: SmaPacketHeader,
-    pub data_header: SmaDataHeader,
+    pub inv_header: SmaInvHeader,
     pub cmd: SmaCmdWord,
     pub payload: SmaPayloadGetDayData,
     pub end: SmaEndToken,
@@ -167,7 +167,7 @@ impl SmaResponse for SmaResponseGetDayData {
         {
             return Err("SmaResponseIdentify has invalid length");
         }*/
-        self.data_header.validate()?;
+        self.inv_header.validate()?;
         self.cmd.validate()?;
         self.payload.validate()?;
         self.end.validate()?;
@@ -175,11 +175,11 @@ impl SmaResponse for SmaResponseGetDayData {
     }
 
     fn fragment_id(&self) -> u16 {
-        return self.data_header.fragment_id;
+        return self.inv_header.fragment_id;
     }
 
     fn packet_id(&self) -> u16 {
-        return self.data_header.packet_id;
+        return self.inv_header.packet_id;
     }
 
     fn opcode(&self) -> u32 {
@@ -192,7 +192,7 @@ impl SmaResponseGetDayData {
     pub const LENGTH: u16 = 0x004E;
 
     fn record_count(data_len: u16) -> usize {
-        let payload_len = data_len - SmaDataHeader::LENGTH - 2;
+        let payload_len = data_len - SmaInvHeader::LENGTH - 2;
         return ((payload_len - 8) / SmaPayloadGetDayData::RECORD_LENGTH)
             as usize;
     }

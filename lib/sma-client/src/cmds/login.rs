@@ -21,7 +21,7 @@ use std::time;
 
 pub struct SmaCmdLogin {
     pub pkt_header: SmaPacketHeader,
-    pub data_header: SmaDataHeader,
+    pub inv_header: SmaInvHeader,
     pub cmd: SmaCmdWord,
     pub user_group: u32,
     pub timeout: u32,
@@ -34,7 +34,7 @@ pub struct SmaCmdLogin {
 impl SmaCmd for SmaCmdLogin {
     fn serialize(&self, buffer: &mut BytesMut) {
         self.pkt_header.serialize(buffer);
-        self.data_header.serialize(buffer);
+        self.inv_header.serialize(buffer);
         self.cmd.serialize(buffer);
         buffer.put_u32_le(self.user_group);
         buffer.put_u32_le(self.timeout);
@@ -56,9 +56,9 @@ impl SmaCmdLogin {
     pub fn new(logger: &Option<Logger>) -> SmaCmdLogin {
         let mut retval = SmaCmdLogin {
             pkt_header: SmaPacketHeader::new(
-                SmaDataHeader::LENGTH + SmaCmdLogin::LENGTH,
+                SmaInvHeader::LENGTH + SmaCmdLogin::LENGTH,
             ),
-            data_header: SmaDataHeader::new(),
+            inv_header: SmaInvHeader::new(),
             cmd: SmaCmdWord::new(0x0C, SmaCmdLogin::OPCODE),
             user_group: 7,
             timeout: 900, //60,
@@ -75,11 +75,11 @@ impl SmaCmdLogin {
             None => (),
         }
         retval
-            .data_header
+            .inv_header
             .infer_wordcount(retval.pkt_header.data_len);
-        retval.data_header.class = SmaDataHeader::CMD_CLASS_A0;
-        retval.data_header.app.ctrl = 1;
-        retval.data_header.dst.ctrl = 1;
+        retval.inv_header.class = SmaInvHeader::CMD_CLASS_A0;
+        retval.inv_header.app.ctrl = 1;
+        retval.inv_header.dst.ctrl = 1;
         return retval;
     }
 
@@ -135,7 +135,7 @@ impl SmaPayloadLogin {
 
 pub struct SmaResponseLogin {
     pub pkt_header: SmaPacketHeader,
-    pub data_header: SmaDataHeader,
+    pub inv_header: SmaInvHeader,
     pub cmd: SmaCmdWord,
     pub payload: SmaPayloadLogin,
     pub end: SmaEndToken,
@@ -153,7 +153,7 @@ impl SmaResponse for SmaResponseLogin {
         {
             return Err("SmaResponseLogin has invalid length".to_string());
         }
-        self.data_header.validate()?;
+        self.inv_header.validate()?;
         self.cmd.validate()?;
         self.payload.validate()?;
         self.end.validate()?;
@@ -161,11 +161,11 @@ impl SmaResponse for SmaResponseLogin {
     }
 
     fn fragment_id(&self) -> u16 {
-        return self.data_header.fragment_id;
+        return self.inv_header.fragment_id;
     }
 
     fn packet_id(&self) -> u16 {
-        return self.data_header.packet_id;
+        return self.inv_header.packet_id;
     }
 
     fn opcode(&self) -> u32 {
