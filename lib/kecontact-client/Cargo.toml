@@ -3,7 +3,7 @@ name = "kecontact-client"
 version = "0.1.0"
 license = "AGPL-3.0-or-later"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 path = "src/lib.rs"

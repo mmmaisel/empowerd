@@ -66,7 +66,7 @@ sloggers = { version=">=1.0", default_features=false }
 tokio = { version=">=1.0", features=["full"] }
 
 chrono = ">=0.4.19"
-influxdb = { version = "0.4.0", features = ["derive", "h1-client", "use-serde"], default-features = false }
+influxdb = { version = ">=0.5.0", features = ["derive", "h1-client", "use-serde"], default-features = false }
 
 daemonize = ">=0.4.1"
 getopts = ">=0.2.21"
