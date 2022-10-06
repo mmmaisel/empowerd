@@ -17,7 +17,7 @@
 \******************************************************************************/
 use influxdb::{
     integrations::serde_integration::{DatabaseQueryResult, Series},
-    Error, InfluxDbWriteable, Query, ReadQuery, WriteQuery,
+    Error, InfluxDbWriteable, ReadQuery, WriteQuery,
 };
 
 pub mod available_power;
@@ -98,7 +98,7 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
     const FIELDS: &'static str;
 
     fn query_last(measurement: &str) -> ReadQuery {
-        <dyn Query>::raw_read_query(format!(
+        ReadQuery::new(format!(
             "SELECT time, {} FROM {} ORDER BY DESC LIMIT 1",
             Self::FIELDS,
             measurement,
@@ -106,7 +106,7 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
     }
 
     fn query_first(measurement: &str) -> ReadQuery {
-        <dyn Query>::raw_read_query(format!(
+        ReadQuery::new(format!(
             "SELECT time, {} FROM {} ORDER BY ASC LIMIT 1",
             Self::FIELDS,
             measurement,
@@ -114,7 +114,7 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
     }
 
     fn query_where(measurement: &str, query: &str) -> ReadQuery {
-        <dyn Query>::raw_read_query(format!(
+        ReadQuery::new(format!(
             "SELECT time, {} FROM {} WHERE {} ORDER BY ASC",
             Self::FIELDS,
             measurement,
