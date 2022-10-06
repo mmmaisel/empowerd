@@ -57,6 +57,7 @@ impl SmaCmdLogin {
         let mut retval = SmaCmdLogin {
             pkt_header: SmaPacketHeader::new(
                 SmaInvHeader::LENGTH + SmaCmdLogin::LENGTH,
+                SmaPacketHeader::SMA_PROTOCOL_INV,
             ),
             inv_header: SmaInvHeader::new(),
             cmd: SmaCmdWord::new(0x0C, SmaCmdLogin::OPCODE),

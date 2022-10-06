@@ -48,6 +48,7 @@ impl SmaCmdLogout {
         let mut retval = SmaCmdLogout {
             pkt_header: SmaPacketHeader::new(
                 SmaInvHeader::LENGTH + SmaCmdLogout::LENGTH,
+                SmaPacketHeader::SMA_PROTOCOL_INV,
             ),
             inv_header: SmaInvHeader::new(),
             cmd: SmaCmdWord::new(0x0E, SmaCmdLogout::OPCODE),

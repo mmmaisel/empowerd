@@ -48,6 +48,7 @@ impl SmaCmdIdentify {
         let mut retval = SmaCmdIdentify {
             pkt_header: SmaPacketHeader::new(
                 SmaInvHeader::LENGTH + SmaCmdIdentify::LENGTH,
+                SmaPacketHeader::SMA_PROTOCOL_INV,
             ),
             inv_header: SmaInvHeader::new(),
             cmd: SmaCmdWord::new(0, SmaCmdIdentify::OPCODE),

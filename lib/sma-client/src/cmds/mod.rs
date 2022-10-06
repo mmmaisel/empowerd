@@ -76,14 +76,14 @@ impl SmaPacketHeader {
     const SMA_PROTOCOL_INV: u16 = 0x6065;
     const SMA_VERSION: u16 = 0x10;
 
-    fn new(len: u16) -> SmaPacketHeader {
+    fn new(len: u16, protocol_id: u16) -> SmaPacketHeader {
         return SmaPacketHeader {
             hdr_len: SmaPacketHeader::LENGTH / 4,
             magic: SmaPacketHeader::SMA_MAGIC,
             group: SmaPacketHeader::SMA_GROUP,
             data_len: len,
             version: SmaPacketHeader::SMA_VERSION,
-            protocol_id: SmaPacketHeader::SMA_PROTOCOL_INV,
+            protocol_id,
         };
     }
 
@@ -126,9 +126,10 @@ impl SmaPacketHeader {
             return Err("Invalid version".into());
         }
         if self.protocol_id != SmaPacketHeader::SMA_PROTOCOL_INV {
-            return Err("Invalid protocol ID".into());
+            return Err(format!("Invalid protocol ID {}", self.protocol_id));
         }
-        return Ok(());
+
+        Ok(())
     }
 }
 
@@ -295,9 +296,12 @@ impl SmaEndToken {
 
     pub fn validate(&self) -> Result<(), String> {
         if self.end != 0 {
-            return Err("Invalid value at end of packet".into());
+            return Err(format!(
+                "Invalid value '{}' at end of packet",
+                self.end
+            ));
         }
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -342,12 +346,12 @@ fn parse_command(
     let pkt_header = SmaPacketHeader::deserialize(buffer);
 
     if pkt_header.protocol_id == SmaPacketHeader::SMA_PROTOCOL_INV {
-        return parse_inv_command(&mut buffer, logger, pkt_header);
+        parse_inv_command(&mut buffer, logger, pkt_header)
     } else {
-        return Err(format!(
+        Err(format!(
             "Received invalid protocol ID {}",
             pkt_header.protocol_id
-        ));
+        ))
     }
 }
 

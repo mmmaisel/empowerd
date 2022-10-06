@@ -50,6 +50,7 @@ impl SmaCmdGetDayData {
         let mut retval = SmaCmdGetDayData {
             pkt_header: SmaPacketHeader::new(
                 SmaInvHeader::LENGTH + SmaCmdGetDayData::LENGTH,
+                SmaPacketHeader::SMA_PROTOCOL_INV,
             ),
             inv_header: SmaInvHeader::new(),
             cmd: SmaCmdWord::new(0, SmaCmdGetDayData::OPCODE),
