@@ -21,6 +21,7 @@
 
 use bytes::{Buf, BytesMut};
 use slog::{trace, Logger};
+use socket2::{Domain, Socket, Type};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::time::Duration;
 use tokio::net::UdpSocket;
@@ -59,24 +60,39 @@ impl SmaClient {
         };
     }
 
-    pub async fn open(&mut self) -> Result<UdpSocket, String> {
-        let multicast_addr = Ipv4Addr::new(238, 12, 255, 254);
-        let local_addr = Ipv4Addr::new(0, 0, 0, 0);
-        let socket =
-            match UdpSocket::bind(SocketAddrV4::new(local_addr, 0)).await {
-                Ok(x) => x,
-                Err(e) => {
-                    return Err(format!("Binding socket failed, error: {}", e))
-                }
-            };
-        // TODO: multicast stuff seems to be unneccessary
-        if let Err(e) = socket.set_multicast_loop_v4(false) {
-            return Err(format!("Disable multicast loop failed, error: {}", e));
+    pub fn open(
+        &mut self,
+        addr: SocketAddr,
+        mc_bind_addr: Option<Ipv4Addr>,
+    ) -> Result<UdpSocket, String> {
+        self.dst_addr = addr;
+        let local_port = if mc_bind_addr.is_some() { 9522 } else { 0 };
+        let any_addr = SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), local_port);
+
+        let socket = Socket::new(Domain::IPV4, Type::DGRAM, None)
+            .map_err(|e| format!("Opening socket failed: {}", e))?;
+        socket
+            .bind(&any_addr.into())
+            .map_err(|e| format!("Binding socket failed: {}", e))?;
+        socket
+            .set_nonblocking(true)
+            .map_err(|e| format!("Setting nonblocking mode failed: {}", e))?;
+
+        if let Some(local_addr) = mc_bind_addr {
+            let multicast_addr = Ipv4Addr::new(239, 12, 255, 254);
+            socket
+                .set_multicast_loop_v4(false)
+                .map_err(|e| format!("Disable multicast loop failed: {}", e))?;
+            socket.set_multicast_if_v4(&local_addr).map_err(|e| {
+                format!("Setting multicast interface failed: {}", e)
+            })?;
+            socket
+                .join_multicast_v4(&multicast_addr, &local_addr)
+                .map_err(|e| format!("Join multicast group failed: {}", e))?;
         }
-        if let Err(e) = socket.join_multicast_v4(multicast_addr, local_addr) {
-            return Err(format!("Join multicast group failed, error: {}", e));
-        }
-        return Ok(socket);
+
+        UdpSocket::from_std(socket.into())
+            .map_err(|e| format!("Creating tokio socket failed: {}", e))
     }
 
     // TODO: don't panic
@@ -98,16 +114,15 @@ impl SmaClient {
         &mut self,
         socket: &UdpSocket,
         cmd: &dyn SmaCmd,
-        dst_addr: SocketAddr,
     ) -> Result<SmaData, String> {
         self.buffer.clear();
         cmd.serialize(&mut self.buffer);
-        self.write(socket, dst_addr).await?;
+        self.write(socket, self.dst_addr).await?;
 
         let mut data: SmaData = SmaData::None();
         let mut fragment_count = 1;
         while fragment_count != 0 {
-            self.read(socket, dst_addr).await?;
+            self.read(socket, self.dst_addr).await?;
             let mut buf =
                 std::io::Cursor::new(&self.buffer[0..self.buffer.len()]);
 
@@ -170,7 +185,7 @@ impl SmaClient {
             header.dst.serial = self.dst_serial;
         }
         header.app.susy_id = 0xDEAD;
-        header.app.serial = 0xDEADBEEA;
+        header.app.serial = 0xDEADBEEF;
     }
 
     pub fn sma_sock_addr(addr: String) -> Result<SocketAddr, String> {
@@ -181,8 +196,7 @@ impl SmaClient {
         }
     }
 
-    pub fn set_dst(&mut self, addr: SocketAddr, susy_id: u16, serial: u32) {
-        self.dst_addr = addr;
+    pub fn set_dst(&mut self, susy_id: u16, serial: u32) {
         self.dst_susy_id = susy_id;
         self.dst_serial = serial;
     }
@@ -190,7 +204,6 @@ impl SmaClient {
     pub async fn identify(
         &mut self,
         socket: &UdpSocket,
-        dst_addr: SocketAddr,
     ) -> Result<SmaEndpoint, String> {
         match &self.logger {
             Some(x) => trace!(x, "Identify"),
@@ -198,7 +211,7 @@ impl SmaClient {
         }
         let mut cmd = SmaCmdIdentify::new();
         self.init_cmd_inv_header(&mut cmd.inv_header, true);
-        match self.issue_command(socket, &cmd, dst_addr).await {
+        match self.issue_command(socket, &cmd).await {
             Ok(x) => match x {
                 SmaData::Endpoint(x) => return Ok(x),
                 _ => {
@@ -221,7 +234,7 @@ impl SmaClient {
         let mut cmd = SmaCmdLogin::new(&self.logger);
         self.init_cmd_inv_header(&mut cmd.inv_header, true);
         cmd.set_password(passwd);
-        match self.issue_command(socket, &cmd, self.dst_addr).await {
+        match self.issue_command(socket, &cmd).await {
             Ok(x) => match x {
                 SmaData::None() => return Ok(()),
                 _ => return Err("Received type is not SmaData::None".into()),
@@ -257,7 +270,7 @@ impl SmaClient {
         self.init_cmd_inv_header(&mut cmd.inv_header, false);
         cmd.start_time = start_time;
         cmd.end_time = end_time;
-        match self.issue_command(socket, &cmd, self.dst_addr).await {
+        match self.issue_command(socket, &cmd).await {
             Ok(x) => match x {
                 SmaData::IntTimeSeries(x) => return Ok(x),
                 _ => {
@@ -305,7 +318,7 @@ impl SmaClient {
         };
         self.buffer.resize(num_recv, 0);
 
-        if src_addr != dst_addr {
+        if src_addr.ip() != dst_addr.ip() {
             return Err(format!(
                 "Received data from {}, expected {}",
                 src_addr, self.dst_addr

@@ -74,7 +74,7 @@ impl SunnyBoySpeedwireSource {
                 return TaskResult::Running;
             }
         };
-        let session = match self.sma_client.open().await {
+        let session = match self.sma_client.open(self.sma_addr, None) {
             Ok(x) => x,
             Err(e) => {
                 error!(
@@ -84,17 +84,16 @@ impl SunnyBoySpeedwireSource {
                 return TaskResult::Running;
             }
         };
-        let identity =
-            match self.sma_client.identify(&session, self.sma_addr).await {
-                Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Could not identify SMA device, {}", e
-                    );
-                    return TaskResult::Running;
-                }
-                Ok(x) => x,
-            };
+        let identity = match self.sma_client.identify(&session).await {
+            Err(e) => {
+                error!(
+                    self.base.logger,
+                    "Could not identify SMA device, {}", e
+                );
+                return TaskResult::Running;
+            }
+            Ok(x) => x,
+        };
 
         trace!(
             self.base.logger,
@@ -104,11 +103,7 @@ impl SunnyBoySpeedwireSource {
             identity.serial
         );
 
-        self.sma_client.set_dst(
-            self.sma_addr,
-            identity.susy_id,
-            identity.serial,
-        );
+        self.sma_client.set_dst(identity.susy_id, identity.serial);
 
         if let Err(e) = self.sma_client.logout(&session).await {
             error!(self.base.logger, "Logout failed: {}", e);

@@ -26,11 +26,11 @@ async fn read_solar_data() {
     };
     let mut sma_client = SmaClient::new(None);
 
-    let session = match sma_client.open().await {
+    let session = match sma_client.open(sma_addr, None) {
         Ok(x) => x,
         Err(e) => panic!("{}", e),
     };
-    let identity = match sma_client.identify(&session, sma_addr).await {
+    let identity = match sma_client.identify(&session).await {
         Err(e) => panic!("Could not identify SMA device, {}", e),
         Ok(x) => x,
     };
@@ -39,7 +39,7 @@ async fn read_solar_data() {
         "{} is {:X}, {:X}",
         sma_addr, identity.susy_id, identity.serial
     );
-    sma_client.set_dst(sma_addr, identity.susy_id, identity.serial);
+    sma_client.set_dst(identity.susy_id, identity.serial);
 
     if let Err(e) = sma_client.logout(&session).await {
         panic!("Logout failed: {}", e);
