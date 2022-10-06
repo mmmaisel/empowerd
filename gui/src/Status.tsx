@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from "react";
 import WaterSwitch from "./WaterSwitch";
+import PowerSwitch from "./PowerSwitch";
 import WaterApi, { GraphQlError, Switch } from "./WaterApi";
 
 // TODO: use React.fragment everywhere where possible
@@ -10,6 +11,7 @@ type StatusProps = {
 
 type StatusState = {
     switches: Switch[];
+    test: Switch[];
 };
 
 class Status extends Component<StatusProps, StatusState> {
@@ -17,6 +19,26 @@ class Status extends Component<StatusProps, StatusState> {
         super(props);
         this.state = {
             switches: [],
+            test: [
+                {
+                    id: 1,
+                    icon: "Power",
+                    name: "on",
+                    open: true
+                },
+                {
+                    id: 2,
+                    icon: "Power",
+                    name: "off",
+                    open: false
+                },
+                {
+                    id: 3,
+                    icon: "Power",
+                    name: "bla",
+                    open: false
+                }
+            ]
         };
     }
 
@@ -39,6 +61,15 @@ class Status extends Component<StatusProps, StatusState> {
         );
     };
 
+    onSwitchToggle = (channel: number): void => {
+        let id: number = this.state.test[channel].id;
+        let open: boolean = this.state.test[channel].open;
+
+        let test = this.state.test;
+        test[channel].open = !open;
+        this.setState({ test: test });
+    }
+
     // TODO: show if it is automatically activated
     // TODO: show remaining active time
 
@@ -58,9 +89,14 @@ class Status extends Component<StatusProps, StatusState> {
         let valves: Switch[] = this.state.switches.filter((x) => {
             return x.icon === "Valve";
         });
+        let test: Switch[] = this.state.test.filter((x) => {
+            return x.icon === "Power";
+        });
+
         return (
             <div className="mainframe">
-                <WaterSwitch valves={valves} onClick={this.onSwitch} />
+                {/*<WaterSwitch valves={valves} onClick={this.onSwitch} />*/}
+                <PowerSwitch switches={test} onClick={this.onSwitchToggle} />
             </div>
         );
     }
