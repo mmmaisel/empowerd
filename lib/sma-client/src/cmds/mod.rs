@@ -50,14 +50,19 @@ pub enum SmaData {
     IntTimeSeries(Vec<TimestampedInt>),
 }
 
-pub trait SmaResponse {
-    fn extract_data(&self) -> SmaData;
-    fn validate(&self) -> Result<(), String>;
-    fn fragment_id(&self) -> u16;
-    fn packet_id(&self) -> u16;
-    fn opcode(&self) -> u32;
+#[derive(Debug)]
+pub enum SmaHeader<'a> {
+    Inv(&'a SmaInvHeader),
 }
 
+pub trait SmaResponse {
+    fn extract_data(&self) -> SmaData;
+    fn get_header(&self) -> SmaHeader;
+    fn opcode(&self) -> u32;
+    fn validate(&self) -> Result<(), String>;
+}
+
+#[derive(Clone, Debug)]
 pub struct SmaPacketHeader {
     //pub sma_fourcc: u32,
     pub hdr_len: u16,
@@ -133,7 +138,7 @@ impl SmaPacketHeader {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SmaEndpoint {
     pub susy_id: u16,
     pub serial: u32,
@@ -169,6 +174,7 @@ impl SmaEndpoint {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct SmaInvHeader {
     pub wordcount: u8,
     pub class: u8,

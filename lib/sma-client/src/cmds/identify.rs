@@ -93,11 +93,19 @@ pub struct SmaResponseIdentify {
 
 impl SmaResponse for SmaResponseIdentify {
     fn extract_data(&self) -> SmaData {
-        return SmaData::Endpoint(SmaEndpoint {
+        SmaData::Endpoint(SmaEndpoint {
             susy_id: self.inv_header.app.susy_id,
             serial: self.inv_header.app.serial,
             ctrl: self.inv_header.app.ctrl,
-        });
+        })
+    }
+
+    fn get_header(&self) -> SmaHeader {
+        SmaHeader::Inv(&self.inv_header)
+    }
+
+    fn opcode(&self) -> u32 {
+        self.cmd.opcode()
     }
 
     fn validate(&self) -> Result<(), String> {
@@ -110,18 +118,6 @@ impl SmaResponse for SmaResponseIdentify {
         self.payload.validate()?;
         self.end.validate()?;
         return Ok(());
-    }
-
-    fn fragment_id(&self) -> u16 {
-        return self.inv_header.fragment_id;
-    }
-
-    fn packet_id(&self) -> u16 {
-        return self.inv_header.packet_id;
-    }
-
-    fn opcode(&self) -> u32 {
-        return self.cmd.opcode();
     }
 }
 

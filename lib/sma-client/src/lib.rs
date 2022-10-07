@@ -32,8 +32,12 @@ mod cmds;
 #[cfg(test)]
 mod tests;
 
-use crate::cmds::*;
-pub use cmds::{SmaData, TimestampedInt};
+use crate::cmds::{
+    parse_response, SmaCmd, SmaCmdGetDayData, SmaCmdIdentify, SmaCmdLogin,
+    SmaCmdLogout, SmaEndpoint, SmaInvHeader,
+};
+
+pub use cmds::{SmaData, SmaHeader, TimestampedInt};
 
 pub struct SmaClient {
     buffer: BytesMut,
@@ -131,22 +135,23 @@ impl SmaClient {
                 Ok(x) => x,
             };
             for response in responses.into_iter() {
-                match &self.logger {
-                    Some(x) => {
-                        trace!(
-                            x,
-                            "Received packet {}, fragment {}",
-                            response.packet_id() & 0x7FFF,
-                            response.fragment_id()
-                        );
-                    }
-                    None => (),
+                let header = match response.get_header() {
+                    SmaHeader::Inv(header) => header,
+                    _ => return Err("Received invalid header type!".into()),
+                };
+                if let Some(logger) = &self.logger {
+                    trace!(
+                        logger,
+                        "Received packet {}, fragment {}",
+                        header.packet_id & 0x7FFF,
+                        header.fragment_id,
+                    );
                 }
 
-                if response.packet_id() & 0x7FFF != self.packet_id - 1 {
+                if header.packet_id & 0x7FFF != self.packet_id - 1 {
                     return Err(format!(
                         "Received packet ID {:X}, expected {:X}",
-                        response.packet_id() & 0x7FFF,
+                        header.packet_id & 0x7FFF,
                         self.packet_id - 1
                     ));
                 }
@@ -158,12 +163,12 @@ impl SmaClient {
                     ));
                 }
                 // TODO: handle ordering issues
-                fragment_count = response.fragment_id();
+                fragment_count = header.fragment_id;
                 // TODO: reserve capacity for fragments in first vector
                 self.merge_rx_data(&mut data, response.extract_data());
             }
         }
-        return Ok(data);
+        Ok(data)
     }
 
     fn init_cmd_inv_header(

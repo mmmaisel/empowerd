@@ -144,7 +144,15 @@ pub struct SmaResponseLogin {
 
 impl SmaResponse for SmaResponseLogin {
     fn extract_data(&self) -> SmaData {
-        return SmaData::None();
+        SmaData::None()
+    }
+
+    fn get_header(&self) -> SmaHeader {
+        SmaHeader::Inv(&self.inv_header)
+    }
+
+    fn opcode(&self) -> u32 {
+        self.cmd.opcode()
     }
 
     fn validate(&self) -> Result<(), String> {
@@ -159,18 +167,6 @@ impl SmaResponse for SmaResponseLogin {
         self.payload.validate()?;
         self.end.validate()?;
         return Ok(());
-    }
-
-    fn fragment_id(&self) -> u16 {
-        return self.inv_header.fragment_id;
-    }
-
-    fn packet_id(&self) -> u16 {
-        return self.inv_header.packet_id;
-    }
-
-    fn opcode(&self) -> u32 {
-        return self.cmd.opcode();
     }
 }
 

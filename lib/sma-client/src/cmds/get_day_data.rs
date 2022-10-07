@@ -158,33 +158,25 @@ impl SmaResponse for SmaResponseGetDayData {
             });
         }
 
-        return SmaData::IntTimeSeries(datavec);
+        SmaData::IntTimeSeries(datavec)
+    }
+
+    fn get_header(&self) -> SmaHeader {
+        SmaHeader::Inv(&self.inv_header)
+    }
+
+    fn opcode(&self) -> u32 {
+        self.cmd.opcode()
     }
 
     fn validate(&self) -> Result<(), String> {
         self.pkt_header.validate()?;
         // TODO: validate length
-        /*        if self.pkt_header.data_len != SmaResponseIdentify::LENGTH
-        {
-            return Err("SmaResponseIdentify has invalid length");
-        }*/
         self.inv_header.validate()?;
         self.cmd.validate()?;
         self.payload.validate()?;
         self.end.validate()?;
         return Ok(());
-    }
-
-    fn fragment_id(&self) -> u16 {
-        return self.inv_header.fragment_id;
-    }
-
-    fn packet_id(&self) -> u16 {
-        return self.inv_header.packet_id;
-    }
-
-    fn opcode(&self) -> u32 {
-        return self.cmd.opcode();
     }
 }
 

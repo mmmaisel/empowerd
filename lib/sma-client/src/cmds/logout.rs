@@ -63,21 +63,6 @@ impl SmaCmdLogout {
         retval.inv_header.dst.ctrl = 3;
         return retval;
     }
-
-    #[allow(unused)]
-    fn fragment_id(&self) -> u16 {
-        return self.inv_header.fragment_id;
-    }
-
-    #[allow(unused)]
-    fn packet_id(&self) -> u16 {
-        return self.inv_header.packet_id;
-    }
-
-    #[allow(unused)]
-    fn opcode(&self) -> u32 {
-        return self.cmd.opcode();
-    }
 }
 
 // This command has no response
