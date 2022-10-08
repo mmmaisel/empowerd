@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -22,6 +22,7 @@
 use bytes::{Buf, BytesMut};
 use slog::{trace, Logger};
 use socket2::{Domain, Socket, Type};
+use std::collections::BTreeMap;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::time::Duration;
 use tokio::net::UdpSocket;
@@ -34,7 +35,8 @@ mod tests;
 
 use crate::cmds::{
     parse_response, SmaCmd, SmaCmdGetDayData, SmaCmdIdentify, SmaCmdLogin,
-    SmaCmdLogout, SmaEndpoint, SmaInvHeader,
+    SmaCmdLogout, SmaEmHeader, SmaEmMessage, SmaEndpoint, SmaInvHeader,
+    SmaResponse,
 };
 
 pub use cmds::{SmaData, SmaHeader, TimestampedInt};
@@ -286,6 +288,55 @@ impl SmaClient {
             },
             Err(e) => return Err(e),
         }
+    }
+
+    pub async fn fetch_em_data(
+        &mut self,
+        socket: &UdpSocket,
+    ) -> Result<(SmaEmHeader, BTreeMap<u32, u64>), String> {
+        self.read(socket, self.dst_addr).await?;
+        let mut buf = std::io::Cursor::new(&self.buffer[0..self.buffer.len()]);
+
+        let responses = parse_response(&mut buf, &self.logger)?;
+        if responses.len() != 1 {
+            return Err("Received multiple or none EM messages.".into());
+        }
+
+        let response = responses.into_iter().last().unwrap();
+        let header = match response.get_header() {
+            SmaHeader::Em(x) => x,
+            _ => return Err("Received incorrect SMA header".into()),
+        };
+
+        let payload = match response.extract_data() {
+            SmaData::EmPayload(x) => x,
+            _ => return Err("Received invalid EM response type".into()),
+        };
+
+        Ok((header.to_owned(), payload))
+    }
+
+    pub async fn broadcast_em_data(
+        &mut self,
+        socket: &UdpSocket,
+        susy_id: u16,
+        serial: u32,
+        timestamp_ms: u32,
+        payload: BTreeMap<u32, u64>,
+    ) -> Result<(), String> {
+        let mut msg = SmaEmMessage::new();
+        msg.em_header.susy_id = susy_id;
+        msg.em_header.serial = serial;
+        msg.em_header.timestamp_ms = timestamp_ms;
+        msg.payload.0 = payload;
+        msg.update_len();
+        msg.validate()?;
+
+        self.buffer.clear();
+        msg.serialize(&mut self.buffer);
+        let multicast_dst =
+            SocketAddr::new(IpAddr::V4(Ipv4Addr::new(239, 12, 255, 254)), 9522);
+        self.write(socket, multicast_dst).await
     }
 
     async fn read(

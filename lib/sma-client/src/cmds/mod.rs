@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -17,14 +17,17 @@
 \******************************************************************************/
 use super::*;
 use bytes::{BufMut, BytesMut};
+use std::collections::BTreeMap;
 
 // TODO: get rid of big endian values
 
+mod em_message;
 mod get_day_data;
 mod identify;
 mod login;
 mod logout;
 
+pub use em_message::{SmaEmMessage, SmaEmPayload};
 pub use get_day_data::{
     SmaCmdGetDayData, SmaPayloadGetDayData, SmaResponseGetDayData,
 };
@@ -48,11 +51,13 @@ pub enum SmaData {
     None(),
     Endpoint(SmaEndpoint),
     IntTimeSeries(Vec<TimestampedInt>),
+    EmPayload(BTreeMap<u32, u64>),
 }
 
 #[derive(Debug)]
 pub enum SmaHeader<'a> {
     Inv(&'a SmaInvHeader),
+    Em(&'a SmaEmHeader),
 }
 
 pub trait SmaResponse {
@@ -79,6 +84,7 @@ impl SmaPacketHeader {
     const SMA_MAGIC: u16 = 0x02A0;
     const SMA_GROUP: u32 = 1;
     const SMA_PROTOCOL_INV: u16 = 0x6065;
+    const SMA_PROTOCOL_EM: u16 = 0x6069;
     const SMA_VERSION: u16 = 0x10;
 
     fn new(len: u16, protocol_id: u16) -> SmaPacketHeader {
@@ -130,7 +136,9 @@ impl SmaPacketHeader {
         if self.version != SmaPacketHeader::SMA_VERSION {
             return Err("Invalid version".into());
         }
-        if self.protocol_id != SmaPacketHeader::SMA_PROTOCOL_INV {
+        if self.protocol_id != SmaPacketHeader::SMA_PROTOCOL_INV
+            && self.protocol_id != SmaPacketHeader::SMA_PROTOCOL_EM
+        {
             return Err(format!("Invalid protocol ID {}", self.protocol_id));
         }
 
@@ -275,6 +283,44 @@ impl SmaCmdWord {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct SmaEmHeader {
+    pub susy_id: u16,
+    pub serial: u32,
+    pub timestamp_ms: u32,
+}
+
+impl SmaEmHeader {
+    const LENGTH: u16 = 10;
+
+    fn new() -> Self {
+        Self {
+            susy_id: 0,
+            serial: 0,
+            timestamp_ms: 0,
+        }
+    }
+
+    fn serialize(&self, buffer: &mut BytesMut) {
+        buffer.put_u16(self.susy_id);
+        buffer.put_u32(self.serial);
+        buffer.put_u32(self.timestamp_ms);
+    }
+
+    fn deserialize(buffer: &mut dyn Buf) -> Self {
+        let mut header = Self::new();
+        header.susy_id = buffer.get_u16();
+        header.serial = buffer.get_u32();
+        header.timestamp_ms = buffer.get_u32();
+        header
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        // TODO: implement
+        Ok(())
+    }
+}
+
 pub struct SmaEndToken {
     end: u32,
 }
@@ -353,6 +399,8 @@ fn parse_command(
 
     if pkt_header.protocol_id == SmaPacketHeader::SMA_PROTOCOL_INV {
         parse_inv_command(&mut buffer, logger, pkt_header)
+    } else if pkt_header.protocol_id == SmaPacketHeader::SMA_PROTOCOL_EM {
+        parse_em_command(&mut buffer, logger, pkt_header)
     } else {
         Err(format!(
             "Received invalid protocol ID {}",
@@ -426,6 +474,37 @@ fn parse_inv_command(
         return Err(format!("Packet validation failed {}", e));
     }
     return Ok(packet);
+}
+
+fn parse_em_command(
+    buffer: &mut dyn Buf,
+    _logger: &Option<Logger>,
+    pkt_header: SmaPacketHeader,
+) -> Result<Box<dyn SmaResponse>, String> {
+    let em_header = SmaEmHeader::deserialize(buffer);
+    let payload_len = pkt_header.data_len - 2 - SmaEmHeader::LENGTH;
+
+    if buffer.remaining() < payload_len.into() {
+        return Err(format!(
+            "Remaining buffer length {} is less than payload length {}",
+            buffer.remaining(),
+            payload_len
+        ));
+    }
+
+    let payload = SmaEmPayload::deserialize(buffer, payload_len);
+    let end = SmaEndToken::deserialize(buffer);
+    let packet = Box::new(SmaEmMessage {
+        pkt_header,
+        em_header,
+        payload,
+        end,
+    });
+
+    match packet.validate() {
+        Ok(()) => Ok(packet),
+        Err(e) => Err(format!("Packet validation failed {}", e)),
+    }
 }
 
 #[cfg(test)]

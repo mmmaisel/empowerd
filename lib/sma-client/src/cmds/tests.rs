@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -248,6 +248,78 @@ fn deserialize_get_day_data() {
             value: 12752912,
         },
     ];
+    assert_eq!(expected_data, received_data);
+}
+
+#[test]
+fn serialize_energymeter() {
+    let expected_binary = vec![
+        0x53, 0x4D, 0x41, 0x00, 0x00, 0x04, 0x02, 0xA0, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x28, 0x00, 0x10, 0x60, 0x69, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66,
+        0xAA, 0xBB, 0xCC, 0xDD, 0x00, 0x01, 0x04, 0x00, 0x01, 0x02, 0x03, 0x04,
+        0x00, 0x01, 0x08, 0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80,
+        0x90, 0x00, 0x00, 0x00, 0x02, 0x00, 0x12, 0x52, 0x00, 0x00, 0x00, 0x00,
+    ];
+    let mut buffer = BytesMut::with_capacity(BUFFER_SIZE);
+    let mut msg = SmaEmMessage::new();
+    msg.em_header.susy_id = 0x1122;
+    msg.em_header.serial = 0x33445566;
+    msg.em_header.timestamp_ms = 0xAABBCCDD;
+    msg.payload = SmaEmPayload::new();
+    msg.payload.0 = BTreeMap::from([
+        (0x010400, 0x01020304),
+        (0x010800, 0x1020304050607080),
+        (0x90000000, 0x02001252),
+    ]);
+
+    msg.update_len();
+    msg.serialize(&mut buffer);
+
+    assert_eq!(expected_binary, buffer.to_vec());
+}
+
+#[test]
+fn deserialize_energymeter() {
+    let mut input_buffer = Cursor::new(vec![
+        0x53, 0x4D, 0x41, 0x00, 0x00, 0x04, 0x02, 0xA0, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x30, 0x00, 0x10, 0x60, 0x69, 0x01, 0x5D, 0x71, 0x55, 0xA8, 0xA3,
+        0xA1, 0x7F, 0x67, 0x61, 0x00, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1A, 0x10, 0x00, 0xA8,
+        0x00, 0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x1A, 0x90, 0x00, 0x00, 0x00,
+        0x02, 0x00, 0x12, 0x52, 0x00, 0x00, 0x00, 0x00,
+    ]);
+
+    let fourcc = input_buffer.get_u32();
+    assert_eq!(SMA_FOURCC, fourcc);
+    let response = parse_command(&mut input_buffer, &None);
+    let response = match response {
+        Ok(x) => x,
+        Err(e) => panic!("Parse EM message failed: {}", e),
+    };
+
+    let received_header = match response.get_header() {
+        SmaHeader::Em(x) => x,
+        _ => panic!("Received incorrect SMA header"),
+    };
+
+    let expected_header = SmaEmHeader {
+        susy_id: 0x15D,
+        serial: 0x7155A8A3,
+        timestamp_ms: 0xA17F6761,
+    };
+    assert_eq!(expected_header, *received_header);
+
+    let received_data = match response.extract_data() {
+        SmaData::EmPayload(x) => x,
+        _ => panic!("Extracted incorrect data from EM message"),
+    };
+
+    let expected_data = BTreeMap::from([
+        (0x010400, 0),
+        (0x010800, 0x1A1000A8),
+        (0x020400, 0x1A),
+        (0x90000000, 0x02001252),
+    ]);
     assert_eq!(expected_data, received_data);
 }
 
