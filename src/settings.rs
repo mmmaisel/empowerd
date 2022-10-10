@@ -98,6 +98,13 @@ pub struct KeContact {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct SmaMeter {
+    pub address: String,
+    pub bind_address: String,
+    pub poll_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct SmlMeter {
     pub device: String,
     pub baud: u32,
@@ -125,6 +132,7 @@ pub enum SourceType {
     SunspecSolar(SunspecSolar),
     DachsMsrS(DachsMsrS),
     KeContact(KeContact),
+    SmaMeter(SmaMeter),
     SmlMeter(SmlMeter),
     SunnyBoySpeedwire(SunnyBoySpeedwire),
     Bresser6in1(Bresser6in1),

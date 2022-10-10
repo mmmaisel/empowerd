@@ -29,6 +29,7 @@ mod dachs_msr_s;
 mod debug;
 mod dummy;
 mod ke_contact;
+mod sma_meter;
 mod sml_meter;
 mod sunny_boy_speedwire;
 mod sunny_storage;
@@ -39,6 +40,7 @@ pub use dachs_msr_s::DachsMsrSSource;
 pub use debug::DebugSource;
 pub use dummy::DummySource;
 pub use ke_contact::KeContactSource;
+pub use sma_meter::SmaMeterSource;
 pub use sml_meter::SmlMeterSource;
 pub use sunny_boy_speedwire::SunnyBoySpeedwireSource;
 pub use sunny_storage::SunnyStorageSource;
@@ -278,6 +280,18 @@ pub fn polling_tasks(
                 let mut source = KeContactSource::new(
                     base_builder.build(),
                     setting.address.clone(),
+                )?;
+                tasks.add_task(task_loop!(source));
+            }
+            SourceType::SmaMeter(setting) => {
+                base_builder
+                    .name(source.name.clone())
+                    .interval(Duration::from_secs(setting.poll_interval))
+                    .add_processor(&source.name, settings, &mut outputs);
+                let mut source = SmaMeterSource::new(
+                    base_builder.build(),
+                    setting.address.clone(),
+                    setting.bind_address.clone(),
                 )?;
                 tasks.add_task(task_loop!(source));
             }
