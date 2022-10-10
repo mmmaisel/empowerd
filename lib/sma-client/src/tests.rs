@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2022 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::SmaClient;
+use crate::{SmaClient, SmaData, SmaHeader};
+use std::net::Ipv4Addr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[tokio::test]
@@ -63,5 +64,25 @@ async fn read_solar_data() {
     eprintln!("Get Day data returned {:?}", data);
     if let Err(e) = sma_client.logout(&session).await {
         panic!("Logout failed: {}", e);
+    }
+}
+
+#[tokio::test]
+async fn read_em_data() {
+    let sma_addr = match SmaClient::sma_sock_addr("192.168.5.75".to_string()) {
+        Ok(x) => x,
+        Err(e) => panic!("{}", e),
+    };
+    let mut sma_client = SmaClient::new(None);
+
+    let session = match sma_client
+        .open(sma_addr, Some(Ipv4Addr::new(192, 168, 5, 150)))
+    {
+        Ok(x) => x,
+        Err(e) => panic!("{}", e),
+    };
+
+    if let Err(e) = sma_client.fetch_em_data(&session).await {
+        panic!("Fetching EM data failed: {}", e);
     }
 }
