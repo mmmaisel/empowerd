@@ -40,6 +40,7 @@ use tokio::{runtime::Runtime, signal};
 mod graphql;
 mod misc;
 mod models;
+mod multi_setpoint_hysteresis;
 mod processors;
 mod pt1;
 mod session_manager;
