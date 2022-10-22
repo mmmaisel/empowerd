@@ -344,7 +344,6 @@ impl SmaClient {
         socket: &UdpSocket,
         dst_addr: SocketAddr,
     ) -> Result<usize, String> {
-        self.buffer.clear();
         match &self.logger {
             Some(x) => {
                 trace!(
@@ -357,29 +356,33 @@ impl SmaClient {
             None => (),
         }
 
-        self.buffer.resize(SmaClient::BUFFER_SIZE, 0);
-        let (num_recv, src_addr) = match timeout(
-            Duration::from_secs(5),
-            socket.recv_from(&mut self.buffer),
-        )
+        let num_recv = match timeout(Duration::from_secs(5), async {
+            loop {
+                self.buffer.clear();
+                self.buffer.resize(SmaClient::BUFFER_SIZE, 0);
+                let (num_recv, src_addr) =
+                    match socket.recv_from(&mut self.buffer).await {
+                        Err(e) => {
+                            return Err(format!(
+                                "Reading from socket failed: {}",
+                                e
+                            ))
+                        }
+                        Ok((rx, addr)) => (rx, addr),
+                    };
+
+                if src_addr.ip() == dst_addr.ip() {
+                    return Ok(num_recv);
+                }
+            }
+        })
         .await
         {
             Err(_) => return Err("Read timed out".into()),
-            Ok(x) => match x {
-                Err(e) => {
-                    return Err(format!("Reading from socket failed: {}", e))
-                }
-                Ok((rx, addr)) => (rx, addr),
-            },
-        };
-        self.buffer.resize(num_recv, 0);
+            Ok(x) => x,
+        }?;
 
-        if src_addr.ip() != dst_addr.ip() {
-            return Err(format!(
-                "Received data from {}, expected {}",
-                src_addr, self.dst_addr
-            ));
-        }
+        self.buffer.resize(num_recv, 0);
         return Ok(num_recv);
     }
 
