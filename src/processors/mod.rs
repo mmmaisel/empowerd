@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::models::Model;
+use crate::multi_setpoint_hysteresis::MultiSetpointHysteresis;
 use crate::settings::{ProcessorType, Settings};
 use crate::sinks::{ArcSink, GpioProcCreateInfo};
 use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskState};
@@ -29,12 +30,14 @@ mod available_power;
 mod charging;
 mod debug;
 mod dummy;
+mod load_control;
 mod poweroff_timer;
 
 pub use available_power::AvailablePowerProcessor;
 pub use charging::ChargingProcessor;
 pub use debug::DebugProcessor;
 pub use dummy::DummyProcessor;
+pub use load_control::LoadControlProcessor;
 pub use poweroff_timer::PoweroffTimerProcessor;
 
 pub struct ProcessorBase {
@@ -209,6 +212,54 @@ pub fn processor_tasks(
                         "Unsupported sink type for ChargingProcessor".into()
                     );
                 }
+            }
+            ProcessorType::LoadControl(setting) => {
+                let battery_source = match inputs.get(&setting.battery_input) {
+                    Some(x) => x.clone(),
+                    None => {
+                        return Err(format!(
+                            "Missing battery input for Processor {}",
+                            &processor.name
+                        ))
+                    }
+                };
+
+                let controller = MultiSetpointHysteresis::new_linspace(
+                    setting.battery_empty_cap,
+                    setting.battery_threshold_cap,
+                    -setting.basic_load,
+                    -setting.basic_load,
+                    -setting.min_grid_power,
+                    0.0,
+                    setting.num_points,
+                    setting.hysteresis_cap,
+                )
+                .map_err(|e| {
+                    format!("Creating multi setpoint controller failed: {}", e)
+                })?;
+
+                let mut processor = match LoadControlProcessor::new(
+                    ProcessorBase::new(
+                        processor.name.clone(),
+                        tasks.cancel_rx(),
+                        logger.clone(),
+                    ),
+                    setting.meter_addr.clone(),
+                    setting.meter_serial,
+                    setting.bind_addr.clone(),
+                    setting.ctrl_serial,
+                    battery_source,
+                    controller,
+                ) {
+                    Ok(x) => x,
+                    Err(e) => {
+                        return Err(format!(
+                            "Could not create LoadControlProcessor: {}",
+                            e
+                        ))
+                    }
+                };
+                tasks.add_task(task_loop!(processor));
             }
         }
     }

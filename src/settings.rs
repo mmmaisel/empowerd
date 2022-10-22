@@ -185,11 +185,33 @@ impl ChargingProcessor {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct LoadControlProcessor {
+    pub meter_addr: String,
+    pub bind_addr: String,
+    pub meter_serial: u32,
+    pub ctrl_serial: u32,
+    pub battery_input: String,
+    pub battery_empty_cap: f64,
+    pub battery_threshold_cap: f64,
+    pub hysteresis_cap: f64,
+    pub basic_load: f64,
+    pub min_grid_power: f64,
+    pub num_points: i32,
+}
+
+impl LoadControlProcessor {
+    fn has_source(&self, source: &str) -> bool {
+        self.battery_input == source
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum ProcessorType {
     Debug(DebugProcessor),
     AvailablePower(AvailablePowerProcessor),
     Charging(ChargingProcessor),
+    LoadControl(LoadControlProcessor),
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -292,6 +314,7 @@ impl Settings {
                 ProcessorType::Debug(x) => x.has_source(source),
                 ProcessorType::AvailablePower(x) => x.has_source(source),
                 ProcessorType::Charging(x) => x.has_source(source),
+                ProcessorType::LoadControl(x) => x.has_source(source),
             }
         })
     }
