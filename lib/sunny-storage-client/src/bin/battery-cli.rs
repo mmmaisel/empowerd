@@ -38,24 +38,18 @@ async fn main() -> Result<(), String> {
                 .short('a')
                 .long("addr")
                 .help("Target IP address and port")
-                .takes_value(true),
+                .required(true),
         )
         .arg(
             Arg::new("power")
                 .long("power")
                 .help("Target net power")
-                .takes_value(true),
+                .value_parser(clap::value_parser!(i32)),
         )
         .get_matches();
 
-    let addr = match matches.value_of("address") {
-        Some(x) => x,
-        None => panic!("Address must be given"),
-    };
-    let power = match matches.value_of("power") {
-        Some(x) => x.parse::<i32>().unwrap(),
-        None => panic!("Power must be given"),
-    };
+    let addr = matches.get_one::<String>("address").unwrap();
+    let power = *matches.get_one::<i32>("power").unwrap();
 
     let addr: SocketAddr = match addr.parse() {
         Ok(x) => x,

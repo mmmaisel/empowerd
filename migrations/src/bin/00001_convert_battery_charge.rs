@@ -79,57 +79,44 @@ async fn main() {
                 .short('c')
                 .long("config")
                 .help("empowerd config file location")
-                .takes_value(true),
+                .default_value("/etc/empowerd/empowerd.conf"),
         )
         .arg(
             Arg::new("from")
                 .long("from")
                 .help("first timestamp of the data to migrate")
                 .required(true)
-                .takes_value(true),
+                .value_parser(clap::value_parser!(u64).range(0..)),
         )
         .arg(
             Arg::new("to")
                 .long("to")
                 .help("last timestamp of the data to migrate")
                 .required(true)
-                .takes_value(true),
+                .value_parser(clap::value_parser!(u64).range(0..)),
         )
         .arg(
             Arg::new("capacity")
                 .long("capacity")
                 .help("capacity of the battery in Wh")
                 .required(true)
-                .takes_value(true),
+                .value_parser(clap::value_parser!(f64)),
         )
         .arg(
             Arg::new("measurement")
                 .short('m')
                 .long("measurement")
                 .help("name of the measurement to migrate")
-                .required(true)
-                .takes_value(true),
+                .required(true),
         )
         .get_matches();
 
-    let from = match matches.value_of("from").unwrap().parse::<u64>() {
-        Ok(x) => x,
-        Err(e) => panic!("Could not parse argument 'from' as int: {}", e),
-    };
-    let to = match matches.value_of("to").unwrap().parse::<u64>() {
-        Ok(x) => x,
-        Err(e) => panic!("Could not parse argument 'to' as int: {}", e),
-    };
-    let capacity = match matches.value_of("capacity").unwrap().parse::<f64>() {
-        Ok(x) => x,
-        Err(e) => panic!("Could not parse argument 'capacity' as float: {}", e),
-    };
-    let measurement = matches.value_of("measurement").unwrap();
+    let from = *matches.get_one::<u64>("from").unwrap();
+    let to = *matches.get_one::<u64>("to").unwrap();
+    let capacity = *matches.get_one::<f64>("capacity").unwrap();
+    let measurement = matches.get_one::<String>("measurement").unwrap();
 
-    let config_filename = matches
-        .value_of("config")
-        .or(Some("/etc/empowerd/empowerd.conf"))
-        .unwrap();
+    let config_filename = matches.get_one::<String>("config").unwrap();
     let settings = match Settings::load_from_file(config_filename) {
         Ok(x) => x,
         Err(e) => panic!("Could not read config file: {}", e),

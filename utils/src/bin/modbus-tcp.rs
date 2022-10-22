@@ -17,13 +17,13 @@
 \******************************************************************************/
 #![forbid(unsafe_code)]
 
-use clap::{ArgEnum, ArgGroup, CommandFactory, ErrorKind, Parser};
+use clap::{error::ErrorKind, ArgGroup, CommandFactory, Parser, ValueEnum};
 use std::net::SocketAddr;
 use std::process;
 use tokio_modbus::client::tcp::{connect, connect_slave};
 use tokio_modbus::prelude::{Reader, Writer};
 
-#[derive(ArgEnum, Clone, Debug, PartialEq)]
+#[derive(ValueEnum, Clone, Debug, PartialEq)]
 enum RegisterType {
     #[clap(alias("c"))]
     Coil,
@@ -55,7 +55,7 @@ struct Args {
     #[clap(short, long)]
     write: Option<Vec<u16>>,
     /// Register type
-    #[clap(arg_enum, short, long, default_value_t=RegisterType::Holding)]
+    #[clap(value_enum, short, long, default_value_t=RegisterType::Holding)]
     r#type: RegisterType,
 }
 
