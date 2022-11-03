@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component, ReactElement, ReactNode } from "react";
 import "./App.scss";
 
 import Navbar from "./Navbar.jsx";
@@ -7,11 +7,19 @@ import Status from "./Status.jsx";
 import LoginForm from "./LoginForm.jsx";
 import WaterApi from "./WaterApi.jsx";
 
-class App extends Component {
-    constructor(props) {
+type AppState = {
+    logged_in: boolean;
+    active_tab: string;
+};
+
+class App extends Component<{}, AppState> {
+    items: string[];
+    api: WaterApi;
+
+    constructor(props: {}) {
         super(props);
 
-        let location = window.location
+        let location: string = window.location
             .toString()
             .replace(/^https?\/\/[^/]+(?::\d+)?\//, "/")
             .replace(/[^/]*$/, "");
@@ -24,23 +32,23 @@ class App extends Component {
         };
     }
 
-    onLogin = () => {
+    onLogin = (): void => {
         this.setState({ logged_in: true });
     };
 
-    onLogout = () => {
+    onLogout = (): void => {
         this.api.logout(
-            (response) => {
+            () => {
                 this.setState({ logged_in: false });
             },
-            (error) => {
+            (error: string) => {
                 console.log(error);
                 alert("Logout failed");
             }
         );
     };
 
-    onTab = (which) => {
+    onTab = (which: string): void => {
         if (which === "Logout") {
             this.onLogout();
         } else {
@@ -48,8 +56,8 @@ class App extends Component {
         }
     };
 
-    render() {
-        let content;
+    render(): ReactNode {
+        let content: ReactElement;
         if (this.state.logged_in) {
             if (this.state.active_tab === "Status") {
                 content = <Status api={this.api} />;
