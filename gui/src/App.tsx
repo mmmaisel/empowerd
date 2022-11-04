@@ -4,7 +4,7 @@ import "./App.scss";
 import Navbar from "./Navbar.jsx";
 import Config from "./Config.jsx";
 import Status from "./Status.jsx";
-import LoginForm from "./LoginForm.jsx";
+import LoginForm from "./LoginForm";
 import WaterApi from "./WaterApi.jsx";
 
 type AppState = {
