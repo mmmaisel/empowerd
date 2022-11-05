@@ -3,7 +3,7 @@ import "./App.scss";
 
 import Navbar from "./Navbar";
 import Config from "./Config";
-import Status from "./Status.jsx";
+import Status from "./Status";
 import LoginForm from "./LoginForm";
 import WaterApi from "./WaterApi.jsx";
 
