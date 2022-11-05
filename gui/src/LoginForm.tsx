@@ -1,7 +1,8 @@
 import React, { Component, ReactElement, ReactNode } from "react";
 import CSS from "csstype";
-import WaterApi from "./WaterApi.jsx";
+
 import "./Widgets.scss";
+import WaterApi from "./WaterApi";
 
 enum LoginState {
     IDLE = 0,

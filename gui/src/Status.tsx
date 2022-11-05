@@ -1,15 +1,8 @@
 import React, { Component, ReactNode } from "react";
 import WaterSwitch from "./WaterSwitch.jsx";
-import WaterApi from "./WaterApi.jsx";
+import WaterApi, { Switch } from "./WaterApi";
 
 // TODO: use React.fragment everywhere where possible
-
-type Switch = {
-    id: number,
-    icon: string,
-    name: string,
-    open: boolean,
-};
 
 type StatusProps = {
     api: WaterApi;

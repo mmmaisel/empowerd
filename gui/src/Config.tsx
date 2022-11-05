@@ -6,7 +6,7 @@ import React, { Component, ReactNode } from "react";
 import "./Config.scss";
 import "./Widgets.scss";
 
-import WaterApi from "./WaterApi.jsx";
+import WaterApi from "./WaterApi";
 
 enum EditMode {
     NORMAL = 0,

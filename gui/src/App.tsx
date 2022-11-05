@@ -5,7 +5,7 @@ import Navbar from "./Navbar";
 import Config from "./Config";
 import Status from "./Status";
 import LoginForm from "./LoginForm";
-import WaterApi from "./WaterApi.jsx";
+import WaterApi, { GraphQlError } from "./WaterApi";
 
 type AppState = {
     logged_in: boolean;
@@ -41,8 +41,8 @@ class App extends Component<{}, AppState> {
             () => {
                 this.setState({ logged_in: false });
             },
-            (error: string) => {
-                console.log(error);
+            (errors: GraphQlError[]) => {
+                console.log(errors);
                 alert("Logout failed");
             }
         );
