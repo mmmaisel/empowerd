@@ -1,5 +1,5 @@
 import React, { Component, ReactNode } from "react";
-import WaterSwitch from "./WaterSwitch.jsx";
+import WaterSwitch from "./WaterSwitch";
 import WaterApi, { Switch } from "./WaterApi";
 
 // TODO: use React.fragment everywhere where possible

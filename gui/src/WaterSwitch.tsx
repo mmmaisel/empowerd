@@ -1,16 +1,26 @@
-import React, { Component } from "react";
+import React, { Component, ReactNode } from "react";
+import { Switch } from "./WaterApi";
 
-class WaterSwitch extends Component {
-    static xdist = 15.875;
+type WaterSwitchProps = {
+    valves: Switch[];
+    onClick: (id: number) => void;
+};
 
-    constructor(props) {
+type WaterSwitchState = {
+    hovered: boolean[];
+};
+
+class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
+    static xdist: number = 15.875;
+
+    constructor(props: WaterSwitchProps) {
         super(props);
         this.state = {
             hovered: Array(this.props.valves.length),
         };
     }
 
-    defs() {
+    defs(): ReactNode {
         return (
             <defs>
                 <linearGradient id="linearGradientGoldFade">
@@ -435,9 +445,9 @@ class WaterSwitch extends Component {
         );
     }
 
-    shadow() {
-        let count = this.props.valves.length;
-        let pipe_shadow_h = (
+    shadow(): ReactNode {
+        let count: number = this.props.valves.length;
+        let pipe_shadow_h: ReactNode = (
             <rect
                 x="2.1167"
                 y="30.692"
@@ -446,7 +456,7 @@ class WaterSwitch extends Component {
                 ry={0}
             />
         );
-        let pipe_shadows_v = Array(count);
+        let pipe_shadows_v: ReactNode[] = Array<ReactNode>(count);
 
         for (let i = 0; i < count; i++) {
             pipe_shadows_v[i] = (
@@ -468,9 +478,9 @@ class WaterSwitch extends Component {
         );
     }
 
-    pipes() {
-        let count = this.props.valves.length;
-        let pipe_h = (
+    pipes(): ReactNode {
+        let count: number = this.props.valves.length;
+        let pipe_h: ReactNode = (
             <rect
                 x="4.2333"
                 y="7.4083"
@@ -479,7 +489,7 @@ class WaterSwitch extends Component {
                 fill="url(#linearGradientPipeH)"
             />
         );
-        let flow_window = (
+        let flow_window: ReactNode = (
             <g transform="translate(0 -13.758)">
                 {/* pipe window */}
                 <rect
@@ -519,7 +529,7 @@ class WaterSwitch extends Component {
                 />
             </g>
         );
-        let pipe_cap_l = (
+        let pipe_cap_l: ReactNode = (
             <rect
                 x="3.175"
                 y="6.35"
@@ -532,7 +542,7 @@ class WaterSwitch extends Component {
                 strokeWidth=".1"
             />
         );
-        let pipe_cap_r = (
+        let pipe_cap_r: ReactNode = (
             <rect
                 x={31.75 + WaterSwitch.xdist * count}
                 y="8.4667"
@@ -546,7 +556,7 @@ class WaterSwitch extends Component {
             />
         );
 
-        let pipes_v = Array(count);
+        let pipes_v: ReactNode[] = Array<ReactNode>(count);
         for (let i = 0; i < count; i++) {
             if (this.props.valves[i].open === true)
                 pipes_v[i] = this.open_pipe(i);
@@ -564,7 +574,7 @@ class WaterSwitch extends Component {
         );
     }
 
-    open_pipe(pos) {
+    open_pipe(pos: number): ReactNode {
         return (
             <g
                 key={"vpipe" + pos}
@@ -642,7 +652,7 @@ class WaterSwitch extends Component {
         );
     }
 
-    closed_pipe(pos) {
+    closed_pipe(pos: number): ReactNode {
         return (
             <g
                 key={"vpipe" + pos}
@@ -679,16 +689,16 @@ class WaterSwitch extends Component {
         );
     }
 
-    valves() {
-        let count = this.props.valves.length;
-        let valves = Array(count);
+    valves(): ReactNode[] {
+        let count: number = this.props.valves.length;
+        let valves: ReactNode[] = Array<ReactNode>(count);
         for (let i = 0; i < count; i++) {
             valves[i] = this.valve_ctrl(i);
         }
         return valves;
     }
 
-    valve_ctrl(pos) {
+    valve_ctrl(pos: number): ReactNode {
         let valve_button = null;
         let valve = null;
 
@@ -712,7 +722,7 @@ class WaterSwitch extends Component {
         );
     }
 
-    open_valve(pos) {
+    open_valve(pos: number): ReactNode {
         return (
             <g
                 transform={
@@ -794,7 +804,7 @@ class WaterSwitch extends Component {
         );
     }
 
-    closed_valve(pos) {
+    closed_valve(pos: number): ReactNode {
         return (
             <g
                 transform={
@@ -852,7 +862,6 @@ class WaterSwitch extends Component {
                     ry=".635"
                     fill="url(#linearGradientValveTipClosed)"
                 />
-                */}
                 {/* specular */}
                 <path
                     d="m27.093 35.772c0 0.2338-0.2843 0.42333-0.635
@@ -867,7 +876,7 @@ class WaterSwitch extends Component {
         );
     }
 
-    button(pos) {
+    button(pos: number): ReactNode {
         return (
             <g transform={"translate(" + WaterSwitch.xdist * pos + " -13.758)"}>
                 <rect
@@ -897,7 +906,7 @@ class WaterSwitch extends Component {
 
     // TODO: use it correctly
     // TODO: add hover
-    button_pushed(pos) {
+    button_pushed(pos: number): ReactNode {
         return (
             <g transform={"translate(" + WaterSwitch.xdist * pos + " -13.758)"}>
                 <rect
@@ -939,7 +948,7 @@ class WaterSwitch extends Component {
         );
     }
 
-    button_hovered(pos) {
+    button_hovered(pos: number): ReactNode {
         return (
             <g transform={"translate(" + WaterSwitch.xdist * pos + " -13.758)"}>
                 <rect
@@ -967,7 +976,7 @@ class WaterSwitch extends Component {
         );
     }
 
-    label(pos, text) {
+    label(pos: number, text: string): ReactNode {
         return (
             <g transform={"translate(" + WaterSwitch.xdist * pos + ")"}>
                 {/* text shadow */}
@@ -1004,16 +1013,16 @@ class WaterSwitch extends Component {
         );
     }
 
-    labels() {
-        let count = this.props.valves.length;
-        let labels = Array(count);
+    labels(): ReactNode[] {
+        let count: number = this.props.valves.length;
+        let labels: ReactNode[] = Array<ReactNode>(count);
         for (let i = 0; i < count; i++) {
             labels[i] = this.label(i, this.props.valves[i].name);
         }
         return labels;
     }
 
-    render() {
+    render(): ReactNode {
         return (
             // TODO: fit view box to longest label
             <svg viewBox="0 0 135.47, 70">
@@ -1026,19 +1035,19 @@ class WaterSwitch extends Component {
         );
     }
 
-    onMouseEnter = (channel) => {
+    onMouseEnter = (channel: number): void => {
         let hovered = this.state.hovered;
         hovered[channel] = true;
         this.setState({ hovered: hovered });
     };
 
-    onMouseLeave = (channel) => {
+    onMouseLeave = (channel: number): void => {
         let hovered = this.state.hovered;
         hovered[channel] = false;
         this.setState({ hovered: hovered });
     };
 
-    onClick = (channel) => {
+    onClick = (channel: number): void => {
         this.props.onClick(channel);
     };
 }
