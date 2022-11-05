@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component, ReactNode } from "react";
 
 // TODO: split into classes
 // TODO: cron format, dingle number, comma separated list and range
@@ -6,12 +6,27 @@ import React, { Component } from "react";
 import "./Config.scss";
 import "./Widgets.scss";
 
-class Config extends Component {
-    static MODE_NORMAL = 0;
-    static MODE_EDIT = 1;
-    static MODE_ADD = 2;
+import WaterApi from "./WaterApi.jsx";
 
-    constructor(props) {
+enum EditMode {
+    NORMAL = 0,
+    EDIT,
+    ADD,
+}
+
+type ConfigProps = {
+    api: WaterApi;
+};
+
+type ConfigState = {
+    data: [string, string][];
+    mode: EditMode;
+    edit_row: number;
+    edit_data: any;
+};
+
+class Config extends Component<ConfigProps, ConfigState> {
+    constructor(props: ConfigProps) {
         super(props);
         this.state = {
             data: [
@@ -19,61 +34,63 @@ class Config extends Component {
                 ["bla", "blubb"],
                 ["1234", "2345"],
             ],
-            mode: Config.MODE_NORMAL,
+            mode: EditMode.NORMAL,
             edit_row: 0,
             edit_data: [],
         };
     }
 
-    onEdit = (id) => {
-        let data = this.state.data[id].map((x) => {
+    onEdit = (id: number): void => {
+        let data: string[] = this.state.data[id].map((x) => {
             return x;
         });
         this.setState({
-            mode: Config.MODE_EDIT,
+            mode: EditMode.EDIT,
             edit_row: id,
             edit_data: data,
         });
     };
 
-    onSave = (id) => {
-        let data = this.state.data;
-        if (this.state.mode === Config.MODE_ADD)
-            data.push(this.state.edit_data);
+    onSave = (id: number): void => {
+        let data: [string, string][] = this.state.data;
+        if (this.state.mode === EditMode.ADD) data.push(this.state.edit_data);
         else data[id] = this.state.edit_data;
-        this.setState({ mode: Config.MODE_NORMAL, data: data });
+        this.setState({ mode: EditMode.NORMAL, data: data });
         // TODO: store the data
     };
 
-    onCancel = (id) => {
+    onCancel = (id: number): void => {
         // TODO: remove new row on cancel add
-        this.setState({ mode: Config.MODE_NORMAL });
+        this.setState({ mode: EditMode.NORMAL });
     };
 
-    onInput = (col, event) => {
-        let data = this.state.edit_data;
+    onInput = (
+        col: number,
+        event: React.ChangeEvent<HTMLInputElement>
+    ): void => {
+        let data: string[] = this.state.edit_data;
         data[col] = event.target.value;
         this.setState({ edit_data: data });
     };
 
-    onAdd = () => {
-        let data = this.state.data;
+    onAdd = (): void => {
+        let data: [string, string][] = this.state.data;
         this.setState({
-            mode: Config.MODE_ADD,
+            mode: EditMode.ADD,
             edit_row: this.state.data.length,
             edit_data: [null, null],
             data: data,
         });
     };
 
-    onDelete = (id) => {
-        let data = this.state.data;
+    onDelete = (id: number): void => {
+        let data: [string, string][] = this.state.data;
         data.splice(id, 1);
         this.setState({ data: data });
     };
 
-    render_actions(i) {
-        if (this.state.mode !== Config.MODE_NORMAL && this.state.edit_row === i)
+    render_actions(i: number): ReactNode {
+        if (this.state.mode !== EditMode.NORMAL && this.state.edit_row === i)
             return (
                 <td className="actions">
                     <button onClick={this.onSave.bind(this, i)}>Save</button>
@@ -82,12 +99,12 @@ class Config extends Component {
                     </button>
                 </td>
             );
-        else if (this.state.mode !== Config.MODE_NORMAL)
+        else if (this.state.mode !== EditMode.NORMAL)
             // TODO: style as disabled
             return (
                 <td className="actions">
-                    <button disabled="disabled">Edit</button>
-                    <button disabled="disabled">Delete</button>
+                    <button disabled={true}>Edit</button>
+                    <button disabled={true}>Delete</button>
                 </td>
             );
         else
@@ -101,11 +118,8 @@ class Config extends Component {
             );
     }
 
-    render_cell(row, col, data) {
-        if (
-            this.state.mode !== Config.MODE_NORMAL &&
-            this.state.edit_row === row
-        )
+    render_cell(row: number, col: number, data: string): ReactNode {
+        if (this.state.mode !== EditMode.NORMAL && this.state.edit_row === row)
             return (
                 <td className="edit">
                     <input
@@ -118,9 +132,9 @@ class Config extends Component {
         else return <td>{data}</td>;
     }
 
-    render_rows() {
-        let count = this.state.data.length;
-        let rows = Array(count);
+    render_rows(): ReactNode {
+        let count: number = this.state.data.length;
+        let rows: ReactNode[] = Array<ReactNode>(count);
 
         for (let i = 0; i < count; i++) {
             rows[i] = (
@@ -131,7 +145,7 @@ class Config extends Component {
                 </tr>
             );
         }
-        if (this.state.mode === Config.MODE_ADD) {
+        if (this.state.mode === EditMode.ADD) {
             rows.push(
                 <tr key="rowadd">
                     {this.render_cell(count, 0, this.state.edit_data[0])}
@@ -143,7 +157,7 @@ class Config extends Component {
         return rows;
     }
 
-    render() {
+    render(): ReactNode {
         return (
             <div className="mainframe">
                 <table className="configTable">
@@ -157,9 +171,7 @@ class Config extends Component {
                     <tbody>{this.render_rows()}</tbody>
                 </table>
                 <button
-                    disabled={
-                        this.state.mode !== Config.MODE_NORMAL ? "disabled" : ""
-                    }
+                    disabled={this.state.mode !== EditMode.NORMAL}
                     onClick={this.onAdd}
                 >
                     Add Row
