@@ -1,7 +1,7 @@
 import React, { Component, ReactElement, ReactNode } from "react";
 import "./App.scss";
 
-import Navbar from "./Navbar.jsx";
+import Navbar from "./Navbar";
 import Config from "./Config.jsx";
 import Status from "./Status.jsx";
 import LoginForm from "./LoginForm";
