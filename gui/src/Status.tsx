@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from "react";
 import WaterSwitch from "./WaterSwitch";
-import WaterApi, { Switch } from "./WaterApi";
+import WaterApi, { GraphQlError, Switch } from "./WaterApi";
 
 // TODO: use React.fragment everywhere where possible
 
@@ -27,14 +27,14 @@ class Status extends Component<StatusProps, StatusState> {
         this.props.api.setSwitch(
             id,
             open,
-            (response: any) => {
+            (response: Switch) => {
                 let switches = this.state.switches;
-                switches[channel].open = response.setSwitch.open;
+                switches[channel].open = response.open;
                 this.setState({ switches: switches });
             },
-            (error: any) => {
+            (errors: GraphQlError[]) => {
                 alert("Setting switch failed");
-                console.log(error);
+                console.log(errors);
             }
         );
     };
@@ -44,11 +44,11 @@ class Status extends Component<StatusProps, StatusState> {
 
     componentDidMount(): void {
         this.props.api.switches(
-            (response: any) => {
-                this.setState({ switches: response.switches });
+            (response: Switch[]) => {
+                this.setState({ switches: response });
             },
-            (error: any) => {
-                console.log(error);
+            (errors: GraphQlError[]) => {
+                console.log(errors);
             }
         );
     }

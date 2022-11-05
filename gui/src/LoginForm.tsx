@@ -2,7 +2,7 @@ import React, { Component, ReactElement, ReactNode } from "react";
 import CSS from "csstype";
 
 import "./Widgets.scss";
-import WaterApi from "./WaterApi";
+import WaterApi, { GraphQlError } from "./WaterApi";
 
 enum LoginState {
     IDLE = 0,
@@ -36,11 +36,11 @@ class LoginForm extends Component<LoginFormProps, LoginFormState> {
         this.props.api.login(
             this.state.username,
             this.state.password,
-            (_response: any) => {
+            () => {
                 this.props.onLogin();
                 this.setState({ login_state: LoginState.IDLE });
             },
-            (_error: any) => {
+            (errors: GraphQlError[]) => {
                 this.setState({ login_state: LoginState.FAILED });
             }
         );

@@ -4,8 +4,16 @@ export type GraphQlError = {
     path: string[];
 };
 
+type GraphQlData =
+    | string
+    | number
+    | boolean
+    | { [x: string]: GraphQlData }
+    | Array<GraphQlData>;
+
+
 type GraphQlResponse = {
-    data: Record<string, string>;
+    data: Record<string, GraphQlData>;
     errors: GraphQlError[];
 };
 
@@ -27,7 +35,7 @@ class WaterApi {
 
     execute(
         query: string,
-        on_success: (data: any) => void,
+        on_success: (data: Record<string, GraphQlData>) => void,
         on_error: (errors: GraphQlError[]) => void
     ): void {
         let headers: Record<string, string> = {
@@ -66,7 +74,7 @@ class WaterApi {
 
     query(
         query: string,
-        on_success: (data: any) => void,
+        on_success: (data: Record<string, GraphQlData>) => void,
         on_error: (errors: GraphQlError[]) => void
     ): void {
         this.execute(`query{${query}}`, on_success, on_error);
@@ -74,7 +82,7 @@ class WaterApi {
 
     mutation(
         mutation: string,
-        on_success: (data: any) => void,
+        on_success: (data: Record<string, GraphQlData>) => void,
         on_error: (errors: GraphQlError[]) => void
     ): void {
         this.execute(`mutation{${mutation}}`, on_success, on_error);
@@ -88,13 +96,13 @@ class WaterApi {
     ): void => {
         this.mutation(
             `login(username:"${username}",password:"${password}")`,
-            (data) => {
+            (data: GraphQlData) => {
                 // TODO:
-                this.#token = data.login;
+                this.#token = (data as {login: string}).login;
                 on_success();
             },
-            (error) => {
-                on_error(error);
+            (errors: GraphQlError[]) => {
+                on_error(errors);
             }
         );
     };
@@ -105,13 +113,13 @@ class WaterApi {
     ): void => {
         this.mutation(
             "logout",
-            (data) => {
+            (data: GraphQlData) => {
                 // TODO: check response
                 this.#token = "";
                 on_success();
             },
-            (error) => {
-                on_error(error);
+            (errors: GraphQlError[]) => {
+                on_error(errors);
             }
         );
     };
@@ -120,18 +128,25 @@ class WaterApi {
         on_success: (switches: Switch[]) => void,
         on_error: (error: GraphQlError[]) => void
     ): void => {
-        this.query("switches{id,name,icon,open}", on_success, on_error);
+        this.query("switches{id,name,icon,open}",
+            (data: Record<string, GraphQlData>) => {
+                on_success((data as {switches: Switch[]}).switches);
+            },
+            on_error
+        );
     };
 
     setSwitch = (
         id: number,
         open: boolean,
-        on_success: (switches: Switch[]) => void,
+        on_success: (sw: Switch) => void,
         on_error: (errors: GraphQlError[]) => void
     ): void => {
         this.mutation(
             `setSwitch(switch:{id:${id},open:${!!open}}){open}`,
-            on_success,
+            (data: GraphQlData) => {
+                on_success((data as {setSwitch: Switch}).setSwitch);
+            },
             on_error
         );
     };
