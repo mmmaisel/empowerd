@@ -33,7 +33,7 @@ impl Bresser6in1Source {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = match self.base.sleep_aligned().await {
+        let timing = match self.base.sleep_aligned().await {
             Ok(x) => x,
             Err(e) => return e,
         };
@@ -97,7 +97,7 @@ impl Bresser6in1Source {
                 return TaskResult::Running;
             }
         };
-        weather_data.timestamp = now as u32;
+        weather_data.timestamp = timing.now as u32;
 
         let record = Weather::new(weather_data);
         self.base.notify_processors(&record);

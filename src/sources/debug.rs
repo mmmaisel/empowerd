@@ -38,14 +38,14 @@ impl DebugSource {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = match self.base.sleep_aligned().await {
+        let timing = match self.base.sleep_aligned().await {
             Ok(x) => x,
             Err(e) => return e,
         };
 
         let power = self.phase.sin().abs();
         let record = SimpleMeter::new(
-            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
+            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(timing.now)),
             self.energy,
             power,
         );

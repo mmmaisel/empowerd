@@ -17,7 +17,9 @@
 \******************************************************************************/
 use crate::models::{InfluxObject, InfluxResult, Model};
 use crate::settings::{Settings, SourceType};
-use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskResult, TaskState};
+use crate::task_group::{
+    TaskGroup, TaskGroupBuilder, TaskResult, TaskState, TaskTiming,
+};
 use crate::task_loop;
 use slog::{debug, error, trace, Logger};
 use std::collections::BTreeMap;
@@ -50,6 +52,7 @@ pub use sunspec_solar::SunspecSolarSource;
 pub struct SourceBaseBuilder {
     name: String,
     interval: Duration,
+    oversample_factor: u64,
     influx: influxdb::Client,
     canceled: watch::Receiver<TaskState>,
     logger: Logger,
@@ -65,6 +68,7 @@ impl SourceBaseBuilder {
         Self {
             name: String::new(),
             interval: Duration::new(0, 0),
+            oversample_factor: 1,
             influx,
             canceled,
             logger,
@@ -79,6 +83,11 @@ impl SourceBaseBuilder {
 
     pub fn interval(&mut self, interval: Duration) -> &mut Self {
         self.interval = interval;
+        self
+    }
+
+    pub fn oversample_factor(&mut self, oversample_factor: u64) -> &mut Self {
+        self.oversample_factor = oversample_factor;
         self
     }
 
@@ -100,6 +109,7 @@ impl SourceBaseBuilder {
         SourceBase::new(
             self.name,
             self.interval,
+            self.oversample_factor,
             self.influx,
             self.canceled,
             self.logger,
@@ -111,6 +121,7 @@ impl SourceBaseBuilder {
 pub struct SourceBase {
     name: String,
     interval: Duration,
+    oversample_factor: u64,
     influx: influxdb::Client,
     canceled: watch::Receiver<TaskState>,
     logger: Logger,
@@ -121,6 +132,7 @@ impl SourceBase {
     pub fn new(
         name: String,
         interval: Duration,
+        oversample_factor: u64,
         influx: influxdb::Client,
         canceled: watch::Receiver<TaskState>,
         logger: Logger,
@@ -129,6 +141,7 @@ impl SourceBase {
         Self {
             canceled,
             influx,
+            oversample_factor,
             name,
             interval,
             logger,
@@ -136,9 +149,10 @@ impl SourceBase {
         }
     }
 
-    pub async fn sleep_aligned(&mut self) -> Result<u64, TaskResult> {
+    pub async fn sleep_aligned(&mut self) -> Result<TaskTiming, TaskResult> {
         match sleep_aligned(
             self.interval,
+            self.oversample_factor,
             &mut self.canceled,
             &self.logger,
             &self.name,
@@ -335,6 +349,7 @@ pub fn polling_tasks(
         let mut dummy = DummySource::new(SourceBase::new(
             "dummy".into(),
             Duration::from_secs(86400),
+            1,
             influx_client,
             tasks.cancel_rx(),
             logger,
@@ -346,13 +361,28 @@ pub fn polling_tasks(
     Ok((tasks.build(), outputs))
 }
 
-fn sleep_duration(interval: u64, now: u64) -> Duration {
-    return Duration::from_secs(interval - (now % interval));
+fn sleep_duration(
+    interval: u64,
+    oversample_factor: u64,
+    now: u64,
+) -> (Duration, bool) {
+    let main_duration = Duration::from_secs(interval - (now % interval));
+
+    if oversample_factor <= 1 {
+        return (main_duration, false);
+    }
+
+    let sample_interval = interval / oversample_factor;
+    let next_duration =
+        Duration::from_secs(sample_interval - (now % sample_interval));
+
+    (next_duration, next_duration != main_duration)
 }
 
 // TODO: use a watch channel to notify processors of new source values
 pub async fn sleep_aligned(
     interval: Duration,
+    oversample_factor: u64,
     canceled: &mut watch::Receiver<TaskState>,
     logger: &Logger,
     ty: &str,
@@ -364,7 +394,8 @@ pub async fn sleep_aligned(
         })?;
 
     let interval_s = interval.as_secs();
-    let sleep_time = sleep_duration(interval_s, now.as_secs());
+    let (sleep_time, oversample) =
+        sleep_duration(interval_s, oversample_factor, now.as_secs());
     debug!(logger, "{}: sleep until {:?}", ty, sleep_time);
     tokio::select! {
         _ = canceled.changed() => {
@@ -378,7 +409,7 @@ pub async fn sleep_aligned(
                 .map_err(|e| {
                     format!("System time is {:?} seconds before UNIX epoch", e)
                 })?.as_secs();
-            return Ok(TaskState::Running(now));
+            return Ok(TaskState::Running(TaskTiming::new(now, oversample)));
         }
         else => {
             return Err("sleep_aligned returned".into());
@@ -388,6 +419,24 @@ pub async fn sleep_aligned(
 
 #[test]
 fn test_sleep_duration() {
-    assert_eq!(Duration::from_secs(57), sleep_duration(300, 1621753443));
-    assert_eq!(Duration::from_secs(30), sleep_duration(60, 1621754070));
+    assert_eq!(
+        (Duration::from_secs(57), false),
+        sleep_duration(300, 1, 1621753443)
+    );
+    assert_eq!(
+        (Duration::from_secs(57), false),
+        sleep_duration(300, 0, 1621753443)
+    );
+    assert_eq!(
+        (Duration::from_secs(30), false),
+        sleep_duration(60, 1, 1621754070)
+    );
+    assert_eq!(
+        (Duration::from_secs(10), true),
+        sleep_duration(60, 3, 1621754070)
+    );
+    assert_eq!(
+        (Duration::from_secs(19), false),
+        sleep_duration(60, 3, 1621754081)
+    );
 }

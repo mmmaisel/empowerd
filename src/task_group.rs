@@ -22,6 +22,27 @@ use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
 #[derive(Debug)]
+pub struct TaskTiming {
+    pub now: u64,
+    pub oversample: bool,
+}
+
+impl Default for TaskTiming {
+    fn default() -> Self {
+        Self {
+            now: 0,
+            oversample: false,
+        }
+    }
+}
+
+impl TaskTiming {
+    pub fn new(now: u64, oversample: bool) -> Self {
+        Self { now, oversample }
+    }
+}
+
+#[derive(Debug)]
 pub enum TaskResult {
     Running,
     Canceled(String),
@@ -30,7 +51,7 @@ pub enum TaskResult {
 
 #[derive(Debug)]
 pub enum TaskState {
-    Running(u64),
+    Running(TaskTiming),
     Canceled,
 }
 
@@ -59,7 +80,8 @@ pub struct TaskGroupBuilder {
 
 impl TaskGroupBuilder {
     pub fn new(name: String, logger: Logger) -> Self {
-        let (cancel_tx, cancel_rx) = watch::channel(TaskState::Running(0));
+        let (cancel_tx, cancel_rx) =
+            watch::channel(TaskState::Running(TaskTiming::default()));
         Self {
             name,
             logger,

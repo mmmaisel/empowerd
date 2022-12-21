@@ -38,7 +38,7 @@ impl DachsMsrSSource {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = match self.base.sleep_aligned().await {
+        let timing = match self.base.sleep_aligned().await {
             Ok(x) => x,
             Err(e) => return e,
         };
@@ -101,7 +101,7 @@ impl DachsMsrSSource {
         };
 
         let record = Generator::new(
-            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
+            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(timing.now)),
             dachs_energy.into(),
             power,
             dachs_runtime.into(),

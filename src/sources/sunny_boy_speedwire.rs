@@ -56,7 +56,7 @@ impl SunnyBoySpeedwireSource {
 
     // XXX: this function is much too long
     pub async fn run(&mut self) -> TaskResult {
-        let now = match self.base.sleep_aligned().await {
+        let timing = match self.base.sleep_aligned().await {
             Ok(x) => x,
             Err(e) => return e,
         };
@@ -118,7 +118,7 @@ impl SunnyBoySpeedwireSource {
             self.base.logger,
             "GetDayData from {} to {}",
             last_record.time,
-            now
+            timing.now
         );
 
         let mut last_timestamp = last_record.time.timestamp() as i64;
@@ -128,7 +128,7 @@ impl SunnyBoySpeedwireSource {
         //   this data is delayed by about one hour?
         let points: Vec<TimestampedInt> = match self
             .sma_client
-            .get_day_data(&session, last_timestamp as u32, now as u32)
+            .get_day_data(&session, last_timestamp as u32, timing.now as u32)
             .await
         {
             Err(e) => {

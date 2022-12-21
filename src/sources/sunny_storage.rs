@@ -63,7 +63,7 @@ impl SunnyStorageSource {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = match self.base.sleep_aligned().await {
+        let timing = match self.base.sleep_aligned().await {
             Ok(x) => x,
             Err(e) => return e,
         };
@@ -83,7 +83,8 @@ impl SunnyStorageSource {
                     * (wh_in
                         - last_record.energy_in
                         - (wh_out - last_record.energy_out))
-                    / ((now - last_record.time.timestamp() as u64) as f64)
+                    / ((timing.now - last_record.time.timestamp() as u64)
+                        as f64)
             }
             InfluxResult::None => 0.0,
             InfluxResult::Err(e) => {
@@ -96,7 +97,7 @@ impl SunnyStorageSource {
         };
 
         let record = Battery::new(
-            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
+            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(timing.now)),
             charge,
             wh_in,
             wh_out,

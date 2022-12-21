@@ -51,7 +51,7 @@ impl SmlMeterSource {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let now = match self.base.sleep_aligned().await {
+        let timing = match self.base.sleep_aligned().await {
             Ok(x) => x,
             Err(e) => return e,
         };
@@ -109,7 +109,8 @@ impl SmlMeterSource {
                     * (consumed
                         - last_record.energy_consumed
                         - (produced - last_record.energy_produced))
-                    / ((now - last_record.time.timestamp() as u64) as f64)
+                    / ((timing.now - last_record.time.timestamp() as u64)
+                        as f64)
             }
             InfluxResult::None => 0.0,
             InfluxResult::Err(e) => {
@@ -122,7 +123,7 @@ impl SmlMeterSource {
         };
 
         let record = BidirectionalMeter::new(
-            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(now)),
+            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(timing.now)),
             consumed,
             produced,
             power,
