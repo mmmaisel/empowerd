@@ -19,14 +19,26 @@ use getopts::Options;
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::env;
+use std::fmt::{self, Debug};
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(default)]
 pub struct Database {
     pub url: String,
     pub name: String,
     pub user: String,
     pub password: String,
+}
+
+impl Debug for Database {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Database")
+            .field("url", &self.url)
+            .field("name", &self.name)
+            .field("user", &self.user)
+            .field("password", &"**SECRET**")
+            .finish()
+    }
 }
 
 impl Default for Database {
@@ -40,13 +52,24 @@ impl Default for Database {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(default)]
 pub struct GraphQL {
     pub listen_address: String,
     pub session_timeout: u64,
     pub username: String,
     pub hashed_password: String,
+}
+
+impl Debug for GraphQL {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Database")
+            .field("listen_address", &self.listen_address)
+            .field("session_timeout", &self.session_timeout)
+            .field("username", &self.username)
+            .field("hashed_password", &"**SECRET**")
+            .finish()
+    }
 }
 
 impl Default for GraphQL {
@@ -84,11 +107,21 @@ pub struct SunspecSolar {
     pub poll_interval: u64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct DachsMsrS {
     pub address: String,
     pub password: String,
     pub poll_interval: u64,
+}
+
+impl Debug for DachsMsrS {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("DachsMsrS")
+            .field("address", &self.address)
+            .field("password", &"**SECRET**")
+            .field("poll_interval", &self.poll_interval)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -111,11 +144,21 @@ pub struct SmlMeter {
     pub poll_interval: u64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct SunnyBoySpeedwire {
     pub address: String,
     pub password: String,
     pub poll_interval: u64,
+}
+
+impl Debug for SunnyBoySpeedwire {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("SunnyBoySpeedwire")
+            .field("address", &self.address)
+            .field("password", &"**SECRET**")
+            .field("poll_interval", &self.poll_interval)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
