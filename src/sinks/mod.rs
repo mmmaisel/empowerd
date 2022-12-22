@@ -25,16 +25,19 @@ use tokio::sync::watch;
 pub mod debug;
 pub mod gpio_switch;
 pub mod ke_contact;
+pub mod lambda_heat_pump;
 
 pub use debug::DebugSink;
 pub use gpio_switch::GpioSwitch;
 pub use ke_contact::KeContactSink;
+pub use lambda_heat_pump::LambdaHeatPumpSink;
 
 #[derive(Clone)]
 pub enum ArcSink {
     Debug(Arc<DebugSink>),
-    KeContact(Arc<KeContactSink>),
     GpioSwitch(Arc<GpioSwitch>),
+    LambdaHeatPump(Arc<LambdaHeatPumpSink>),
+    KeContact(Arc<KeContactSink>),
 }
 
 pub struct GpioProcCreateInfo {
@@ -57,17 +60,6 @@ pub fn make_sinks(
                 let obj = DebugSink::new(sink.name.clone(), logger.clone());
                 sinks.insert(sink.name.clone(), ArcSink::Debug(Arc::new(obj)));
             }
-            SinkType::KeContact(setting) => {
-                let obj = KeContactSink::new(
-                    sink.name.clone(),
-                    setting.address.clone(),
-                    logger.clone(),
-                )?;
-                sinks.insert(
-                    sink.name.clone(),
-                    ArcSink::KeContact(Arc::new(obj)),
-                );
-            }
             SinkType::Gpio(gpio) => {
                 let processor = if gpio.on_time != Gpio::max_on_time() {
                     let (tx, rx) = watch::channel(false);
@@ -88,6 +80,27 @@ pub fn make_sinks(
                     num: gpio.num,
                     processor: processor,
                 });
+            }
+            SinkType::LambdaHeatPump(setting) => {
+                let obj = LambdaHeatPumpSink::new(
+                    sink.name.clone(),
+                    setting.address.clone(),
+                )?;
+                sinks.insert(
+                    sink.name.clone(),
+                    ArcSink::LambdaHeatPump(Arc::new(obj)),
+                );
+            }
+            SinkType::KeContact(setting) => {
+                let obj = KeContactSink::new(
+                    sink.name.clone(),
+                    setting.address.clone(),
+                    logger.clone(),
+                )?;
+                sinks.insert(
+                    sink.name.clone(),
+                    ArcSink::KeContact(Arc::new(obj)),
+                );
             }
         }
     }

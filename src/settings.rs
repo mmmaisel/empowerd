@@ -131,6 +131,13 @@ pub struct KeContact {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct LambdaHeatPump {
+    pub address: String,
+    pub poll_interval: u64,
+    pub oversample_factor: u64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct SmaMeter {
     pub address: String,
     pub bind_address: String,
@@ -175,6 +182,7 @@ pub enum SourceType {
     SunspecSolar(SunspecSolar),
     DachsMsrS(DachsMsrS),
     KeContact(KeContact),
+    LambdaHeatPump(LambdaHeatPump),
     SmaMeter(SmaMeter),
     SmlMeter(SmlMeter),
     SunnyBoySpeedwire(SunnyBoySpeedwire),
@@ -295,6 +303,11 @@ impl Gpio {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct LambdaHeatPumpSink {
+    pub address: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct KeContactSink {
     pub address: String,
 }
@@ -305,6 +318,7 @@ pub enum SinkType {
     Debug,
     Gpio(Gpio),
     KeContact(KeContactSink),
+    LambdaHeatPump(LambdaHeatPumpSink),
 }
 
 #[derive(Clone, Debug, Deserialize)]

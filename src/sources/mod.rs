@@ -31,6 +31,7 @@ mod dachs_msr_s;
 mod debug;
 mod dummy;
 mod ke_contact;
+mod lambda_heat_pump;
 mod sma_meter;
 mod sml_meter;
 mod sunny_boy_speedwire;
@@ -42,6 +43,7 @@ pub use dachs_msr_s::DachsMsrSSource;
 pub use debug::DebugSource;
 pub use dummy::DummySource;
 pub use ke_contact::KeContactSource;
+pub use lambda_heat_pump::LambdaHeatPumpSource;
 pub use sma_meter::SmaMeterSource;
 pub use sml_meter::SmlMeterSource;
 pub use sunny_boy_speedwire::SunnyBoySpeedwireSource;
@@ -292,6 +294,18 @@ pub fn polling_tasks(
                     .interval(Duration::from_secs(setting.poll_interval))
                     .add_processor(&source.name, settings, &mut outputs);
                 let mut source = KeContactSource::new(
+                    base_builder.build(),
+                    setting.address.clone(),
+                )?;
+                tasks.add_task(task_loop!(source));
+            }
+            SourceType::LambdaHeatPump(setting) => {
+                base_builder
+                    .name(source.name.clone())
+                    .interval(Duration::from_secs(setting.poll_interval))
+                    .oversample_factor(setting.oversample_factor)
+                    .add_processor(&source.name, settings, &mut outputs);
+                let mut source = LambdaHeatPumpSource::new(
                     base_builder.build(),
                     setting.address.clone(),
                 )?;
