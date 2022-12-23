@@ -117,29 +117,13 @@ impl ChargingProcessor {
         let charging_power = self
             .filter
             .process(available_power.power + wallbox.power, wallbox.time);
-
-        if charging_power < 6.0 * 230.0 && wallbox.power < 10.0
-            || charging_power < 7.0 * 230.0 && wallbox.power >= 10.0
+        if let Err(e) = self
+            .wallbox_output
+            .set_available_power(charging_power, wallbox.power)
+            .await
         {
-            debug!(self.base.logger, "Disable charging");
-            if let Err(e) = self.wallbox_output.set_enable(false).await {
-                error!(self.base.logger, "{}", e);
-                return TaskResult::Running;
-            }
-        } else {
-            let charging_current = (charging_power / 230.0 * 1000.0) as u16;
-            debug!(self.base.logger, "Set current to {} mA", charging_current);
-            if let Err(e) =
-                self.wallbox_output.set_max_current(charging_current).await
-            {
-                error!(self.base.logger, "{}", e);
-                return TaskResult::Running;
-            }
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            if let Err(e) = self.wallbox_output.set_enable(true).await {
-                error!(self.base.logger, "{}", e);
-                return TaskResult::Running;
-            }
+            error!(self.base.logger, "{}", e);
+            return TaskResult::Running;
         }
 
         available_power.power -= wallbox.power;

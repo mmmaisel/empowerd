@@ -17,11 +17,12 @@
 \******************************************************************************/
 use crate::misc::parse_socketaddr_with_default;
 use kecontact_client::KeContactClient;
-use slog::Logger;
+use slog::{debug, Logger};
 
 pub struct KeContactSink {
     name: String,
     client: KeContactClient,
+    logger: Logger,
 }
 
 impl KeContactSink {
@@ -33,18 +34,41 @@ impl KeContactSink {
         let address = parse_socketaddr_with_default(&address, 7090)?;
         let client = KeContactClient::new(address, Some(logger.clone()));
 
-        Ok(Self { name, client })
-    }
-
-    pub async fn set_max_current(&self, current: u16) -> Result<(), String> {
-        self.client.set_max_current(current).await.map_err(|e| {
-            format!("Setting max corrent for {} failed: {}", self.name, e)
+        Ok(Self {
+            name,
+            client,
+            logger,
         })
     }
 
-    pub async fn set_enable(&self, enabled: bool) -> Result<(), String> {
-        self.client.set_enable(enabled).await.map_err(|e| {
-            format!("Setting max current for {} failed: {}", self.name, e)
-        })
+    pub async fn set_available_power(
+        &self,
+        charging_power: f64,
+        current_power: f64,
+    ) -> Result<(), String> {
+        if charging_power < 6.0 * 230.0 && current_power < 10.0
+            || charging_power < 7.0 * 230.0 && current_power >= 10.0
+        {
+            debug!(self.logger, "Disable charging");
+            if let Err(e) = self.client.set_enable(false).await {
+                return Err(format!("Disabling {} failed: {}", self.name, e));
+            }
+        } else {
+            let charging_current = (charging_power / 230.0 * 1000.0) as u16;
+            debug!(self.logger, "Set current to {} mA", charging_current);
+            if let Err(e) = self.client.set_max_current(charging_current).await
+            {
+                return Err(format!(
+                    "Setting max current for {} failed: {}",
+                    self.name, e
+                ));
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            if let Err(e) = self.client.set_enable(true).await {
+                return Err(format!("Enabling {} failed: {}", self.name, e));
+            }
+        }
+
+        Ok(())
     }
 }
