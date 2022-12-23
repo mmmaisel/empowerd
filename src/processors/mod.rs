@@ -26,15 +26,15 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 use tokio::sync::watch;
 
+mod appliance;
 mod available_power;
-mod charging;
 mod debug;
 mod dummy;
 mod load_control;
 mod poweroff_timer;
 
+pub use appliance::ApplianceProcessor;
 pub use available_power::AvailablePowerProcessor;
-pub use charging::ChargingProcessor;
 pub use debug::DebugProcessor;
 pub use dummy::DummyProcessor;
 pub use load_control::LoadControlProcessor;
@@ -155,7 +155,7 @@ pub fn processor_tasks(
                     );
                 }
             }
-            ProcessorType::Charging(setting) => {
+            ProcessorType::Appliance(setting) => {
                 let power_source = match inputs.get(&setting.power_input) {
                     Some(x) => x.clone(),
                     None => {
@@ -175,43 +175,46 @@ pub fn processor_tasks(
                             ))
                         }
                     };
-                let wallbox_source = match inputs.get(&setting.wallbox_input) {
-                    Some(x) => x.clone(),
-                    None => {
-                        return Err(format!(
-                            "Missing wallbox source for Processor {}",
-                            &processor.name
-                        ))
-                    }
-                };
-                let wallbox_sink = match sinks.get(&setting.wallbox_output) {
+                let appliance_source =
+                    match inputs.get(&setting.appliance_input) {
+                        Some(x) => x.clone(),
+                        None => {
+                            return Err(format!(
+                                "Missing appliance source for Processor {}",
+                                &processor.name
+                            ))
+                        }
+                    };
+                let appliance_sink = match sinks.get(&setting.appliance_output)
+                {
                     Some(x) => x.to_owned(),
                     None => {
                         return Err(format!(
-                            "Missing sink 'wallbox_output' for Processor {}",
+                            "Missing sink 'appliance_output' for Processor {}",
                             &processor.name
                         ))
                     }
                 };
-                if let ArcSink::KeContact(wallbox_sink) = wallbox_sink {
-                    let mut processor = ChargingProcessor::new(
-                        ProcessorBase::new(
-                            processor.name.clone(),
-                            tasks.cancel_rx(),
-                            logger.clone(),
-                        ),
-                        power_source,
-                        wallbox_source,
-                        power_sink,
-                        wallbox_sink,
-                        setting.tau,
-                    );
-                    tasks.add_task(task_loop!(processor));
-                } else {
-                    return Err(
-                        "Unsupported sink type for ChargingProcessor".into()
-                    );
+
+                if !ApplianceProcessor::validate_appliance(&appliance_sink) {
+                    return Err(format!(
+                        "Unsupported sink type '{}' for ApplianceProcessor",
+                        &appliance_sink
+                    ));
                 }
+                let mut processor = ApplianceProcessor::new(
+                    ProcessorBase::new(
+                        processor.name.clone(),
+                        tasks.cancel_rx(),
+                        logger.clone(),
+                    ),
+                    power_source,
+                    appliance_source,
+                    power_sink,
+                    appliance_sink,
+                    setting.tau,
+                );
+                tasks.add_task(task_loop!(processor));
             }
             ProcessorType::LoadControl(setting) => {
                 let battery_source = match inputs.get(&setting.battery_input) {

@@ -18,40 +18,46 @@
 use super::ProcessorBase;
 use crate::models::Model;
 use crate::pt1::PT1;
-use crate::sinks::ke_contact::KeContactSink;
+use crate::sinks::ArcSink;
 use crate::task_group::TaskResult;
 use chrono::Utc;
 use slog::{debug, error, warn};
-use std::sync::Arc;
 use tokio::sync::watch;
 
-pub struct ChargingProcessor {
+pub struct ApplianceProcessor {
     base: ProcessorBase,
     power_input: watch::Receiver<Model>,
-    wallbox_input: watch::Receiver<Model>,
+    appliance_input: watch::Receiver<Model>,
     power_output: watch::Sender<Model>,
-    wallbox_output: Arc<KeContactSink>,
+    appliance_output: ArcSink,
     skipped_events: u8,
     filter: PT1,
 }
 
-impl ChargingProcessor {
+impl ApplianceProcessor {
     pub fn new(
         base: ProcessorBase,
         power_input: watch::Receiver<Model>,
-        wallbox_input: watch::Receiver<Model>,
+        appliance_input: watch::Receiver<Model>,
         power_output: watch::Sender<Model>,
-        wallbox_output: Arc<KeContactSink>,
+        appliance_output: ArcSink,
         tau: f64,
     ) -> Self {
         Self {
             base,
             power_input,
-            wallbox_output,
+            appliance_output,
             power_output,
-            wallbox_input,
+            appliance_input,
             skipped_events: 0,
             filter: PT1::new(tau, 0.0, 0.0, 16000.0, Utc::now()),
+        }
+    }
+
+    pub fn validate_appliance(appliance: &ArcSink) -> bool {
+        match appliance {
+            ArcSink::KeContact(_) => true,
+            _ => false,
         }
     }
 
@@ -63,14 +69,14 @@ impl ChargingProcessor {
             x = self.power_input.changed() => {
                 if let Err(e) = x {
                     return TaskResult::Err(
-                        format!("Reading power input failed: {}", e)
+                        format!("Reading available power failed: {}", e)
                     );
                 }
             }
-            x = self.wallbox_input.changed() => {
+            x = self.appliance_input.changed() => {
                 if let Err(e) = x {
                     return TaskResult::Err(
-                        format!("Reading wallbox input failed: {}", e)
+                        format!("Reading current appliance power failed: {}", e)
                     );
                 }
             }
@@ -89,44 +95,49 @@ impl ChargingProcessor {
             }
         };
 
-        let wallbox = match *self.wallbox_input.borrow() {
+        let appliance = match *self.appliance_input.borrow() {
             Model::SimpleMeter(ref x) => x.clone(),
             Model::None => return TaskResult::Running,
             _ => {
                 error!(
                     self.base.logger,
-                    "Received invalid model from wallbox input: {:?}",
-                    *self.wallbox_input.borrow()
+                    "Received invalid model from appliance input: {:?}",
+                    *self.appliance_input.borrow()
                 );
                 return TaskResult::Running;
             }
         };
 
-        if (wallbox.time - available_power.time).num_seconds().abs() > 15 {
+        if (appliance.time - available_power.time).num_seconds().abs() > 15 {
             self.skipped_events += 1;
             if self.skipped_events >= 2 {
                 warn!(
                     self.base.logger,
-                    "Skipping charging processor due to missing events"
+                    "Skipping appliance processor due to missing events"
                 );
             }
             return TaskResult::Running;
         }
         self.skipped_events = 0;
 
-        let charging_power = self
+        let appliance_power = self
             .filter
-            .process(available_power.power + wallbox.power, wallbox.time);
-        if let Err(e) = self
-            .wallbox_output
-            .set_available_power(charging_power, wallbox.power)
-            .await
-        {
+            .process(available_power.power + appliance.power, appliance.time);
+
+        let result = match &self.appliance_output {
+            ArcSink::KeContact(wallbox) => {
+                wallbox
+                    .set_available_power(appliance_power, appliance.power)
+                    .await
+            }
+            _ => Err("Unsupported appliance type".into()),
+        };
+        if let Err(e) = result {
             error!(self.base.logger, "{}", e);
             return TaskResult::Running;
         }
 
-        available_power.power -= wallbox.power;
+        available_power.power -= appliance.power;
         debug!(
             self.base.logger,
             "Available power after {}: {}",

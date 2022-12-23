@@ -19,6 +19,7 @@ use crate::settings::{Gpio, Settings, SinkType};
 use gpio_switch::GpioCreateInfo;
 use slog::Logger;
 use std::collections::BTreeMap;
+use std::fmt;
 use std::sync::Arc;
 use tokio::sync::watch;
 
@@ -38,6 +39,18 @@ pub enum ArcSink {
     GpioSwitch(Arc<GpioSwitch>),
     LambdaHeatPump(Arc<LambdaHeatPumpSink>),
     KeContact(Arc<KeContactSink>),
+}
+
+impl fmt::Display for ArcSink {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match &self {
+            ArcSink::Debug(_) => "Debug",
+            ArcSink::GpioSwitch(_) => "GpioSwitch",
+            ArcSink::LambdaHeatPump(_) => "LambdaHeatPump",
+            ArcSink::KeContact(_) => "KeContact",
+        };
+        write!(f, "{}", name)
+    }
 }
 
 pub struct GpioProcCreateInfo {

@@ -222,16 +222,16 @@ impl AvailablePowerProcessor {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct ChargingProcessor {
+pub struct ApplianceProcessor {
     pub power_input: String,
-    pub wallbox_input: String,
-    pub wallbox_output: String,
+    pub appliance_input: String,
+    pub appliance_output: String,
     pub tau: f64,
 }
 
-impl ChargingProcessor {
+impl ApplianceProcessor {
     fn has_source(&self, source: &str) -> bool {
-        self.power_input == source || self.wallbox_input == source
+        self.power_input == source || self.appliance_input == source
     }
 }
 
@@ -261,7 +261,7 @@ impl LoadControlProcessor {
 pub enum ProcessorType {
     Debug(DebugProcessor),
     AvailablePower(AvailablePowerProcessor),
-    Charging(ChargingProcessor),
+    Appliance(ApplianceProcessor),
     LoadControl(LoadControlProcessor),
 }
 
@@ -370,7 +370,7 @@ impl Settings {
             |x| match &x.variant {
                 ProcessorType::Debug(x) => x.has_source(source),
                 ProcessorType::AvailablePower(x) => x.has_source(source),
-                ProcessorType::Charging(x) => x.has_source(source),
+                ProcessorType::Appliance(x) => x.has_source(source),
                 ProcessorType::LoadControl(x) => x.has_source(source),
             }
         })
