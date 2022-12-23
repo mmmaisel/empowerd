@@ -31,8 +31,8 @@ impl LambdaHeatPumpSink {
         Ok(Self { name, client })
     }
 
-    pub async fn set_available_power(&self, power: u16) -> Result<(), String> {
-        let power = power
+    pub async fn set_available_power(&self, power: f64) -> Result<(), String> {
+        let power = (power as i64)
             .try_into()
             .map_err(|e| format!("Could not convert power to u16: {}", e))?;
         let mut context = self.client.open().await?;

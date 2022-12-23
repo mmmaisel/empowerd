@@ -57,6 +57,7 @@ impl ApplianceProcessor {
     pub fn validate_appliance(appliance: &ArcSink) -> bool {
         match appliance {
             ArcSink::KeContact(_) => true,
+            ArcSink::LambdaHeatPump(_) => true,
             _ => false,
         }
     }
@@ -129,6 +130,9 @@ impl ApplianceProcessor {
                 wallbox
                     .set_available_power(appliance_power, appliance.power)
                     .await
+            }
+            ArcSink::LambdaHeatPump(lambda) => {
+                lambda.set_available_power(appliance_power).await
             }
             _ => Err("Unsupported appliance type".into()),
         };
