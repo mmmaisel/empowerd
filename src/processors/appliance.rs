@@ -17,10 +17,8 @@
 \******************************************************************************/
 use super::ProcessorBase;
 use crate::models::Model;
-use crate::pt1::PT1;
 use crate::sinks::ArcSink;
 use crate::task_group::TaskResult;
-use chrono::Utc;
 use slog::{debug, error, warn};
 use tokio::sync::watch;
 
@@ -31,7 +29,6 @@ pub struct ApplianceProcessor {
     power_output: watch::Sender<Model>,
     appliance_output: ArcSink,
     skipped_events: u8,
-    filter: PT1,
 }
 
 impl ApplianceProcessor {
@@ -41,7 +38,6 @@ impl ApplianceProcessor {
         appliance_input: watch::Receiver<Model>,
         power_output: watch::Sender<Model>,
         appliance_output: ArcSink,
-        tau: f64,
     ) -> Self {
         Self {
             base,
@@ -50,7 +46,6 @@ impl ApplianceProcessor {
             power_output,
             appliance_input,
             skipped_events: 0,
-            filter: PT1::new(tau, 0.0, 0.0, 16000.0, Utc::now()),
         }
     }
 
@@ -121,9 +116,7 @@ impl ApplianceProcessor {
         }
         self.skipped_events = 0;
 
-        let appliance_power = self
-            .filter
-            .process(available_power.power + appliance.power, appliance.time);
+        let appliance_power = available_power.power + appliance.power;
 
         let result = match &self.appliance_output {
             ArcSink::KeContact(wallbox) => {

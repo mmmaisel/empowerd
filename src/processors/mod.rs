@@ -116,6 +116,7 @@ pub fn processor_tasks(
                     meter_source,
                     power_output,
                     setting.battery_threshold,
+                    setting.tau,
                 );
                 tasks.add_task(task_loop!(processor));
             }
@@ -212,7 +213,6 @@ pub fn processor_tasks(
                     appliance_source,
                     power_sink,
                     appliance_sink,
-                    setting.tau,
                 );
                 tasks.add_task(task_loop!(processor));
             }

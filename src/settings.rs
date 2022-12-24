@@ -213,6 +213,7 @@ pub struct AvailablePowerProcessor {
     pub battery_input: String,
     pub meter_input: String,
     pub battery_threshold: f64,
+    pub tau: f64,
 }
 
 impl AvailablePowerProcessor {
@@ -226,7 +227,6 @@ pub struct ApplianceProcessor {
     pub power_input: String,
     pub appliance_input: String,
     pub appliance_output: String,
-    pub tau: f64,
 }
 
 impl ApplianceProcessor {

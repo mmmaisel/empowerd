@@ -17,7 +17,9 @@
 \******************************************************************************/
 use super::ProcessorBase;
 use crate::models::{AvailablePower, Model};
+use crate::pt1::PT1;
 use crate::task_group::TaskResult;
+use chrono::Utc;
 use slog::{debug, error, warn};
 use tokio::sync::watch;
 
@@ -28,6 +30,7 @@ pub struct AvailablePowerProcessor {
     power_output: watch::Sender<Model>,
     battery_threshold: f64,
     skipped_events: u8,
+    filter: PT1,
 }
 
 impl AvailablePowerProcessor {
@@ -37,6 +40,7 @@ impl AvailablePowerProcessor {
         meter_input: watch::Receiver<Model>,
         power_output: watch::Sender<Model>,
         battery_threshold: f64,
+        tau: f64,
     ) -> Self {
         Self {
             base,
@@ -45,6 +49,7 @@ impl AvailablePowerProcessor {
             power_output,
             battery_threshold,
             skipped_events: 0,
+            filter: PT1::new(tau, 0.0, 0.0, 16000.0, Utc::now()),
         }
     }
 
@@ -111,7 +116,10 @@ impl AvailablePowerProcessor {
         let available_power = if battery.charge < self.battery_threshold {
             AvailablePower::new(meter_time, 0.0)
         } else {
-            AvailablePower::new(meter_time, battery.power - meter_power)
+            AvailablePower::new(
+                meter_time,
+                self.filter.process(battery.power - meter_power, meter_time),
+            )
         };
         debug!(
             self.base.logger,
