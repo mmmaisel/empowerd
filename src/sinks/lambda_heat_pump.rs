@@ -31,13 +31,18 @@ impl LambdaHeatPumpSink {
         Ok(Self { name, client })
     }
 
-    pub async fn set_available_power(&self, power: f64) -> Result<(), String> {
+    pub async fn set_available_power(
+        &self,
+        power: f64,
+    ) -> Result<bool, String> {
         let power = (power as i64)
             .try_into()
             .map_err(|e| format!("Could not convert power to u16: {}", e))?;
         let mut context = self.client.open().await?;
         context.set_available_power(power).await.map_err(|e| {
             format!("Setting available power for {} failed: {}", self.name, e)
-        })
+        })?;
+
+        Ok(power == 0)
     }
 }

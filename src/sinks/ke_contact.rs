@@ -45,7 +45,7 @@ impl KeContactSink {
         &self,
         charging_power: f64,
         current_power: f64,
-    ) -> Result<(), String> {
+    ) -> Result<bool, String> {
         if charging_power < 6.0 * 230.0 && current_power < 10.0
             || charging_power < 7.0 * 230.0 && current_power >= 10.0
         {
@@ -53,6 +53,7 @@ impl KeContactSink {
             if let Err(e) = self.client.set_enable(false).await {
                 return Err(format!("Disabling {} failed: {}", self.name, e));
             }
+            return Ok(false);
         } else {
             let charging_current = (charging_power / 230.0 * 1000.0) as u16;
             debug!(self.logger, "Set current to {} mA", charging_current);
@@ -67,8 +68,7 @@ impl KeContactSink {
             if let Err(e) = self.client.set_enable(true).await {
                 return Err(format!("Enabling {} failed: {}", self.name, e));
             }
+            return Ok(true);
         }
-
-        Ok(())
     }
 }

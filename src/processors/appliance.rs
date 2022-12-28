@@ -29,6 +29,7 @@ pub struct ApplianceProcessor {
     power_output: watch::Sender<Model>,
     appliance_output: ArcSink,
     skipped_events: u8,
+    was_enabled: bool,
 }
 
 impl ApplianceProcessor {
@@ -46,6 +47,7 @@ impl ApplianceProcessor {
             power_output,
             appliance_input,
             skipped_events: 0,
+            was_enabled: false,
         }
     }
 
@@ -116,25 +118,33 @@ impl ApplianceProcessor {
         }
         self.skipped_events = 0;
 
-        let appliance_power = available_power.power + appliance.power;
+        let target_power = available_power.power + appliance.power;
 
         let result = match &self.appliance_output {
             ArcSink::KeContact(wallbox) => {
                 wallbox
-                    .set_available_power(appliance_power, appliance.power)
+                    .set_available_power(target_power, appliance.power)
                     .await
             }
             ArcSink::LambdaHeatPump(lambda) => {
-                lambda.set_available_power(appliance_power).await
+                lambda.set_available_power(target_power).await
             }
             _ => Err("Unsupported appliance type".into()),
         };
-        if let Err(e) = result {
-            error!(self.base.logger, "{}", e);
-            return TaskResult::Running;
+        let enabled = match result {
+            Ok(x) => x,
+            Err(e) => {
+                error!(self.base.logger, "{}", e);
+                return TaskResult::Running;
+            }
+        };
+
+        if enabled && !self.was_enabled {
+            available_power.power -= target_power;
+        } else {
+            available_power.power -= appliance.power;
         }
 
-        available_power.power -= appliance.power;
         debug!(
             self.base.logger,
             "Available power after {}: {}",
