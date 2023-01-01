@@ -89,14 +89,14 @@ class Status extends Component<StatusProps, StatusState> {
         let valves: Switch[] = this.state.switches.filter((x) => {
             return x.icon === "Valve";
         });
-        let test: Switch[] = this.state.test.filter((x) => {
+        let switches: Switch[] = this.state.switches.filter((x) => {
             return x.icon === "Power";
         });
 
         return (
             <div className="mainframe">
-                {/*<WaterSwitch valves={valves} onClick={this.onSwitch} />*/}
-                <PowerSwitch switches={test} onClick={this.onSwitchToggle} />
+                <WaterSwitch valves={valves} onClick={this.onSwitch} />
+                <PowerSwitch switches={switches} onClick={this.onSwitch} />
             </div>
         );
     }

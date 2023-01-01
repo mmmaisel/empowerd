@@ -22,4 +22,12 @@ body {
 
 .mainframe {
     margin: 1vh 2vw 1vh 2vw;
+    display: flex;
+    flex-direction: row;
+}
+
+@media only screen and (max-width: 800px) {
+    .mainframe {
+        flex-direction: column;
+    }
 }

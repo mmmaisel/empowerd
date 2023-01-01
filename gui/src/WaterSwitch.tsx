@@ -1022,10 +1022,18 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
         return labels;
     }
 
+    label_len(): number {
+        if(this.props.valves.length === 0)
+            return 0;
+        return this.props.valves.reduce((a: Switch, b: Switch) => {
+            return a.name.length > b.name.length ? a : b;
+        }).name.length;
+    }
+
     render(): ReactNode {
+        const count: number = this.props.valves.length;
         return (
-            // TODO: fit view box to longest label
-            <svg viewBox="0 0 135.47, 70">
+            <svg viewBox={`0 5 ${40 + 15*count} ${40 + 2.2*this.label_len()}`}>
                 {this.defs()}
                 {this.shadow()}
                 {this.pipes()}

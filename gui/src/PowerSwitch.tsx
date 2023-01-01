@@ -914,10 +914,18 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
         return labels;
     }
 
+    label_len(): number {
+        if(this.props.switches.length === 0)
+            return 0;
+        return this.props.switches.reduce((a: Switch, b: Switch) => {
+            return a.name.length > b.name.length ? a : b;
+        }).name.length;
+    }
+
     render() {
+        const count: number = this.props.switches.length;
         return (
-            // TODO: fit view box to longest label
-            <svg viewBox="0 0 135.47, 100">
+            <svg viewBox={`8 20 ${40 + 30*count} ${65 + 15*this.label_len()}`}>
                 {this.defs()}
                 {this.shadow()}
                 {this.device_frame()}
