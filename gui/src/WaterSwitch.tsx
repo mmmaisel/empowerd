@@ -1,28 +1,22 @@
-import React, { Component, ReactNode } from "react";
-import { Switch } from "./WaterApi";
+import React, { ReactNode } from "react";
+import SwitchWidget, { SvgMatrix } from "./SwitchWidget";
 
-type WaterSwitchProps = {
-    valves: Switch[];
-    onClick: (id: number) => void;
-};
-
-type WaterSwitchState = {
-    hovered: boolean[];
-};
-
-class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
+class WaterSwitch extends SwitchWidget {
     static xdist: number = 15.875;
 
-    constructor(props: WaterSwitchProps) {
-        super(props);
-        this.state = {
-            hovered: Array(this.props.valves.length),
-        };
+    buttonMatrix(pos: number): SvgMatrix {
+        return new SvgMatrix(1, 0, 0, 1, WaterSwitch.xdist * pos, -13.758);
+    }
+
+    labelMatrix(pos: number): SvgMatrix {
+        return new SvgMatrix(1, 0, 0, 1, WaterSwitch.xdist * pos, 0);
     }
 
     defs(): ReactNode {
         return (
             <defs>
+                {this.common_defs()}
+
                 <linearGradient id="linearGradientGoldFade">
                     <stop stopColor="#edcc84" offset={0} />
                     <stop stopColor="#edcc84" stopOpacity={0} offset={1} />
@@ -363,91 +357,13 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
                 >
                     <feGaussianBlur stdDeviation="0.23283332" />
                 </filter>
-
-                <linearGradient
-                    id="linearGradientButton"
-                    x1="26.458"
-                    x2="26.458"
-                    y1="28.325"
-                    y2="43.642"
-                    gradientUnits="userSpaceOnUse"
-                >
-                    <stop stopColor="#fff" stopOpacity=".78431" offset={0} />
-                    <stop
-                        stopColor="#fff"
-                        stopOpacity=".5098"
-                        offset=".11997"
-                    />
-                    <stop stopColor="#fff" stopOpacity={0} offset=".29271" />
-                    <stop stopOpacity={0} offset={1} />
-                </linearGradient>
-                <linearGradient
-                    id="linearGradientButtonHovered"
-                    x1="26.458"
-                    x2="26.458"
-                    y1="28.325"
-                    y2="43.642"
-                    gradientUnits="userSpaceOnUse"
-                >
-                    <stop stopColor="#fff" stopOpacity=".78431" offset={0} />
-                    <stop
-                        stopColor="#fff"
-                        stopOpacity=".8259"
-                        offset=".11997"
-                    />
-                    <stop stopColor="#fff" stopOpacity=".2353" offset=".4" />
-                    <stop stopColor="#fff" stopOpacity=".1353" offset={1} />
-                </linearGradient>
-                <linearGradient
-                    id="linearGradientButtonPushed"
-                    x1="26.458"
-                    x2="26.458"
-                    y1="28.325"
-                    y2="43.642"
-                    gradientTransform="translate(-52.917 -71.967)"
-                    gradientUnits="userSpaceOnUse"
-                >
-                    <stop stopColor="#fff" stopOpacity=".39216" offset={0} />
-                    <stop
-                        stopColor="#fff"
-                        stopOpacity=".23529"
-                        offset=".11997"
-                    />
-                    <stop stopColor="#fff" stopOpacity={0} offset=".29271" />
-                    <stop
-                        stopColor="#fff"
-                        stopOpacity=".051522"
-                        offset=".70729"
-                    />
-                    <stop
-                        stopColor="#fff"
-                        stopOpacity=".5098"
-                        offset=".88819"
-                    />
-                    <stop stopColor="#fff" stopOpacity=".70588" offset={1} />
-                </linearGradient>
-                <linearGradient
-                    id="linearGradientButtonPushedStroke"
-                    x1="21.975"
-                    x2="30.692"
-                    y1="28.325"
-                    y2="39.158"
-                    gradientUnits="userSpaceOnUse"
-                >
-                    <stop offset={0} />
-                    <stop stopOpacity={0} offset={1} />
-                </linearGradient>
-
-                <filter id="filterTextShadow" colorInterpolationFilters="sRGB">
-                    <feGaussianBlur stdDeviation="0.3" />
-                </filter>
             </defs>
         );
     }
 
     shadow(): ReactNode {
-        let count: number = this.props.valves.length;
-        let pipe_shadow_h: ReactNode = (
+        const count: number = this.props.switches.length;
+        const pipe_shadow_h: ReactNode = (
             <rect
                 x="2.1167"
                 y="30.692"
@@ -479,8 +395,8 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
     }
 
     pipes(): ReactNode {
-        let count: number = this.props.valves.length;
-        let pipe_h: ReactNode = (
+        const count: number = this.props.switches.length;
+        const pipe_h: ReactNode = (
             <rect
                 x="4.2333"
                 y="7.4083"
@@ -489,7 +405,7 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
                 fill="url(#linearGradientPipeH)"
             />
         );
-        let flow_window: ReactNode = (
+        const flow_window: ReactNode = (
             <g transform="translate(0 -13.758)">
                 {/* pipe window */}
                 <rect
@@ -529,7 +445,7 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
                 />
             </g>
         );
-        let pipe_cap_l: ReactNode = (
+        const pipe_cap_l: ReactNode = (
             <rect
                 x="3.175"
                 y="6.35"
@@ -542,7 +458,7 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
                 strokeWidth=".1"
             />
         );
-        let pipe_cap_r: ReactNode = (
+        const pipe_cap_r: ReactNode = (
             <rect
                 x={31.75 + WaterSwitch.xdist * count}
                 y="8.4667"
@@ -558,7 +474,7 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
 
         let pipes_v: ReactNode[] = Array<ReactNode>(count);
         for (let i = 0; i < count; i++) {
-            if (this.props.valves[i].open === true)
+            if (this.props.switches[i].open === true)
                 pipes_v[i] = this.open_pipe(i);
             else pipes_v[i] = this.closed_pipe(i);
         }
@@ -690,7 +606,7 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
     }
 
     valves(): ReactNode[] {
-        let count: number = this.props.valves.length;
+        const count: number = this.props.switches.length;
         let valves: ReactNode[] = Array<ReactNode>(count);
         for (let i = 0; i < count; i++) {
             valves[i] = this.valve_ctrl(i);
@@ -699,14 +615,11 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
     }
 
     valve_ctrl(pos: number): ReactNode {
-        let valve_button = null;
         let valve = null;
+        const valve_button = this.button(pos, this.state.hovered[pos]);
 
-        if (this.state.hovered[pos] === true)
-            valve_button = this.button_hovered(pos);
-        else valve_button = this.button(pos);
-
-        if (this.props.valves[pos].open === true) valve = this.open_valve(pos);
+        if (this.props.switches[pos].open === true)
+            valve = this.open_valve(pos);
         else valve = this.closed_valve(pos);
 
         return (
@@ -876,164 +789,14 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
         );
     }
 
-    button(pos: number): ReactNode {
-        return (
-            <g transform={"translate(" + WaterSwitch.xdist * pos + " -13.758)"}>
-                <rect
-                    x="22.225"
-                    y="28.575"
-                    width="8.4667"
-                    height="14.817"
-                    rx="1.4552"
-                    fillOpacity=".5082"
-                    stroke="#000"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeOpacity=".5098"
-                    strokeWidth=".5"
-                />
-                <rect
-                    x="22.225"
-                    y="28.575"
-                    width="8.4667"
-                    height="14.817"
-                    rx="1.4552"
-                    fill="url(#linearGradientButton)"
-                />
-            </g>
-        );
-    }
-
-    // TODO: use it correctly
-    // TODO: add hover
-    button_pushed(pos: number): ReactNode {
-        return (
-            <g transform={"translate(" + WaterSwitch.xdist * pos + " -13.758)"}>
-                <rect
-                    x="22.225"
-                    y="28.575"
-                    width="8.4667"
-                    height="14.817"
-                    rx="1.4552"
-                    fillOpacity=".5082"
-                    stroke="#000"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeOpacity=".5098"
-                    strokeWidth=".5"
-                />
-                <rect
-                    transform="scale(-1)"
-                    x="-30.692"
-                    y="-43.392"
-                    width="8.4667"
-                    height="14.817"
-                    rx="1.4552"
-                    fill="url(#linearGradientButtonPushed)"
-                />
-                <rect
-                    x="22.225"
-                    y="28.575"
-                    width="8.4667"
-                    height="14.817"
-                    rx="1.4552"
-                    fill="none"
-                    stroke="url(#linearGradientButtonPushedStroke)"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeOpacity=".5098"
-                    strokeWidth=".5"
-                />
-            </g>
-        );
-    }
-
-    button_hovered(pos: number): ReactNode {
-        return (
-            <g transform={"translate(" + WaterSwitch.xdist * pos + " -13.758)"}>
-                <rect
-                    x="22.225"
-                    y="28.575"
-                    width="8.4667"
-                    height="14.817"
-                    rx="1.4552"
-                    fillOpacity=".5082"
-                    stroke="#666"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeOpacity=".5098"
-                    strokeWidth=".5"
-                />
-                <rect
-                    x="22.225"
-                    y="28.575"
-                    width="8.4667"
-                    height="14.817"
-                    rx="1.4552"
-                    fill="url(#linearGradientButtonHovered)"
-                />
-            </g>
-        );
-    }
-
-    label(pos: number, text: string): ReactNode {
-        return (
-            <g transform={"translate(" + WaterSwitch.xdist * pos + ")"}>
-                {/* text shadow */}
-                <text
-                    transform="rotate(-90)"
-                    x="-38"
-                    y="28.5"
-                    fontFamily="sans-serif"
-                    fontSize="6px"
-                    stroke="#FFFFFF"
-                    filter="url(#filterTextShadow)"
-                    pointerEvents="none"
-                    strokeWidth=".5"
-                    text-align="end"
-                    textAnchor="end"
-                >
-                    {text}
-                </text>
-                {/* text itself */}
-                <text
-                    transform="rotate(-90)"
-                    x="-38"
-                    y="28.5"
-                    fontFamily="sans-serif"
-                    fontSize="6px"
-                    pointerEvents="none"
-                    strokeWidth=".25"
-                    text-align="end"
-                    textAnchor="end"
-                >
-                    {text}
-                </text>
-            </g>
-        );
-    }
-
-    labels(): ReactNode[] {
-        let count: number = this.props.valves.length;
-        let labels: ReactNode[] = Array<ReactNode>(count);
-        for (let i = 0; i < count; i++) {
-            labels[i] = this.label(i, this.props.valves[i].name);
-        }
-        return labels;
-    }
-
-    label_len(): number {
-        if(this.props.valves.length === 0)
-            return 0;
-        return this.props.valves.reduce((a: Switch, b: Switch) => {
-            return a.name.length > b.name.length ? a : b;
-        }).name.length;
-    }
-
     render(): ReactNode {
-        const count: number = this.props.valves.length;
+        const count: number = this.props.switches.length;
         return (
-            <svg viewBox={`0 5 ${40 + 15*count} ${40 + 2.2*this.label_len()}`}>
+            <svg
+                viewBox={`0 5 ${40 + 15 * count} ${
+                    40 + 2.2 * this.label_len()
+                }`}
+            >
                 {this.defs()}
                 {this.shadow()}
                 {this.pipes()}
@@ -1042,22 +805,6 @@ class WaterSwitch extends Component<WaterSwitchProps, WaterSwitchState> {
             </svg>
         );
     }
-
-    onMouseEnter = (channel: number): void => {
-        let hovered = this.state.hovered;
-        hovered[channel] = true;
-        this.setState({ hovered: hovered });
-    };
-
-    onMouseLeave = (channel: number): void => {
-        let hovered = this.state.hovered;
-        hovered[channel] = false;
-        this.setState({ hovered: hovered });
-    };
-
-    onClick = (channel: number): void => {
-        this.props.onClick(channel);
-    };
 }
 
 export default WaterSwitch;

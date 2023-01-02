@@ -95,7 +95,7 @@ class Status extends Component<StatusProps, StatusState> {
 
         return (
             <div className="mainframe">
-                <WaterSwitch valves={valves} onClick={this.onSwitch} />
+                <WaterSwitch switches={valves} onClick={this.onSwitch} />
                 <PowerSwitch switches={switches} onClick={this.onSwitch} />
             </div>
         );

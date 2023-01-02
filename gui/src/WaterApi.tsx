@@ -11,7 +11,6 @@ type GraphQlData =
     | { [x: string]: GraphQlData }
     | Array<GraphQlData>;
 
-
 type GraphQlResponse = {
     data: Record<string, GraphQlData>;
     errors: GraphQlError[];
@@ -98,7 +97,7 @@ class WaterApi {
             `login(username:"${username}",password:"${password}")`,
             (data: GraphQlData) => {
                 // TODO:
-                this.#token = (data as {login: string}).login;
+                this.#token = (data as { login: string }).login;
                 on_success();
             },
             (errors: GraphQlError[]) => {
@@ -128,9 +127,10 @@ class WaterApi {
         on_success: (switches: Switch[]) => void,
         on_error: (error: GraphQlError[]) => void
     ): void => {
-        this.query("switches{id,name,icon,open}",
+        this.query(
+            "switches{id,name,icon,open}",
             (data: Record<string, GraphQlData>) => {
-                on_success((data as {switches: Switch[]}).switches);
+                on_success((data as { switches: Switch[] }).switches);
             },
             on_error
         );
@@ -145,7 +145,7 @@ class WaterApi {
         this.mutation(
             `setSwitch(switch:{id:${id},open:${!!open}}){open}`,
             (data: GraphQlData) => {
-                on_success((data as {setSwitch: Switch}).setSwitch);
+                on_success((data as { setSwitch: Switch }).setSwitch);
             },
             on_error
         );

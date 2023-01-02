@@ -1,32 +1,38 @@
-import React, { Component, ReactNode } from "react";
-import { Switch } from "./WaterApi";
+import React, { ReactNode } from "react";
+import SwitchWidget, { SvgMatrix } from "./SwitchWidget";
 
-type PowerSwitchProps = {
-    switches: Switch[];
-    onClick: (id: number) => void;
-};
-
-type PowerSwitchState = {
-    hovered: boolean[];
-};
-
-// XXX: separate rendering from control logic structure
 // TODO: optimize out translate and matrix and so
 // TODO: exact positions
 
-class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
+class PowerSwitch extends SwitchWidget {
     static xdist: number = 15.875;
 
-    constructor(props: PowerSwitchProps) {
-        super(props);
-        this.state = {
-            hovered: Array(this.props.switches.length),
-        };
+    buttonMatrix(pos: number): SvgMatrix {
+        return new SvgMatrix(
+            2.9,
+            0,
+            0,
+            3.4,
+            PowerSwitch.xdist - 58.3,
+            -13.758 - 56.3
+        );
+    }
+
+    labelMatrix(pos: number): SvgMatrix {
+        return new SvgMatrix(
+            2,
+            0,
+            0,
+            2,
+            -16 + 2.22 * PowerSwitch.xdist * pos,
+            12
+        );
     }
 
     defs(): ReactNode {
         return (
             <defs>
+                this.common_defs();
                 {/* device box */}
                 <filter
                     id="filterBoxShadow"
@@ -37,7 +43,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                 >
                     <feGaussianBlur stdDeviation="1.1855987" />
                 </filter>
-
                 <filter
                     id="filterBoxSpec"
                     x="-0.027653968"
@@ -47,7 +52,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                 >
                     <feGaussianBlur stdDeviation="0.83572366" />
                 </filter>
-
                 <radialGradient
                     id="radialGradientBox"
                     cx="49.967976"
@@ -64,7 +68,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#dfdfdf" offset={0} />
                     <stop stopColor="#f4f4f4" offset={1} />
                 </radialGradient>
-
                 <linearGradient
                     id="linearGradientBoxBorder"
                     x1="55.550968"
@@ -76,7 +79,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#e5e5e5" offset={0} />
                     <stop stopColor="#bfbfbf" offset={1} />
                 </linearGradient>
-
                 <linearGradient
                     id="linearGradientBoxSpec1"
                     x1="131.91005"
@@ -89,7 +91,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#ffffff" stopOpacity={1} offset="0.5" />
                     <stop stopColor="#ffffff" stopOpacity={0} offset={1} />
                 </linearGradient>
-
                 <linearGradient
                     id="linearGradientBoxSpec2"
                     x1="50.176556"
@@ -101,7 +102,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#ffffff" stopOpacity={1} offset={0} />
                     <stop stopColor="#ffffff" stopOpacity={0} offset={1} />
                 </linearGradient>
-
                 {/* indicators */}
                 <filter
                     id="filterHexBlur"
@@ -112,7 +112,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                 >
                     <feGaussianBlur stdDeviation="0.31663494" />
                 </filter>
-
                 <filter
                     id="filterIndicatorShadow"
                     x="-0.047999999"
@@ -122,7 +121,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                 >
                     <feGaussianBlur stdDeviation="1.1680378" />
                 </filter>
-
                 <radialGradient
                     id="radialGradientLedHex"
                     gradientUnits="userSpaceOnUse"
@@ -139,7 +137,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#000000" stopOpacity={1} offset={0} />
                     <stop stopColor="#000000" stopOpacity={0} offset={1} />
                 </radialGradient>
-
                 <radialGradient
                     id="radialGradientLedGreen"
                     gradientUnits="userSpaceOnUse"
@@ -154,7 +151,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#00e113" offset="0.7570765" />
                     <stop stopColor="#007109" offset={1} />
                 </radialGradient>
-
                 <radialGradient
                     id="radialGradientLedRed"
                     gradientUnits="userSpaceOnUse"
@@ -169,7 +165,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#e10200" offset="0.7570765" />
                     <stop stopColor="#710000" offset={1} />
                 </radialGradient>
-
                 <linearGradient
                     id="linearGradientLedSpec"
                     gradientUnits="userSpaceOnUse"
@@ -182,7 +177,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#ffffff" stopOpacity={1} offset={0} />
                     <stop stopColor="#ffffff" stopOpacity={0} offset={1} />
                 </linearGradient>
-
                 {/* switch box */}
                 <filter
                     id="filterSwitchBoxShadow"
@@ -193,7 +187,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                 >
                     <feGaussianBlur stdDeviation="0.421875" />
                 </filter>
-
                 <linearGradient
                     id="linearGradientSwitchBox"
                     x1="50.434643"
@@ -206,7 +199,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#fafafa" offset={0} />
                     <stop stopColor="#d9d9d9" offset={1} />
                 </linearGradient>
-
                 <linearGradient
                     id="linearGradientSwitchBoxBorder"
                     x1="46.69791"
@@ -219,7 +211,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#ffffff" offset={0} />
                     <stop stopColor="#cccccc" offset={1} />
                 </linearGradient>
-
                 {/* switches */}
                 <linearGradient
                     id="linearGradientSwitchInner"
@@ -232,7 +223,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#000000" offset={0} />
                     <stop stopColor="#404040" offset={1} />
                 </linearGradient>
-
                 <linearGradient
                     id="linearGradientSwitchInnerBorder"
                     x1="29.234196"
@@ -244,7 +234,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#999999" offset={0} />
                     <stop stopColor="#cccccc" offset={1} />
                 </linearGradient>
-
                 <linearGradient
                     id="linearGradientSwitchOffEdge"
                     gradientUnits="userSpaceOnUse"
@@ -257,7 +246,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#8c8c8c" offset={0} />
                     <stop stopColor="#cccccc" offset={1} />
                 </linearGradient>
-
                 <linearGradient
                     id="linearGradientSwitchOnEdge"
                     gradientUnits="userSpaceOnUse"
@@ -270,7 +258,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#e5e5e5" offset={0} />
                     <stop stopColor="#ffffff" offset={1} />
                 </linearGradient>
-
                 <linearGradient
                     id="linearGradientSwitchOffMain"
                     x1="33.992939"
@@ -285,7 +272,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#e5e5e5" offset={0.51682985} />
                     <stop stopColor="#ffffff" offset={1} />
                 </linearGradient>
-
                 <linearGradient
                     id="linearGradientSwitchOnMain"
                     gradientUnits="userSpaceOnUse"
@@ -300,7 +286,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#e5e5e5" offset={0.42999968} />
                     <stop stopColor="#ffffff" offset={1} />
                 </linearGradient>
-
                 <radialGradient
                     id="radialGradientSwitchOffShadow"
                     cx="36.101601"
@@ -314,7 +299,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#000000" stopOpacity={0.5} offset={0} />
                     <stop stopColor="#000000" stopOpacity={0} offset={1} />
                 </radialGradient>
-
                 <radialGradient
                     id="radialGradientSwitchOnShadow"
                     gradientUnits="userSpaceOnUse"
@@ -331,47 +315,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
                     <stop stopColor="#000000" stopOpacity={0.5} offset={0} />
                     <stop stopColor="#000000" stopOpacity={0} offset={1} />
                 </radialGradient>
-
-                {/* buttons TODO: dedup with water switch*/}
-                <linearGradient
-                    id="linearGradientButton"
-                    x1="26.458"
-                    x2="26.458"
-                    y1="28.325"
-                    y2="43.642"
-                    gradientUnits="userSpaceOnUse"
-                >
-                    <stop stopColor="#fff" stopOpacity=".78431" offset={0} />
-                    <stop
-                        stopColor="#fff"
-                        stopOpacity=".5098"
-                        offset=".11997"
-                    />
-                    <stop stopColor="#fff" stopOpacity={0} offset=".29271" />
-                    <stop stopOpacity={0} offset={1} />
-                </linearGradient>
-                <linearGradient
-                    id="linearGradientButtonHovered"
-                    x1="26.458"
-                    x2="26.458"
-                    y1="28.325"
-                    y2="43.642"
-                    gradientUnits="userSpaceOnUse"
-                >
-                    <stop stopColor="#fff" stopOpacity=".78431" offset={0} />
-                    <stop
-                        stopColor="#fff"
-                        stopOpacity=".8259"
-                        offset=".11997"
-                    />
-                    <stop stopColor="#fff" stopOpacity=".2353" offset=".4" />
-                    <stop stopColor="#fff" stopOpacity=".1353" offset={1} />
-                </linearGradient>
-
-                {/* labels */}
-                <filter id="filterTextShadow" colorInterpolationFilters="sRGB">
-                    <feGaussianBlur stdDeviation="0.3" />
-                </filter>
             </defs>
         );
     }
@@ -830,102 +773,14 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
         );
     }
 
-    // TODO: dedup these buttons somehow between water and power
-    button(pos: number, hovered: boolean) {
-        const stroke_color = hovered ? "#666" : "#000";
-        const fill_gradient = hovered ? "Button" : "ButtonHovered";
-        return (
-            <g
-                transform={`matrix(2.9 0 0 3.4 ${PowerSwitch.xdist - 58.3} ${
-                    -13.758 - 56.3
-                })`}
-            >
-                <rect
-                    x="22.225"
-                    y="28.575"
-                    width="8.4667"
-                    height="14.817"
-                    rx="1.4552"
-                    fillOpacity=".5082"
-                    stroke={stroke_color}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeOpacity=".5098"
-                    strokeWidth=".5"
-                />
-                <rect
-                    x="22.225"
-                    y="28.575"
-                    width="8.4667"
-                    height="14.817"
-                    rx="1.4552"
-                    fill={`url(#linearGradient${fill_gradient})`}
-                />
-            </g>
-        );
-    }
-
-    // TODO: dedup with water switch
-    label(pos: number, text: string): ReactNode {
-        return (
-            <g transform=
-                {`matrix(2 0 0 2 ${-35 + 2.22 * PowerSwitch.xdist * pos} -90)`}
-            >
-                {/* text shadow */}
-                <text
-                    transform="rotate(-90)"
-                    x="-88"
-                    y="36.5"
-                    fontFamily="sans-serif"
-                    fontSize="6px"
-                    stroke="#FFFFFF"
-                    filter="url(#filterTextShadow)"
-                    pointerEvents="none"
-                    strokeWidth=".5"
-                    text-align="end"
-                    textAnchor="end"
-                >
-                    {text}
-                </text>
-                {/* text itself */}
-                <text
-                    transform="rotate(-90)"
-                    x="-88"
-                    y="36.5"
-                    fontFamily="sans-serif"
-                    fontSize="6px"
-                    pointerEvents="none"
-                    strokeWidth=".25"
-                    text-align="end"
-                    textAnchor="end"
-                >
-                    {text}
-                </text>
-            </g>
-        );
-    }
-
-    labels(): ReactNode[] {
-        let count: number = this.props.switches.length;
-        let labels: ReactNode[] = Array<ReactNode>(count);
-        for (let i = 0; i < count; i++) {
-            labels[i] = this.label(i, this.props.switches[i].name);
-        }
-        return labels;
-    }
-
-    label_len(): number {
-        if(this.props.switches.length === 0)
-            return 0;
-        return this.props.switches.reduce((a: Switch, b: Switch) => {
-            return a.name.length > b.name.length ? a : b;
-        }).name.length;
-    }
-
     render() {
         const count: number = this.props.switches.length;
         return (
-            <svg viewBox={`8 20 ${40 + 30*count} ${65 + 15*this.label_len()}`}>
+            <svg
+                viewBox={`8 20 ${40 + 30 * count} ${
+                    65 + 15 * this.label_len()
+                }`}
+            >
                 {this.defs()}
                 {this.shadow()}
                 {this.device_frame()}
@@ -934,22 +789,6 @@ class PowerSwitch extends Component<PowerSwitchProps, PowerSwitchState> {
             </svg>
         );
     }
-
-    onMouseEnter = (channel: number): void => {
-        let hovered = this.state.hovered;
-        hovered[channel] = true;
-        this.setState({ hovered: hovered });
-    };
-
-    onMouseLeave = (channel: number): void => {
-        let hovered = this.state.hovered;
-        hovered[channel] = false;
-        this.setState({ hovered: hovered });
-    };
-
-    onClick = (channel: number): void => {
-        this.props.onClick(channel);
-    };
 }
 
 export default PowerSwitch;
