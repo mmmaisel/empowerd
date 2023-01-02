@@ -274,7 +274,7 @@ abstract class SwitchWidget extends Component<
     };
 
     onClick = (channel: number): void => {
-        this.props.onClick(channel);
+        this.props.onClick(this.props.switches[channel].id);
     };
 }
 

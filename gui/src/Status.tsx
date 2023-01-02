@@ -11,7 +11,6 @@ type StatusProps = {
 
 type StatusState = {
     switches: Switch[];
-    test: Switch[];
 };
 
 class Status extends Component<StatusProps, StatusState> {
@@ -19,36 +18,23 @@ class Status extends Component<StatusProps, StatusState> {
         super(props);
         this.state = {
             switches: [],
-            test: [
-                {
-                    id: 1,
-                    icon: "Power",
-                    name: "on",
-                    open: true
-                },
-                {
-                    id: 2,
-                    icon: "Power",
-                    name: "off",
-                    open: false
-                },
-                {
-                    id: 3,
-                    icon: "Power",
-                    name: "bla",
-                    open: false
-                }
-            ]
         };
     }
 
-    onSwitch = (channel: number): void => {
-        let id: number = this.state.switches[channel].id;
-        let open: boolean = this.state.switches[channel].open;
+    onSwitch = (id: number): void => {
+        let switches = this.state.switches;
+        let switch_ = this.state.switches.find((x: Switch) => {
+            return x.id === id;
+        });
+
+        if(switch_ === undefined) {
+            console.log(`Could not find switch with id '${id}'.`);
+            return;
+        }
 
         this.props.api.setSwitch(
             id,
-            open,
+            switch_.open,
             (response: Switch) => {
                 let switches = this.state.switches;
                 switches[channel].open = response.open;
@@ -58,17 +44,8 @@ class Status extends Component<StatusProps, StatusState> {
                 alert("Setting switch failed");
                 console.log(errors);
             }
-        );
+
     };
-
-    onSwitchToggle = (channel: number): void => {
-        let id: number = this.state.test[channel].id;
-        let open: boolean = this.state.test[channel].open;
-
-        let test = this.state.test;
-        test[channel].open = !open;
-        this.setState({ test: test });
-    }
 
     // TODO: show if it is automatically activated
     // TODO: show remaining active time
@@ -86,6 +63,8 @@ class Status extends Component<StatusProps, StatusState> {
 
     render(): ReactNode {
         // TODO: server time, manual trigger, next event
+        // XXX: split after n items into another Switch widget
+
         let valves: Switch[] = this.state.switches.filter((x) => {
             return x.icon === "Valve";
         });
