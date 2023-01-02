@@ -1,5 +1,5 @@
 import React, { Component, ReactNode } from "react";
-import { Switch } from "./WaterApi";
+import { Switch } from "./EmpowerdApi";
 
 type SwitchWidgetProps = {
     switches: Switch[];

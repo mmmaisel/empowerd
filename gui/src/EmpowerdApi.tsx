@@ -23,7 +23,7 @@ export type Switch = {
     open: boolean;
 };
 
-class WaterApi {
+class EmpowerdApi {
     #token: string;
     api_location: string;
 
@@ -152,4 +152,4 @@ class WaterApi {
     };
 }
 
-export default WaterApi;
+export default EmpowerdApi;

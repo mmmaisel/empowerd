@@ -5,7 +5,7 @@ import Navbar from "./Navbar";
 import Config from "./Config";
 import Status from "./Status";
 import LoginForm from "./LoginForm";
-import WaterApi, { GraphQlError } from "./WaterApi";
+import EmpowerdApi, { GraphQlError } from "./EmpowerdApi";
 
 type AppState = {
     logged_in: boolean;
@@ -14,7 +14,7 @@ type AppState = {
 
 class App extends Component<{}, AppState> {
     items: string[];
-    api: WaterApi;
+    api: EmpowerdApi;
 
     constructor(props: {}) {
         super(props);
@@ -25,7 +25,7 @@ class App extends Component<{}, AppState> {
             .replace(/[^/]*$/, "");
 
         this.items = ["Status", "Logout"];
-        this.api = new WaterApi(location);
+        this.api = new EmpowerdApi(location);
         this.state = {
             logged_in: false,
             active_tab: this.items[0],

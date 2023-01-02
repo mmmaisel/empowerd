@@ -6,7 +6,7 @@ import React, { Component, ReactNode } from "react";
 import "./Config.scss";
 import "./Widgets.scss";
 
-import WaterApi from "./WaterApi";
+import EmpowerdApi from "./EmpowerdApi";
 
 enum EditMode {
     NORMAL = 0,
@@ -15,7 +15,7 @@ enum EditMode {
 }
 
 type ConfigProps = {
-    api: WaterApi;
+    api: EmpowerdApi;
 };
 
 type ConfigState = {

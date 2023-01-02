@@ -2,7 +2,7 @@ import React, { Component, ReactElement, ReactNode } from "react";
 import CSS from "csstype";
 
 import "./Widgets.scss";
-import WaterApi, { GraphQlError } from "./WaterApi";
+import EmpowerdApi, { GraphQlError } from "./EmpowerdApi";
 
 enum LoginState {
     IDLE = 0,
@@ -11,7 +11,7 @@ enum LoginState {
 }
 
 type LoginFormProps = {
-    api: WaterApi;
+    api: EmpowerdApi;
     onLogin: () => void;
 };
 

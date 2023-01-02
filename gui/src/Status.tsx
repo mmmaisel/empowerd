@@ -1,12 +1,12 @@
 import React, { Component, ReactNode } from "react";
 import WaterSwitch from "./WaterSwitch";
 import PowerSwitch from "./PowerSwitch";
-import WaterApi, { GraphQlError, Switch } from "./WaterApi";
+import EmpowerdApi, { GraphQlError, Switch } from "./EmpowerdApi";
 
 // TODO: use React.fragment everywhere where possible
 
 type StatusProps = {
-    api: WaterApi;
+    api: EmpowerdApi;
 };
 
 type StatusState = {
