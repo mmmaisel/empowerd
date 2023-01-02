@@ -27,7 +27,7 @@ class Status extends Component<StatusProps, StatusState> {
             return x.id === id;
         });
 
-        if(switch_ === undefined) {
+        if (switch_ === undefined) {
             console.log(`Could not find switch with id '${id}'.`);
             return;
         }
