@@ -70,21 +70,21 @@ pub fn processor_tasks(
     let tasks = TaskGroupBuilder::new("processors".into(), logger.clone());
     let mut outputs = BTreeMap::<String, watch::Sender<Model>>::new();
 
-    for processor in &settings.processors {
+    for p in &settings.processors {
         let (tx, rx) = watch::channel(Model::None);
-        inputs.insert(processor.name.clone(), rx);
-        outputs.insert(processor.name.clone(), tx);
+        inputs.insert(p.name.clone(), rx);
+        outputs.insert(p.name.clone(), tx);
     }
 
-    for processor in &settings.processors {
-        match &processor.variant {
+    for p in &settings.processors {
+        match &p.variant {
             ProcessorType::AvailablePower(setting) => {
                 let battery_source = match inputs.get(&setting.battery_input) {
                     Some(x) => x.clone(),
                     None => {
                         return Err(format!(
                             "Missing battery input for Processor {}",
-                            &processor.name
+                            &p.name
                         ))
                     }
                 };
@@ -93,22 +93,22 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing meter input for Processor {}",
-                            &processor.name
+                            &p.name
                         ))
                     }
                 };
-                let power_output = match outputs.remove(&processor.name) {
+                let power_output = match outputs.remove(&p.name) {
                     Some(x) => x,
                     None => {
                         return Err(format!(
                             "Missing power output for Processor {}",
-                            &processor.name
+                            &p.name
                         ))
                     }
                 };
                 let mut processor = AvailablePowerProcessor::new(
                     ProcessorBase::new(
-                        processor.name.clone(),
+                        p.name.clone(),
                         tasks.cancel_rx(),
                         logger.clone(),
                     ),
@@ -126,7 +126,7 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing sink for Processor {}",
-                            &processor.name
+                            &p.name
                         ))
                     }
                 };
@@ -135,14 +135,14 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing source for Processor {}",
-                            &processor.name
+                            &p.name
                         ))
                     }
                 };
                 if let ArcSink::Debug(sink) = sink {
                     let mut processor = DebugProcessor::new(
                         ProcessorBase::new(
-                            processor.name.clone(),
+                            p.name.clone(),
                             tasks.cancel_rx(),
                             logger.clone(),
                         ),
@@ -162,17 +162,17 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing power input for Processor {}",
-                            &processor.name
+                            &p.name
                         ))
                     }
                 };
                 let power_sink: watch::Sender<Model> =
-                    match outputs.remove(&processor.name) {
+                    match outputs.remove(&p.name) {
                         Some(x) => x,
                         None => {
                             return Err(format!(
                                 "Missing power output for Processor {}",
-                                &processor.name
+                                &p.name
                             ))
                         }
                     };
@@ -182,7 +182,7 @@ pub fn processor_tasks(
                         None => {
                             return Err(format!(
                                 "Missing appliance source for Processor {}",
-                                &processor.name
+                                &p.name
                             ))
                         }
                     };
@@ -192,7 +192,7 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing sink 'appliance_output' for Processor {}",
-                            &processor.name
+                            &p.name
                         ))
                     }
                 };
@@ -205,7 +205,7 @@ pub fn processor_tasks(
                 }
                 let mut processor = ApplianceProcessor::new(
                     ProcessorBase::new(
-                        processor.name.clone(),
+                        p.name.clone(),
                         tasks.cancel_rx(),
                         logger.clone(),
                     ),
@@ -222,7 +222,7 @@ pub fn processor_tasks(
                     None => {
                         return Err(format!(
                             "Missing battery input for Processor {}",
-                            &processor.name
+                            &p.name
                         ))
                     }
                 };
@@ -243,7 +243,7 @@ pub fn processor_tasks(
 
                 let mut processor = match LoadControlProcessor::new(
                     ProcessorBase::new(
-                        processor.name.clone(),
+                        p.name.clone(),
                         tasks.cancel_rx(),
                         logger.clone(),
                     ),
