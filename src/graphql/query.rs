@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -17,14 +17,60 @@
 \******************************************************************************/
 use juniper::LookAheadMethods;
 use slog::trace;
+use tokio::sync::oneshot;
 
+use super::available_power::AvailablePower;
 use super::switch::Switch;
+use crate::processors::AvailablePowerCmd;
 use crate::Context;
 
 pub struct Query;
 
 #[juniper::graphql_object(Context = Context)]
 impl Query {
+    /// Get the currently available power systems.
+    async fn available_powers(
+        ctx: &Context,
+    ) -> juniper::FieldResult<Vec<AvailablePower>> {
+        if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
+            return Err(e.to_string(&ctx.globals.logger).into());
+        }
+
+        let lookahead = executor.look_ahead();
+        let get_power = lookahead.has_child("power");
+        let get_threshold = lookahead.has_child("threshold");
+
+        let mut result_vec = Vec::<AvailablePower>::new();
+        for (i, ref processor) in ctx
+            .globals
+            .processor_cmds
+            .available_power
+            .iter()
+            .enumerate()
+        {
+            let mut result =
+                AvailablePower::new(i as i32, processor.name.clone());
+            if get_threshold {
+                let (tx, rx) = oneshot::channel();
+                let cmd = AvailablePowerCmd::GetThreshold { resp: tx };
+                result.threshold = processor
+                    .issue_command(&ctx.globals.logger, cmd, rx)
+                    .await?;
+            }
+            if get_power {
+                let (tx, rx) = oneshot::channel();
+                let cmd = AvailablePowerCmd::GetPower { resp: tx };
+                result.power = processor
+                    .issue_command(&ctx.globals.logger, cmd, rx)
+                    .await?;
+            }
+
+            result_vec.push(result);
+        }
+
+        Ok(result_vec)
+    }
+
     /// Get the current state of the switches.
     async fn switches(ctx: &Context) -> juniper::FieldResult<Vec<Switch>> {
         if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {

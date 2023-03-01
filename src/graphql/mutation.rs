@@ -17,8 +17,11 @@
 \******************************************************************************/
 use slog::warn;
 use std::convert::TryInto;
+use tokio::sync::oneshot;
 
+use super::available_power::{AvailablePower, InputAvailablePower};
 use super::switch::{InputSwitch, Switch};
+use crate::processors::AvailablePowerCmd;
 use crate::Context;
 
 pub struct Mutation;
@@ -58,6 +61,50 @@ impl Mutation {
             Ok(()) => Ok("Logged out".into()),
             Err(e) => Err(e.to_string(&ctx.globals.logger).into()),
         };
+    }
+
+    /// Controls available power threshold.
+    async fn set_available_power(
+        ctx: &Context,
+        input: InputAvailablePower,
+    ) -> juniper::FieldResult<AvailablePower> {
+        if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
+            return Err(e.to_string(&ctx.globals.logger).into());
+        }
+
+        let id_u: usize = match input.id.try_into() {
+            Ok(x) => x,
+            Err(e) => return Err(e.into()),
+        };
+
+        let processor =
+            match ctx.globals.processor_cmds.available_power.get(id_u) {
+                Some(x) => x,
+                None => {
+                    return Err(format!(
+                        "AvailablePowerProcessor with id {} does not exist",
+                        input.id
+                    )
+                    .into())
+                }
+            };
+
+        let (tx, rx) = oneshot::channel();
+        let cmd = AvailablePowerCmd::SetThreshold {
+            threshold: input.threshold,
+            resp: tx,
+        };
+
+        processor
+            .issue_command(&ctx.globals.logger, cmd, rx)
+            .await?;
+
+        Ok(AvailablePower {
+            id: input.id,
+            threshold: input.threshold,
+            name: processor.name.clone(),
+            power: 0.0,
+        })
     }
 
     /// Open or close a switch.
