@@ -34,7 +34,9 @@ mod load_control;
 mod poweroff_timer;
 
 pub use appliance::ApplianceProcessor;
-pub use available_power::AvailablePowerProcessor;
+pub use available_power::{
+    AvailablePowerProcessor, Command as AvailablePowerCmd,
+};
 pub use debug::DebugProcessor;
 pub use dummy::DummyProcessor;
 pub use load_control::LoadControlProcessor;
@@ -73,6 +75,7 @@ impl<T> CommandSender<T> {
 
 #[derive(Debug, Default)]
 pub struct ProcessorCommands {
+    pub available_power: Vec<CommandSender<AvailablePowerCmd>>,
 }
 
 pub struct ProcessorInfo {
@@ -147,12 +150,14 @@ pub fn processor_tasks(
                         ))
                     }
                 };
+                let (command_tx, command_rx) = mpsc::channel(1);
                 let mut processor = AvailablePowerProcessor::new(
                     ProcessorBase::new(
                         p.name.clone(),
                         tasks.cancel_rx(),
                         logger.clone(),
                     ),
+                    command_rx,
                     battery_source,
                     meter_source,
                     power_output,
@@ -160,6 +165,10 @@ pub fn processor_tasks(
                     setting.tau,
                 );
                 tasks.add_task(task_loop!(processor));
+                commands.available_power.push(CommandSender {
+                    name: p.name.clone(),
+                    tx: command_tx,
+                });
             }
             ProcessorType::Debug(setting) => {
                 let sink = match sinks.get(&setting.output) {

@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,10 +21,25 @@ use crate::pt1::PT1;
 use crate::task_group::TaskResult;
 use chrono::Utc;
 use slog::{debug, error, warn};
-use tokio::sync::watch;
+use tokio::sync::{mpsc, oneshot, watch};
+
+#[derive(Debug)]
+pub enum Command {
+    SetThreshold {
+        threshold: f64,
+        resp: oneshot::Sender<()>,
+    },
+    GetThreshold {
+        resp: oneshot::Sender<f64>,
+    },
+    GetPower {
+        resp: oneshot::Sender<f64>,
+    },
+}
 
 pub struct AvailablePowerProcessor {
     base: ProcessorBase,
+    command_input: mpsc::Receiver<Command>,
     battery_input: watch::Receiver<Model>,
     meter_input: watch::Receiver<Model>,
     power_output: watch::Sender<Model>,
@@ -36,6 +51,7 @@ pub struct AvailablePowerProcessor {
 impl AvailablePowerProcessor {
     pub fn new(
         base: ProcessorBase,
+        command_input: mpsc::Receiver<Command>,
         battery_input: watch::Receiver<Model>,
         meter_input: watch::Receiver<Model>,
         power_output: watch::Sender<Model>,
@@ -44,6 +60,7 @@ impl AvailablePowerProcessor {
     ) -> Self {
         Self {
             base,
+            command_input,
             battery_input,
             meter_input,
             power_output,
@@ -57,6 +74,13 @@ impl AvailablePowerProcessor {
         tokio::select! {
             _ = self.base.canceled.changed() => {
                 return TaskResult::Canceled(self.base.name.clone());
+            }
+            x = self.command_input.recv() => {
+                if let Some(command) = x {
+                    if let Err(e) = self.handle_command(command) {
+                        return TaskResult::Err(e);
+                    }
+                }
             }
             x = self.meter_input.changed() => {
                 if let Err(e) = x {
@@ -129,5 +153,39 @@ impl AvailablePowerProcessor {
         self.power_output.send_replace(available_power.into());
 
         TaskResult::Running
+    }
+
+    fn handle_command(&mut self, command: Command) -> Result<(), String> {
+        match command {
+            Command::SetThreshold { threshold, resp } => {
+                self.battery_threshold = threshold.abs();
+                if let Err(_) = resp.send(()) {
+                    return Err("Sending SetThreshold response failed!".into());
+                }
+            }
+            Command::GetThreshold { resp } => {
+                if let Err(_) = resp.send(self.battery_threshold) {
+                    return Err("Sending GetThreshold response failed!".into());
+                }
+            }
+            Command::GetPower { resp } => {
+                let output = &*self.power_output.borrow();
+                let power = match output {
+                    Model::AvailablePower(x) => x.power,
+                    Model::None => 0.0,
+                    _ => {
+                        return Err(format!(
+                            "power_output has invalid type: {:?}",
+                            output
+                        ))
+                    }
+                };
+                if let Err(_) = resp.send(power) {
+                    return Err("Sending GetPower response failed!".into());
+                }
+            }
+        }
+
+        Ok(())
     }
 }
