@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,10 +21,10 @@ use crate::settings::{ProcessorType, Settings};
 use crate::sinks::{ArcSink, GpioProcCreateInfo};
 use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskState};
 use crate::task_loop;
-use slog::{debug, Logger};
+use slog::{debug, error, Logger};
 use std::collections::BTreeMap;
 use std::time::Duration;
-use tokio::sync::watch;
+use tokio::sync::{mpsc, oneshot, watch};
 
 mod appliance;
 mod available_power;
@@ -39,6 +39,46 @@ pub use debug::DebugProcessor;
 pub use dummy::DummyProcessor;
 pub use load_control::LoadControlProcessor;
 pub use poweroff_timer::PoweroffTimerProcessor;
+
+#[derive(Debug)]
+pub struct CommandSender<T> {
+    pub name: String,
+    pub tx: mpsc::Sender<T>,
+}
+
+impl<T> CommandSender<T> {
+    pub async fn issue_command<U>(
+        &self,
+        logger: &Logger,
+        cmd: T,
+        rx: oneshot::Receiver<U>,
+    ) -> Result<U, String> {
+        if let Err(e) = self.tx.send(cmd).await {
+            error!(logger, "Sending command to '{}' failed: {}", self.name, e);
+            return Err("Internal server error!".into());
+        }
+
+        match rx.await {
+            Ok(x) => Ok(x),
+            Err(e) => {
+                error!(
+                    logger,
+                    "Receiving command from '{}' failed: {}", self.name, e
+                );
+                return Err("Internal server error!".into());
+            }
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct ProcessorCommands {
+}
+
+pub struct ProcessorInfo {
+    pub tasks: TaskGroup,
+    pub commands: ProcessorCommands,
+}
 
 pub struct ProcessorBase {
     name: String,
@@ -66,9 +106,10 @@ pub fn processor_tasks(
     mut inputs: BTreeMap<String, watch::Receiver<Model>>,
     sinks: BTreeMap<String, ArcSink>,
     gpio_info: Vec<GpioProcCreateInfo>,
-) -> Result<TaskGroup, String> {
+) -> Result<ProcessorInfo, String> {
     let tasks = TaskGroupBuilder::new("processors".into(), logger.clone());
     let mut outputs = BTreeMap::<String, watch::Sender<Model>>::new();
+    let mut commands = ProcessorCommands::default();
 
     for p in &settings.processors {
         let (tx, rx) = watch::channel(Model::None);
@@ -300,5 +341,8 @@ pub fn processor_tasks(
         tasks.add_task(task_loop!(dummy));
     }
 
-    Ok(tasks.build())
+    Ok(ProcessorInfo {
+        tasks: tasks.build(),
+        commands,
+    })
 }

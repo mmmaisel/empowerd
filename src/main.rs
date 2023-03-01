@@ -51,6 +51,7 @@ mod task_group;
 
 use graphql::mutation::Mutation;
 use graphql::query::Query;
+use processors::{ProcessorCommands, ProcessorInfo};
 use session_manager::SessionManager;
 use settings::Settings;
 use sinks::gpio_switch::GpioSwitch;
@@ -63,6 +64,7 @@ pub struct Globals {
     hashed_pw: String,
     session_manager: SessionManager,
     gpio_switch: Arc<GpioSwitch>,
+    processor_cmds: ProcessorCommands,
 }
 
 #[derive(Debug)]
@@ -183,7 +185,10 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         }
     };
 
-    let mut processors = match processors::processor_tasks(
+    let ProcessorInfo {
+        tasks: mut processors,
+        commands: processor_cmds,
+    } = match processors::processor_tasks(
         logger.clone(),
         &settings,
         outputs,
@@ -212,6 +217,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         hashed_pw: settings.graphql.hashed_password.clone(),
         session_manager,
         gpio_switch,
+        processor_cmds,
     });
 
     let address =
