@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -19,22 +19,37 @@ use super::ProcessorBase;
 use crate::models::Model;
 use crate::sinks::ArcSink;
 use crate::task_group::TaskResult;
+use crate::tri_state::TriState;
 use slog::{debug, error, warn};
-use tokio::sync::watch;
+use tokio::sync::{mpsc, oneshot, watch};
+
+#[derive(Debug)]
+pub enum Command {
+    SetForceOnOff {
+        force_on_off: TriState,
+        resp: oneshot::Sender<()>,
+    },
+    GetForceOnOff {
+        resp: oneshot::Sender<TriState>,
+    },
+}
 
 pub struct ApplianceProcessor {
     base: ProcessorBase,
+    command_input: mpsc::Receiver<Command>,
     power_input: watch::Receiver<Model>,
     appliance_input: watch::Receiver<Model>,
     power_output: watch::Sender<Model>,
     appliance_output: ArcSink,
     skipped_events: u8,
     was_enabled: bool,
+    force_on_off: TriState,
 }
 
 impl ApplianceProcessor {
     pub fn new(
         base: ProcessorBase,
+        command_input: mpsc::Receiver<Command>,
         power_input: watch::Receiver<Model>,
         appliance_input: watch::Receiver<Model>,
         power_output: watch::Sender<Model>,
@@ -42,12 +57,14 @@ impl ApplianceProcessor {
     ) -> Self {
         Self {
             base,
+            command_input,
             power_input,
             appliance_output,
             power_output,
             appliance_input,
             skipped_events: 0,
             was_enabled: false,
+            force_on_off: TriState::Auto,
         }
     }
 
@@ -63,6 +80,13 @@ impl ApplianceProcessor {
         tokio::select! {
             _ = self.base.canceled.changed() => {
                 return TaskResult::Canceled(self.base.name.clone());
+            }
+            x = self.command_input.recv() => {
+                if let Some(command) = x {
+                    if let Err(e) = self.handle_command(command) {
+                        return TaskResult::Err(e);
+                    }
+                }
             }
             x = self.power_input.changed() => {
                 if let Err(e) = x {
@@ -118,7 +142,11 @@ impl ApplianceProcessor {
         }
         self.skipped_events = 0;
 
-        let target_power = available_power.power + appliance.power;
+        let target_power = match self.force_on_off {
+            TriState::Auto => available_power.power + appliance.power,
+            TriState::Off => 0.0,
+            TriState::On => 230.0 * 16.0, // Maximum power of one phase
+        };
 
         let result = match &self.appliance_output {
             ArcSink::KeContact(wallbox) => {
@@ -140,9 +168,11 @@ impl ApplianceProcessor {
         };
 
         if enabled && !self.was_enabled {
-            available_power.power -= target_power;
+            available_power.power =
+                (available_power.power - target_power).max(0.0);
         } else {
-            available_power.power -= appliance.power;
+            available_power.power =
+                (available_power.power - appliance.power).max(0.0);
         }
 
         debug!(
@@ -154,5 +184,23 @@ impl ApplianceProcessor {
         self.power_output.send_replace(available_power.into());
 
         TaskResult::Running
+    }
+
+    fn handle_command(&mut self, command: Command) -> Result<(), String> {
+        match command {
+            Command::SetForceOnOff { force_on_off, resp } => {
+                self.force_on_off = force_on_off;
+                if let Err(_) = resp.send(()) {
+                    return Err("Sending SetForceOnOff response failed!".into());
+                }
+            }
+            Command::GetForceOnOff { resp } => {
+                if let Err(_) = resp.send(self.force_on_off) {
+                    return Err("Sending GetForceOnOff response failed!".into());
+                }
+            }
+        }
+
+        Ok(())
     }
 }

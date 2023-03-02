@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,9 +16,34 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 
-pub mod mutation;
-pub mod query;
+use crate::tri_state::TriState;
 
-pub mod appliance;
-pub mod available_power;
-pub mod switch;
+#[derive(juniper::GraphQLObject)]
+/// Reads an appliance.
+pub struct Appliance {
+    /// References the appliance.
+    pub id: i32,
+    /// If the appliance is forced on/off or in automatic mode.
+    pub force_on_off: TriState,
+    /// Name of the appliance.
+    pub name: String,
+}
+
+impl Appliance {
+    pub fn new(id: i32, name: String) -> Self {
+        Self {
+            id,
+            force_on_off: TriState::Auto,
+            name,
+        }
+    }
+}
+
+#[derive(juniper::GraphQLInputObject)]
+/// Controls an appliance.
+pub struct InputAppliance {
+    /// References the appliance.
+    pub id: i32,
+    /// If the appliance is forced on/off or in automatic mode.
+    pub force_on_off: TriState,
+}

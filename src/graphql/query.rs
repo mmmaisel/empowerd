@@ -19,9 +19,10 @@ use juniper::LookAheadMethods;
 use slog::trace;
 use tokio::sync::oneshot;
 
+use super::appliance::Appliance;
 use super::available_power::AvailablePower;
 use super::switch::Switch;
-use crate::processors::AvailablePowerCmd;
+use crate::processors::{ApplianceCmd, AvailablePowerCmd};
 use crate::Context;
 
 pub struct Query;
@@ -61,6 +62,34 @@ impl Query {
                 let (tx, rx) = oneshot::channel();
                 let cmd = AvailablePowerCmd::GetPower { resp: tx };
                 result.power = processor
+                    .issue_command(&ctx.globals.logger, cmd, rx)
+                    .await?;
+            }
+
+            result_vec.push(result);
+        }
+
+        Ok(result_vec)
+    }
+
+    /// Get all appliances.
+    async fn appliances(ctx: &Context) -> juniper::FieldResult<Vec<Appliance>> {
+        if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
+            return Err(e.to_string(&ctx.globals.logger).into());
+        }
+
+        let lookahead = executor.look_ahead();
+        let get_force_on_off = lookahead.has_child("force_on_off");
+
+        let mut result_vec = Vec::<Appliance>::new();
+        for (i, ref processor) in
+            ctx.globals.processor_cmds.appliance.iter().enumerate()
+        {
+            let mut result = Appliance::new(i as i32, processor.name.clone());
+            if get_force_on_off {
+                let (tx, rx) = oneshot::channel();
+                let cmd = ApplianceCmd::GetForceOnOff { resp: tx };
+                result.force_on_off = processor
                     .issue_command(&ctx.globals.logger, cmd, rx)
                     .await?;
             }

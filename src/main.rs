@@ -48,6 +48,7 @@ mod settings;
 mod sinks;
 mod sources;
 mod task_group;
+mod tri_state;
 
 use graphql::mutation::Mutation;
 use graphql::query::Query;
