@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,10 +21,22 @@ use crate::GpioSwitch;
 use slog::{debug, error};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::watch;
+use tokio::sync::{mpsc, oneshot, watch};
+
+#[derive(Debug)]
+pub enum Command {
+    SetOnTime {
+        on_time: Duration,
+        resp: oneshot::Sender<()>,
+    },
+    GetOnTime {
+        resp: oneshot::Sender<Duration>,
+    },
+}
 
 pub struct PoweroffTimerProcessor {
     base: ProcessorBase,
+    command_input: mpsc::Receiver<Command>,
     gpio_input: watch::Receiver<bool>,
     gpio_output: Arc<GpioSwitch>,
     gpio_id: usize,
@@ -35,6 +47,7 @@ pub struct PoweroffTimerProcessor {
 impl PoweroffTimerProcessor {
     pub fn new(
         base: ProcessorBase,
+        command_input: mpsc::Receiver<Command>,
         gpio_input: watch::Receiver<bool>,
         gpio_output: Arc<GpioSwitch>,
         gpio_id: usize,
@@ -42,6 +55,7 @@ impl PoweroffTimerProcessor {
     ) -> Self {
         Self {
             base,
+            command_input,
             gpio_input,
             gpio_output,
             gpio_id,
@@ -54,6 +68,13 @@ impl PoweroffTimerProcessor {
         tokio::select! {
             _ = self.base.canceled.changed() => {
                 return TaskResult::Canceled(self.base.name.clone());
+            }
+            x = self.command_input.recv() => {
+                if let Some(command) = x {
+                    if let Err(e) = self.handle_command(command) {
+                        return TaskResult::Err(e);
+                    }
+                }
             }
             _ = tokio::time::sleep(self.sleep_time) => {
                 if let Err(e) = self.update_output(false) {
@@ -73,7 +94,13 @@ impl PoweroffTimerProcessor {
                 if let Err(e) = self.update_output(value) {
                     return e;
                 }
-                debug!(self.base.logger, "Set GPIO '{}' to '{}' for '{}' seconds", self.gpio_id, value, self.sleep_time.as_secs());
+                debug!(
+                    self.base.logger,
+                    "Set GPIO '{}' to '{}' for '{}' seconds",
+                    self.gpio_id,
+                    value,
+                    self.sleep_time.as_secs(),
+                );
             }
         };
 
@@ -103,5 +130,23 @@ impl PoweroffTimerProcessor {
         } else {
             Duration::from_secs(u64::MAX)
         }
+    }
+
+    fn handle_command(&mut self, command: Command) -> Result<(), String> {
+        match command {
+            Command::SetOnTime { on_time, resp } => {
+                self.on_time = on_time;
+                if let Err(_) = resp.send(()) {
+                    return Err("Sending SetOnTime response failed!".into());
+                }
+            }
+            Command::GetOnTime { resp } => {
+                if let Err(_) = resp.send(self.on_time) {
+                    return Err("Sending GetOnTime response failed!".into());
+                }
+            }
+        }
+
+        Ok(())
     }
 }

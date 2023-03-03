@@ -17,12 +17,14 @@
 \******************************************************************************/
 use slog::warn;
 use std::convert::TryInto;
+use std::time::Duration;
 use tokio::sync::oneshot;
 
 use super::appliance::{Appliance, InputAppliance};
 use super::available_power::{AvailablePower, InputAvailablePower};
+use super::poweroff_timer::{InputPoweroffTimer, PoweroffTimer};
 use super::switch::{InputSwitch, Switch};
-use crate::processors::{ApplianceCmd, AvailablePowerCmd};
+use crate::processors::{ApplianceCmd, AvailablePowerCmd, PoweroffTimerCmd};
 use crate::Context;
 
 pub struct Mutation;
@@ -73,10 +75,10 @@ impl Mutation {
             return Err(e.to_string(&ctx.globals.logger).into());
         }
 
-        let id_u: usize = match input.id.try_into() {
-            Ok(x) => x,
-            Err(e) => return Err(e.into()),
-        };
+        let id_u: usize = input
+            .id
+            .try_into()
+            .map_err(|_| "'id' is invalid".to_string())?;
 
         let processor =
             match ctx.globals.processor_cmds.available_power.get(id_u) {
@@ -117,10 +119,10 @@ impl Mutation {
             return Err(e.to_string(&ctx.globals.logger).into());
         }
 
-        let id_u: usize = match input.id.try_into() {
-            Ok(x) => x,
-            Err(e) => return Err(e.into()),
-        };
+        let id_u: usize = input
+            .id
+            .try_into()
+            .map_err(|_| "'id' is invalid".to_string())?;
 
         let processor = match ctx.globals.processor_cmds.appliance.get(id_u) {
             Some(x) => x,
@@ -146,6 +148,51 @@ impl Mutation {
         Ok(Appliance {
             id: input.id,
             force_on_off: input.force_on_off,
+            name: processor.name.clone(),
+        })
+    }
+
+    /// Controls a poweroff timer.
+    async fn set_poweroff_timer(
+        ctx: &Context,
+        input: InputPoweroffTimer,
+    ) -> juniper::FieldResult<PoweroffTimer> {
+        if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
+            return Err(e.to_string(&ctx.globals.logger).into());
+        }
+
+        let id_u: usize = input
+            .id
+            .try_into()
+            .map_err(|_| "'id' is invalid".to_string())?;
+        let on_time_u: u64 = input
+            .on_time
+            .try_into()
+            .map_err(|_| "'on_time' is_invalid".to_string())?;
+        let on_time = Duration::from_secs(on_time_u);
+
+        let processor =
+            match ctx.globals.processor_cmds.poweroff_timer.get(id_u) {
+                Some(x) => x,
+                None => {
+                    return Err(format!(
+                        "PoweroffTimerProcessor with id {} does not exist",
+                        input.id
+                    )
+                    .into())
+                }
+            };
+
+        let (tx, rx) = oneshot::channel();
+        let cmd = PoweroffTimerCmd::SetOnTime { on_time, resp: tx };
+
+        processor
+            .issue_command(&ctx.globals.logger, cmd, rx)
+            .await?;
+
+        Ok(PoweroffTimer {
+            id: input.id,
+            on_time: input.on_time,
             name: processor.name.clone(),
         })
     }

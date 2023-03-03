@@ -21,8 +21,9 @@ use tokio::sync::oneshot;
 
 use super::appliance::Appliance;
 use super::available_power::AvailablePower;
+use super::poweroff_timer::PoweroffTimer;
 use super::switch::Switch;
-use crate::processors::{ApplianceCmd, AvailablePowerCmd};
+use crate::processors::{ApplianceCmd, AvailablePowerCmd, PoweroffTimerCmd};
 use crate::Context;
 
 pub struct Query;
@@ -92,6 +93,43 @@ impl Query {
                 result.force_on_off = processor
                     .issue_command(&ctx.globals.logger, cmd, rx)
                     .await?;
+            }
+
+            result_vec.push(result);
+        }
+
+        Ok(result_vec)
+    }
+
+    /// Get all poweroff timers.
+    async fn poweroff_timers(
+        ctx: &Context,
+    ) -> juniper::FieldResult<Vec<PoweroffTimer>> {
+        if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
+            return Err(e.to_string(&ctx.globals.logger).into());
+        }
+
+        let lookahead = executor.look_ahead();
+        let get_on_time = lookahead.has_child("on_time");
+
+        let mut result_vec = Vec::<PoweroffTimer>::new();
+        for (i, ref processor) in
+            ctx.globals.processor_cmds.poweroff_timer.iter().enumerate()
+        {
+            let mut result =
+                PoweroffTimer::new(i as i32, processor.name.clone());
+            if get_on_time {
+                let (tx, rx) = oneshot::channel();
+                let cmd = PoweroffTimerCmd::GetOnTime { resp: tx };
+                result.on_time = match processor
+                    .issue_command(&ctx.globals.logger, cmd, rx)
+                    .await?
+                    .as_secs()
+                    .try_into()
+                {
+                    Ok(x) => x,
+                    Err(e) => return Err(e.into()),
+                };
             }
 
             result_vec.push(result);

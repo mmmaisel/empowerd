@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,10 +16,32 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 
-pub mod mutation;
-pub mod query;
+#[derive(juniper::GraphQLObject)]
+/// Reads a poweroff timer.
+pub struct PoweroffTimer {
+    /// References the channel.
+    pub id: i32,
+    /// Current on time in seconds.
+    pub on_time: i32,
+    /// Name of the channel.
+    pub name: String,
+}
 
-pub mod appliance;
-pub mod available_power;
-pub mod poweroff_timer;
-pub mod switch;
+impl PoweroffTimer {
+    pub fn new(id: i32, name: String) -> Self {
+        Self {
+            id,
+            on_time: 0,
+            name,
+        }
+    }
+}
+
+#[derive(juniper::GraphQLInputObject)]
+/// Controls a poweroff timer.
+pub struct InputPoweroffTimer {
+    /// References the channel.
+    pub id: i32,
+    /// New on time in seconds.
+    pub on_time: i32,
+}

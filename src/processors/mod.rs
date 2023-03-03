@@ -40,7 +40,7 @@ pub use available_power::{
 pub use debug::DebugProcessor;
 pub use dummy::DummyProcessor;
 pub use load_control::LoadControlProcessor;
-pub use poweroff_timer::PoweroffTimerProcessor;
+pub use poweroff_timer::{Command as PoweroffTimerCmd, PoweroffTimerProcessor};
 
 #[derive(Debug)]
 pub struct CommandSender<T> {
@@ -77,6 +77,7 @@ impl<T> CommandSender<T> {
 pub struct ProcessorCommands {
     pub available_power: Vec<CommandSender<AvailablePowerCmd>>,
     pub appliance: Vec<CommandSender<ApplianceCmd>>,
+    pub poweroff_timer: Vec<CommandSender<PoweroffTimerCmd>>,
 }
 
 pub struct ProcessorInfo {
@@ -329,18 +330,26 @@ pub fn processor_tasks(
             ArcSink::GpioSwitch(gpio_switch) => {
                 for gpio in gpio_info.into_iter() {
                     let id = gpio_switch.get_id_by_name(&gpio.name)?;
+                    let name = format!("_PoweroffTimerProcessor_{}", gpio.name);
+                    let (command_tx, command_rx) = mpsc::channel(1);
+
                     let mut processor = PoweroffTimerProcessor::new(
                         ProcessorBase::new(
-                            format!("_PoweroffTimerProcessor_{}", gpio.name),
+                            name.clone(),
                             tasks.cancel_rx(),
                             logger.clone(),
                         ),
+                        command_rx,
                         gpio.channel,
                         gpio_switch.to_owned(),
                         id,
                         Duration::from_secs(gpio.on_time),
                     );
                     tasks.add_task(task_loop!(processor));
+                    commands.poweroff_timer.push(CommandSender {
+                        name,
+                        tx: command_tx,
+                    });
                 }
             }
             _ => return Err("Unsupported sink type for GpioSwitch".into()),
