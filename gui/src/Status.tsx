@@ -37,14 +37,14 @@ class Status extends Component<StatusProps, StatusState> {
             switch_.open,
             (response: Switch) => {
                 let switches = this.state.switches;
-                switches[channel].open = response.open;
+                switches[id].open = response.open;
                 this.setState({ switches: switches });
             },
             (errors: GraphQlError[]) => {
                 alert("Setting switch failed");
                 console.log(errors);
             }
-
+        );
     };
 
     // TODO: show if it is automatically activated
