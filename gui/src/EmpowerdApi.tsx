@@ -16,6 +16,31 @@ type GraphQlResponse = {
     errors: GraphQlError[];
 };
 
+export type AvailablePower = {
+    id: number;
+    name: string;
+    threshold: number;
+    power: number;
+};
+
+export enum TriState {
+    On = "ON",
+    Off = "OFF",
+    Auto = "AUTO",
+}
+
+export type Appliance = {
+    id: number;
+    name: string;
+    force_on_off: TriState;
+};
+
+export type PoweroffTimer = {
+    id: number;
+    name: string;
+    on_time: number;
+};
+
 export type Switch = {
     id: number;
     icon: string;
@@ -120,6 +145,90 @@ class EmpowerdApi {
             (errors: GraphQlError[]) => {
                 on_error(errors);
             }
+        );
+    };
+
+    availablePowers = (
+        on_success: (power: AvailablePower[]) => void,
+        on_error: (error: GraphQlError[]) => void
+    ): void => {
+        this.query(
+            "availablePowers{id,name,threshold,power}",
+            (data: Record<string, GraphQlData>) => {
+                on_success((data as { powers: AvailablePower[] }).powers);
+            },
+            on_error
+        );
+    };
+
+    setAvailablePower = (
+        id: number,
+        threshold: number,
+        on_success: (powers: AvailablePower[]) => void,
+        on_error: (error: GraphQlError[]) => void
+    ): void => {
+        this.mutation(
+            `setAvailablePower(input:{id:${id},threshold:${threshold}}){threshold}`,
+            (data: Record<string, GraphQlData>) => {
+                on_success((data as { powers: AvailablePower[] }).powers);
+            },
+            on_error
+        );
+    };
+
+    appliances = (
+        on_success: (appliances: Appliance[]) => void,
+        on_error: (error: GraphQlError[]) => void
+    ): void => {
+        this.query(
+            "appliances{id,name,forceOnOff}",
+            (data: Record<string, GraphQlData>) => {
+                on_success((data as { appliances: Appliance[] }).appliances);
+            },
+            on_error
+        );
+    };
+
+    setAppliance = (
+        id: number,
+        force_on_off: string,
+        on_success: (appliance: Appliance[]) => void,
+        on_error: (error: GraphQlError[]) => void
+    ): void => {
+        this.mutation(
+            `setAppliance(input:{id:${id},forceOnOff:${force_on_off}}){force_on_off}`,
+            (data: Record<string, GraphQlData>) => {
+                on_success((data as { appliances: Appliance[] }).appliances);
+            },
+            on_error
+        );
+    };
+
+    poweroffTimers = (
+        on_success: (timers: PoweroffTimer[]) => void,
+        on_error: (error: GraphQlError[]) => void
+    ): void => {
+        this.query(
+            "poweroffTimers{id,name,onTime}",
+            (data: Record<string, GraphQlData>) => {
+                on_success((data as { timers: PoweroffTimer[] }).timers);
+            },
+            on_error
+        );
+    };
+
+    setPoweroffTimer = (
+        id: number,
+        on_time: number,
+        on_success: (timer: PoweroffTimer[]) => void,
+        on_error: (error: GraphQlError[]) => void
+    ): void => {
+        this.mutation(
+            `setPoweroffTimer(input:{id:${id},onTime:${on_time}}){on_time}`,
+            (data: Record<string, GraphQlData>) => {
+                on_success((data as { timers: PoweroffTimer[] }).timers);
+            },
+            on_error
         );
     };
 
