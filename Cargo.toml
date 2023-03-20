@@ -68,7 +68,7 @@ sloggers = { version=">=1.0", default_features=false }
 tokio = { version=">=1.0", features=["full"] }
 
 chrono = ">=0.4.19"
-influxdb = { version = ">=0.5.0", features = ["derive", "h1-client", "use-serde"], default-features = false }
+influxdb = { version = ">=0.6.0", features = ["derive", "reqwest-client", "use-serde"], default-features = false }
 
 daemonize = ">=0.4.1"
 getopts = ">=0.2.21"
@@ -84,6 +84,6 @@ jwt = ">=0.16.0"
 hmac = ">=0.12.1"
 sha2 = ">=0.10.2"
 ring = ">=0.16.20"
-base64 = ">=0.13.0"
+base64 = ">=0.21.0"
 rust-argon2 = ">=1.0"
 gpio-cdev = ">=0.4.0"

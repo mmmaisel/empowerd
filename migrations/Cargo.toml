@@ -9,5 +9,5 @@ edition = "2018"
 empowerd = { version = "*", path = "../" }
 
 clap = ">=3.1.5"
-influxdb = { version = ">=0.4.0", features = ["derive", "h1-client", "use-serde"], default-features = false }
+influxdb = { version = ">=0.6.0", features = ["derive", "reqwest-client", "use-serde"], default-features = false }
 tokio = { version=">=1.0", features=["full"] }
