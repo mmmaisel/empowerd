@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,6 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use base64::prelude::{Engine, BASE64_STANDARD_NO_PAD};
 use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use jwt::VerifyWithKey;
@@ -124,7 +125,7 @@ impl SessionManager {
         };
 
         let session = Session {
-            id: base64::encode(&raw_id),
+            id: BASE64_STANDARD_NO_PAD.encode(&raw_id),
             valid_until: valid_until,
         };
 

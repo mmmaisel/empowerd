@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use chrono::{Local, NaiveDate, NaiveDateTime, NaiveTime, Offset};
+use chrono::{Local, NaiveDate, NaiveDateTime, NaiveTime};
 
 #[derive(Debug)]
 pub struct Data {
@@ -72,8 +72,7 @@ impl Data {
             None => return Err("Unexpected end of data found.".to_string()),
         };
 
-        let local_utc_offset =
-            Local::now().date().offset().fix().local_minus_utc() as i64;
+        let local_utc_offset = Local::now().offset().local_minus_utc() as i64;
         let timestamp =
             NaiveDateTime::new(date, time).timestamp() - local_utc_offset;
 

@@ -53,11 +53,15 @@ impl PT1 {
 }
 
 #[cfg(test)]
-use chrono::TimeZone;
+use chrono::{LocalResult, TimeZone};
 
 #[test]
 fn test_pt1() {
-    let mut filter = PT1::new(2.0, 0.0, 0.0, 10000.0, Utc.timestamp(0, 0));
+    let timestamp = match Utc.timestamp_opt(0, 0) {
+        LocalResult::Single(x) => x,
+        _ => panic!("Failed to construct timestamp!"),
+    };
+    let mut filter = PT1::new(2.0, 0.0, 0.0, 10000.0, timestamp);
 
     let input = vec![
         0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
@@ -70,7 +74,11 @@ fn test_pt1() {
     ];
 
     for i in 0..input.len() {
-        let output = filter.process(input[i], Utc.timestamp(i as i64, 0));
+        let timestamp = match Utc.timestamp_opt(i as i64, 0) {
+            LocalResult::Single(x) => x,
+            _ => panic!("Failed to construct timestamp!"),
+        };
+        let output = filter.process(input[i], timestamp);
         assert!(
             (expected_output[i] - output).abs() < 0.0001,
             "expected {} to be {}",
