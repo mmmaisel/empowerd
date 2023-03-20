@@ -282,6 +282,11 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
     let server = Server::bind(&address).serve(new_service);
     info!(logger, "Listening on http://{}", address);
 
+    if settings.test_cfg {
+        info!(logger, "Config valid");
+        return 0;
+    }
+
     let retval = tokio::select! {
         x = sources.run() => {
             check_task_result(x, &logger)

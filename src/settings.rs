@@ -332,6 +332,7 @@ pub struct Sink {
 #[serde(default)]
 pub struct Settings {
     pub daemonize: bool,
+    pub test_cfg: bool,
     pub pid_file: String,
     pub wrk_dir: String,
     pub logfile: String,
@@ -351,6 +352,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             daemonize: false,
+            test_cfg: false,
             pid_file: "/run/empowerd/pid".into(),
             wrk_dir: "/".into(),
             logfile: "/var/log/empowerd.log".into(),
@@ -417,11 +419,10 @@ impl Settings {
 
     pub fn load() -> Result<Settings, String> {
         let mut options = Options::new();
-        options.optopt("c", "", "config filename", "NAME").optflag(
-            "d",
-            "",
-            "nodaemonize",
-        );
+        options
+            .optopt("c", "", "config filename", "NAME")
+            .optflag("d", "", "nodaemonize")
+            .optflag("t", "", "test config and exit");
 
         let matches = options.parse(env::args()).map_err(|e| e.to_string())?;
 
@@ -434,6 +435,10 @@ impl Settings {
 
         if matches.opt_present("d") {
             settings.daemonize = false;
+        }
+        if matches.opt_present("t") {
+            settings.daemonize = false;
+            settings.test_cfg = true;
         }
 
         settings.validate()?;
