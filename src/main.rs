@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -178,8 +178,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
                 error!(logger, "GpioSwitch has invalid type");
                 return 2;
             }
-        }
-        .clone(),
+        },
         None => {
             error!(logger, "Could not find GpioSwitch sink");
             return 2;

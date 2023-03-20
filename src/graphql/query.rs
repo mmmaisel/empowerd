@@ -43,7 +43,7 @@ impl Query {
         let get_threshold = lookahead.has_child("threshold");
 
         let mut result_vec = Vec::<AvailablePower>::new();
-        for (i, ref processor) in ctx
+        for (i, processor) in ctx
             .globals
             .processor_cmds
             .available_power
@@ -83,7 +83,7 @@ impl Query {
         let get_force_on_off = lookahead.has_child("force_on_off");
 
         let mut result_vec = Vec::<Appliance>::new();
-        for (i, ref processor) in
+        for (i, processor) in
             ctx.globals.processor_cmds.appliance.iter().enumerate()
         {
             let mut result = Appliance::new(i as i32, processor.name.clone());
@@ -113,7 +113,7 @@ impl Query {
         let get_on_time = lookahead.has_child("on_time");
 
         let mut result_vec = Vec::<PoweroffTimer>::new();
-        for (i, ref processor) in
+        for (i, processor) in
             ctx.globals.processor_cmds.poweroff_timer.iter().enumerate()
         {
             let mut result =

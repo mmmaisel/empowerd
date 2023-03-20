@@ -69,11 +69,10 @@ impl ApplianceProcessor {
     }
 
     pub fn validate_appliance(appliance: &ArcSink) -> bool {
-        match appliance {
-            ArcSink::KeContact(_) => true,
-            ArcSink::LambdaHeatPump(_) => true,
-            _ => false,
-        }
+        matches!(
+            appliance,
+            ArcSink::KeContact(_) | ArcSink::LambdaHeatPump(_)
+        )
     }
 
     pub async fn run(&mut self) -> TaskResult {
@@ -190,12 +189,12 @@ impl ApplianceProcessor {
         match command {
             Command::SetForceOnOff { force_on_off, resp } => {
                 self.force_on_off = force_on_off;
-                if let Err(_) = resp.send(()) {
+                if resp.send(()).is_err() {
                     return Err("Sending SetForceOnOff response failed!".into());
                 }
             }
             Command::GetForceOnOff { resp } => {
-                if let Err(_) = resp.send(self.force_on_off) {
+                if resp.send(self.force_on_off).is_err() {
                     return Err("Sending GetForceOnOff response failed!".into());
                 }
             }

@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -221,11 +221,9 @@ impl EmIndependentPayload {
         data: &BTreeMap<u32, u64>,
         obis: u32,
     ) -> Result<f64, String> {
-        data.get(&obis)
-            .and_then(|x| Some(*x as f64))
-            .ok_or_else(|| {
-                format!("Missing OBIS record 0x{:X} in dataset", obis)
-            })
+        data.get(&obis).map(|x| *x as f64).ok_or_else(|| {
+            format!("Missing OBIS record 0x{:X} in dataset", obis)
+        })
     }
 }
 
@@ -265,10 +263,8 @@ impl TryFrom<BTreeMap<u32, u64>> for EmIndependentPayload {
         let voltage_l3 =
             Self::get_obis_data(&data, OBIS_L3_BASE + OBIS_VOLTAGE)?;
 
-        let version = data
-            .get(&OBIS_VERSION)
-            .and_then(|x| Some(*x as u32))
-            .ok_or_else(|| {
+        let version =
+            data.get(&OBIS_VERSION).map(|x| *x as u32).ok_or_else(|| {
                 "Missing OBIS record 0x90000000 in dataset".to_string()
             })?;
 

@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -52,9 +52,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'date' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -67,9 +65,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'time' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -87,9 +83,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'temperature_in' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -102,9 +96,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'humidity_in' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -133,9 +125,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'rain_day' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -148,9 +138,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'rain_actual' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -163,9 +151,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'wind_actual' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -178,9 +164,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'wind_gust' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -193,9 +177,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'wind_dir' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -212,9 +194,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'baro_sea' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -227,9 +207,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'baro_absolute' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },
@@ -242,9 +220,7 @@ impl Data {
                 Err(e) => {
                     return Err(format!(
                         "Could not parse 'uv_index' from '{}': {}, {}",
-                        message,
-                        e.to_string(),
-                        x
+                        message, e, x
                     ))
                 }
             },

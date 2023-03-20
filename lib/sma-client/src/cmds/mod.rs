@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -40,7 +40,7 @@ pub trait SmaCmd: Sync {
     fn opcode(&self) -> u32;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct TimestampedInt {
     pub timestamp: u32,
     pub value: u32,
@@ -283,7 +283,7 @@ impl SmaCmdWord {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SmaEmHeader {
     pub susy_id: u16,
     pub serial: u32,
@@ -422,21 +422,20 @@ fn parse_inv_command(
         None => (),
     }
 
-    let packet: Box<dyn SmaResponse>;
-    match cmd_word.opcode() {
+    let packet: Box<dyn SmaResponse> = match cmd_word.opcode() {
         SmaCmdIdentify::OPCODE => {
             if buffer.remaining() < SmaPayloadIdentify::LENGTH {
                 return Err("Received incomplete SmaIdentify packet".into());
             }
             let payload = SmaPayloadIdentify::deserialize(buffer);
             let end = SmaEndToken::deserialize(buffer);
-            packet = Box::new(SmaResponseIdentify {
+            Box::new(SmaResponseIdentify {
                 pkt_header: pkt_header,
                 inv_header: inv_header,
                 cmd: cmd_word,
                 payload: payload,
                 end: end,
-            });
+            })
         }
         SmaCmdLogin::OPCODE => {
             if buffer.remaining() < SmaPayloadLogin::LENGTH_MIN {
@@ -444,13 +443,13 @@ fn parse_inv_command(
             }
             let payload = SmaPayloadLogin::deserialize(buffer);
             let end = SmaEndToken::deserialize(buffer);
-            packet = Box::new(SmaResponseLogin {
+            Box::new(SmaResponseLogin {
                 pkt_header: pkt_header,
                 inv_header: inv_header,
                 cmd: cmd_word,
                 payload: payload,
                 end: end,
-            });
+            })
         }
         SmaCmdGetDayData::OPCODE => {
             if buffer.remaining() < SmaPayloadGetDayData::MIN_LENGTH {
@@ -460,16 +459,16 @@ fn parse_inv_command(
                 SmaPayloadGetDayData::deserialize(buffer, pkt_header.data_len);
             let end = SmaEndToken::deserialize(buffer);
             // TODO: use macro to de-duplicate this
-            packet = Box::new(SmaResponseGetDayData {
+            Box::new(SmaResponseGetDayData {
                 pkt_header: pkt_header,
                 inv_header: inv_header,
                 cmd: cmd_word,
                 payload: payload,
                 end: end,
-            });
+            })
         }
         _ => return Err("Unsupported SMA packet received".into()),
-    }
+    };
     if let Err(e) = packet.validate() {
         return Err(format!("Packet validation failed {}", e));
     }

@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 
-#[derive(Clone, Copy, Debug, PartialEq, juniper::GraphQLEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, juniper::GraphQLEnum)]
 pub enum TriState {
     On,
     Off,

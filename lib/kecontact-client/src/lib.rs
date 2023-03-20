@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -133,14 +133,11 @@ impl KeContactClient {
     async fn get_report<'a>(
         &self,
         command: &[u8],
-        mut response: &'a mut [u8],
+        response: &'a mut [u8],
     ) -> Result<&'a str, String> {
         let socket = self.connect().await?;
         socket.send(command).await.map_err(|e| e.to_string())?;
-        let len = socket
-            .recv(&mut response)
-            .await
-            .map_err(|e| e.to_string())?;
+        let len = socket.recv(response).await.map_err(|e| e.to_string())?;
         match std::str::from_utf8(&response[..len]) {
             Ok(x) => Ok(x),
             Err(e) => {

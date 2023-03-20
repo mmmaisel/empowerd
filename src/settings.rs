@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -392,7 +392,7 @@ impl Settings {
     ) -> Result<(), String> {
         if names.contains(&name) {
             return Err(format!("Duplicate name in config file: '{}'", &name));
-        } else if name.starts_with("_") {
+        } else if name.starts_with('_') {
             return Err(format!("Names must not start with '_': '{}'", &name));
         }
         names.insert(name);

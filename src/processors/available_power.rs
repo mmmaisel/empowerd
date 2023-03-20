@@ -159,12 +159,12 @@ impl AvailablePowerProcessor {
         match command {
             Command::SetThreshold { threshold, resp } => {
                 self.battery_threshold = threshold.abs();
-                if let Err(_) = resp.send(()) {
+                if resp.send(()).is_err() {
                     return Err("Sending SetThreshold response failed!".into());
                 }
             }
             Command::GetThreshold { resp } => {
-                if let Err(_) = resp.send(self.battery_threshold) {
+                if resp.send(self.battery_threshold).is_err() {
                     return Err("Sending GetThreshold response failed!".into());
                 }
             }
@@ -180,7 +180,7 @@ impl AvailablePowerProcessor {
                         ))
                     }
                 };
-                if let Err(_) = resp.send(power) {
+                if resp.send(power).is_err() {
                     return Err("Sending GetPower response failed!".into());
                 }
             }

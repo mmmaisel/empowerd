@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -58,13 +58,13 @@ pub struct LambdaClient {
 
 impl LambdaClient {
     pub fn new(addr: SocketAddr) -> Self {
-        return Self { addr: addr };
+        Self { addr }
     }
 
     pub async fn open(&self) -> Result<LambdaContext, String> {
         connect(self.addr)
             .await
-            .map(|x| LambdaContext(x))
+            .map(LambdaContext)
             .map_err(|e| format!("Could not connect to device: {}", e))
     }
 }

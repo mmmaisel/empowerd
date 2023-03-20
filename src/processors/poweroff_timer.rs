@@ -136,12 +136,12 @@ impl PoweroffTimerProcessor {
         match command {
             Command::SetOnTime { on_time, resp } => {
                 self.on_time = on_time;
-                if let Err(_) = resp.send(()) {
+                if resp.send(()).is_err() {
                     return Err("Sending SetOnTime response failed!".into());
                 }
             }
             Command::GetOnTime { resp } => {
-                if let Err(_) = resp.send(self.on_time) {
+                if resp.send(self.on_time).is_err() {
                     return Err("Sending GetOnTime response failed!".into());
                 }
             }

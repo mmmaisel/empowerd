@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -76,7 +76,7 @@ impl SmaResponse for SmaEmMessage {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SmaEmPayload(pub BTreeMap<u32, u64>);
 
 impl SmaEmPayload {
@@ -129,9 +129,10 @@ impl SmaEmPayload {
 
     pub fn validate(&self) -> Result<(), String> {
         self.0.iter().try_for_each(|(obis, _)| {
-            if *obis == 0x90000000 || *obis & 0xFF00 == 0x0400 {
-                Ok(())
-            } else if *obis & 0xFF00 == 0x0800 {
+            if *obis == 0x90000000
+                || *obis & 0xFF00 == 0x0400
+                || *obis & 0xFF00 == 0x0800
+            {
                 Ok(())
             } else {
                 Err(format!("Found invalid obis number {:X}", obis))

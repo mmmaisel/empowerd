@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,19 +21,10 @@ use slog::{debug, error, info, Logger};
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TaskTiming {
     pub now: u64,
     pub oversample: bool,
-}
-
-impl Default for TaskTiming {
-    fn default() -> Self {
-        Self {
-            now: 0,
-            oversample: false,
-        }
-    }
 }
 
 impl TaskTiming {
@@ -61,7 +52,7 @@ macro_rules! task_loop {
         tokio::task::spawn(async move {
             loop {
                 let result = $source.run().await;
-                if let crate::task_group::TaskResult::Running = result {
+                if let $crate::task_group::TaskResult::Running = result {
                     continue;
                 }
                 return result;
