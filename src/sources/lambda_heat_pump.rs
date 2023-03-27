@@ -135,15 +135,15 @@ impl LambdaHeatPumpSource {
             };
 
             // Update accumulated energy.
-            self.energy += last_record.energy;
+            let energy_wh = self.energy / 3.6e3 + last_record.energy;
 
             // Commit new sample to database.
             let record = SimpleMeter::new(
                 DateTime::<Utc>::from(
                     UNIX_EPOCH + Duration::from_secs(timing.now),
                 ),
-                self.energy,
-                (self.energy - last_record.energy)
+                energy_wh,
+                (energy_wh - last_record.energy) * 3.6e3
                     / ((timing.now - last_record.time.timestamp() as u64)
                         as f64),
             );
