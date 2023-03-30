@@ -17,18 +17,28 @@
 \******************************************************************************/
 use crate::misc::parse_socketaddr_with_default;
 use lambda_client::LambdaClient;
+use slog::{debug, Logger};
 
 pub struct LambdaHeatPumpSink {
     name: String,
     client: LambdaClient,
+    logger: Logger,
 }
 
 impl LambdaHeatPumpSink {
-    pub fn new(name: String, address: String) -> Result<Self, String> {
+    pub fn new(
+        name: String,
+        address: String,
+        logger: Logger,
+    ) -> Result<Self, String> {
         let address = parse_socketaddr_with_default(&address, 502)?;
         let client = LambdaClient::new(address);
 
-        Ok(Self { name, client })
+        Ok(Self {
+            name,
+            client,
+            logger,
+        })
     }
 
     pub async fn set_available_power(
@@ -38,6 +48,7 @@ impl LambdaHeatPumpSink {
         let power = (power as i64)
             .try_into()
             .map_err(|e| format!("Could not convert power to u16: {}", e))?;
+        debug!(self.logger, "Setting heatpump power to {}", power);
         let mut context = self.client.open().await?;
         context.set_available_power(power).await.map_err(|e| {
             format!("Setting available power for {} failed: {}", self.name, e)

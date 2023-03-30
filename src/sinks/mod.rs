@@ -98,6 +98,7 @@ pub fn make_sinks(
                 let obj = LambdaHeatPumpSink::new(
                     sink.name.clone(),
                     setting.address.clone(),
+                    logger.clone(),
                 )?;
                 sinks.insert(
                     sink.name.clone(),
