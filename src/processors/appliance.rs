@@ -23,6 +23,12 @@ use crate::tri_state::TriState;
 use slog::{debug, error, warn};
 use tokio::sync::{mpsc, oneshot, watch};
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum State {
+    Off,
+    On,
+}
+
 #[derive(Debug)]
 pub enum Command {
     SetForceOnOff {
@@ -42,7 +48,9 @@ pub struct ApplianceProcessor {
     power_output: watch::Sender<Model>,
     appliance_output: ArcSink,
     skipped_events: u8,
-    was_enabled: bool,
+    last_target_power: f64,
+    last_appliance_power: f64,
+    state: State,
     force_on_off: TriState,
 }
 
@@ -63,7 +71,9 @@ impl ApplianceProcessor {
             power_output,
             appliance_input,
             skipped_events: 0,
-            was_enabled: false,
+            last_target_power: 0.0,
+            last_appliance_power: 0.0,
+            state: State::Off,
             force_on_off: TriState::Auto,
         }
     }
@@ -141,11 +151,12 @@ impl ApplianceProcessor {
         }
         self.skipped_events = 0;
 
-        let target_power = match self.force_on_off {
-            TriState::Auto => available_power.power + appliance.power,
-            TriState::Off => 0.0,
-            TriState::On => 230.0 * 16.0, // Maximum power of one phase
-        };
+        let (new_state, output_power, target_power) = Self::calc_power(
+            self.force_on_off,
+            self.state,
+            available_power.power,
+            appliance.power,
+        );
 
         let result = match &self.appliance_output {
             ArcSink::KeContact(wallbox) => {
@@ -158,31 +169,82 @@ impl ApplianceProcessor {
             }
             _ => Err("Unsupported appliance type".into()),
         };
-        let enabled = match result {
-            Ok(x) => x,
-            Err(e) => {
-                error!(self.base.logger, "{}", e);
-                return TaskResult::Running;
-            }
+        if let Err(e) = result {
+            error!(self.base.logger, "{}", e);
+            return TaskResult::Running;
         };
-
-        if enabled && !self.was_enabled {
-            available_power.power =
-                (available_power.power - target_power).max(0.0);
-        } else {
-            available_power.power =
-                (available_power.power - appliance.power).max(0.0);
-        }
 
         debug!(
             self.base.logger,
-            "Available power after {}: {}",
-            self.base.name,
-            available_power.power
+            "Appliance '{}' is {:?}", self.base.name, new_state
         );
+        debug!(
+            self.base.logger,
+            "Appliance '{}' power: {}", self.base.name, target_power
+        );
+        debug!(
+            self.base.logger,
+            "Available power after {}: {}", self.base.name, output_power,
+        );
+
+        self.last_appliance_power = available_power.power;
+        self.last_target_power = target_power;
+        self.state = new_state;
+
+        available_power.power = output_power;
         self.power_output.send_replace(available_power.into());
 
         TaskResult::Running
+    }
+
+    fn calc_power(
+        force_on_off: TriState,
+        state: State,
+        input_power: f64,
+        appliance_power: f64,
+    ) -> (State, f64, f64) {
+        match force_on_off {
+            TriState::Auto => match state {
+                State::Off => {
+                    if input_power > 0.0 {
+                        // Switch on the appliance. Divert all input power to
+                        // newly enabled appliance. We dont know the actual
+                        // power consumption of the appliance yet so set the
+                        // excess power to zero.
+                        (State::On, 0.0, input_power)
+                    } else {
+                        // Not enough power available to enable appliance.
+                        (State::Off, input_power, 0.0)
+                    }
+                }
+                State::On => {
+                    if -input_power > appliance_power {
+                        // Available power is smaller than current appliance
+                        // power consumption so disable the appliance.
+                        (State::Off, input_power, 0.0)
+                    } else {
+                        // Adjust appliance power to match available input
+                        // power. Add measured appliance power to output
+                        // because it is implicitely subtracted from the
+                        // measured sum power.
+                        // Set excess power to input since we do not
+                        // know the new actual power consumption of the appliance.
+                        (State::On, input_power, input_power + appliance_power)
+                    }
+                }
+            },
+            // Appliance is forced off so all input power is excess power.
+            TriState::Off => (State::Off, input_power, 0.0),
+            TriState::On => {
+                // Maximum power of one phase
+                let max_power = 230.0 * 16.0;
+                // Appliance is forced on.
+                // All input power is excess power. Actual appliance power
+                // consumption is implicitely subtractur from measured input
+                // in next iteration.
+                (State::On, input_power, max_power)
+            }
+        }
     }
 
     fn handle_command(&mut self, command: Command) -> Result<(), String> {
@@ -202,4 +264,91 @@ impl ApplianceProcessor {
 
         Ok(())
     }
+}
+
+#[test]
+fn test_state_transitions() {
+    assert_eq!(
+        ApplianceProcessor::calc_power(TriState::Auto, State::Off, 100.0, 0.0),
+        (State::On, 0.0, 100.0),
+        "Appliance did not switch on",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(TriState::Auto, State::Off, 0.0, 100.0),
+        (State::Off, 0.0, 0.0),
+        "Appliance switched on when it should not",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(TriState::Auto, State::Off, -100.0, 0.0),
+        (State::Off, -100.0, 0.0),
+        "Negative excess power is not passed on",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            -101.0,
+            100.0
+        ),
+        (State::Off, -101.0, 0.0),
+        "Appliance did not switch off",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(TriState::Auto, State::On, 100.0, 100.0),
+        (State::On, 100.0, 200.0),
+        "Appliance power did not increase",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            -100.0,
+            200.0
+        ),
+        (State::On, -100.0, 100.0),
+        "Appliance power did not decrease",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(TriState::Auto, State::On, 0.0, 200.0),
+        (State::On, 0.0, 200.0),
+        "Appliance power was not kept",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(TriState::Auto, State::On, 100.0, 200.0),
+        (State::On, 100.0, 300.0),
+        "Excess power is incorrect",
+    );
+}
+
+#[test]
+fn test_force_on() {
+    assert_eq!(
+        ApplianceProcessor::calc_power(TriState::On, State::Off, 100.0, 200.0),
+        (State::On, 100.0, 3680.0),
+        "Excess power is incorrect if there is still power available",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(TriState::On, State::Off, -100.0, 200.0),
+        (State::On, -100.0, 3680.0),
+        "Excess power is incorrect if there is no power available",
+    );
+}
+
+#[test]
+fn test_force_off() {
+    assert_eq!(
+        ApplianceProcessor::calc_power(TriState::Off, State::Off, 100.0, 200.0),
+        (State::Off, 100.0, 0.0),
+        "Excess power is incorrect if there is still power available",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Off,
+            State::Off,
+            -100.0,
+            200.0
+        ),
+        (State::Off, -100.0, 0.0),
+        "Excess power is incorrect if there is no power available",
+    );
 }

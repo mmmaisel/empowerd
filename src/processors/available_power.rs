@@ -66,7 +66,7 @@ impl AvailablePowerProcessor {
             power_output,
             battery_threshold,
             skipped_events: 0,
-            filter: PT1::new(tau, 0.0, 0.0, 16000.0, Utc::now()),
+            filter: PT1::new(tau, 0.0, -12800.0, 12800.0, Utc::now()),
         }
     }
 
@@ -137,19 +137,15 @@ impl AvailablePowerProcessor {
         }
         self.skipped_events = 0;
 
+        let filtered_power =
+            self.filter.process(battery.power - meter_power, meter_time);
+        debug!(self.base.logger, "Available power: {}", filtered_power);
         let available_power = if battery.charge < self.battery_threshold {
-            AvailablePower::new(meter_time, 0.0)
+            debug!(self.base.logger, "Battery is below threshold!");
+            AvailablePower::new(meter_time, -12800.0)
         } else {
-            AvailablePower::new(
-                meter_time,
-                self.filter.process(battery.power - meter_power, meter_time),
-            )
+            AvailablePower::new(meter_time, filtered_power)
         };
-        debug!(
-            self.base.logger,
-            "Available power: {}", available_power.power
-        );
-
         self.power_output.send_replace(available_power.into());
 
         TaskResult::Running
