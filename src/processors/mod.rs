@@ -267,6 +267,7 @@ pub fn processor_tasks(
                     appliance_source,
                     power_sink,
                     appliance_sink,
+                    Duration::from_secs(setting.retransmit_interval),
                 );
                 tasks.add_task(task_loop!(processor));
                 commands.appliance.push(CommandSender {

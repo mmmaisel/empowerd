@@ -21,7 +21,9 @@ use crate::sinks::ArcSink;
 use crate::task_group::TaskResult;
 use crate::tri_state::TriState;
 use slog::{debug, error, warn};
+use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, watch};
+use tokio::time;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum State {
@@ -47,6 +49,7 @@ pub struct ApplianceProcessor {
     appliance_input: watch::Receiver<Model>,
     power_output: watch::Sender<Model>,
     appliance_output: ArcSink,
+    retransmit_interval: Duration,
     skipped_events: u8,
     last_target_power: f64,
     last_appliance_power: f64,
@@ -62,6 +65,7 @@ impl ApplianceProcessor {
         appliance_input: watch::Receiver<Model>,
         power_output: watch::Sender<Model>,
         appliance_output: ArcSink,
+        retransmit_interval: Duration,
     ) -> Self {
         Self {
             base,
@@ -70,6 +74,7 @@ impl ApplianceProcessor {
             appliance_output,
             power_output,
             appliance_input,
+            retransmit_interval,
             skipped_events: 0,
             last_target_power: 0.0,
             last_appliance_power: 0.0,
@@ -110,6 +115,16 @@ impl ApplianceProcessor {
                         format!("Reading current appliance power failed: {}", e)
                     );
                 }
+            }
+            _ = time::sleep(self.retransmit_interval) => {
+                if let Err(e) = Self::set_output(
+                    &self.appliance_output,
+                    self.last_target_power,
+                    self.last_appliance_power
+                ).await {
+                    error!(self.base.logger, "{}", e);
+                };
+                return TaskResult::Running;
             }
         };
 
@@ -158,18 +173,13 @@ impl ApplianceProcessor {
             appliance.power,
         );
 
-        let result = match &self.appliance_output {
-            ArcSink::KeContact(wallbox) => {
-                wallbox
-                    .set_available_power(target_power, appliance.power)
-                    .await
-            }
-            ArcSink::LambdaHeatPump(lambda) => {
-                lambda.set_available_power(target_power).await
-            }
-            _ => Err("Unsupported appliance type".into()),
-        };
-        if let Err(e) = result {
+        if let Err(e) = Self::set_output(
+            &self.appliance_output,
+            target_power,
+            appliance.power,
+        )
+        .await
+        {
             error!(self.base.logger, "{}", e);
             return TaskResult::Running;
         };
@@ -244,6 +254,24 @@ impl ApplianceProcessor {
                 // in next iteration.
                 (State::On, input_power, max_power)
             }
+        }
+    }
+
+    async fn set_output(
+        output: &ArcSink,
+        target_power: f64,
+        current_power: f64,
+    ) -> Result<bool, String> {
+        match output {
+            ArcSink::KeContact(wallbox) => {
+                wallbox
+                    .set_available_power(target_power, current_power)
+                    .await
+            }
+            ArcSink::LambdaHeatPump(lambda) => {
+                lambda.set_available_power(target_power).await
+            }
+            _ => Err("Unsupported appliance type".into()),
         }
     }
 

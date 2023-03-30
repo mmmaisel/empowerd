@@ -227,11 +227,17 @@ pub struct ApplianceProcessor {
     pub power_input: String,
     pub appliance_input: String,
     pub appliance_output: String,
+    #[serde(default = "ApplianceProcessor::default_retransmit_interval")]
+    pub retransmit_interval: u64,
 }
 
 impl ApplianceProcessor {
     fn has_source(&self, source: &str) -> bool {
         self.power_input == source || self.appliance_input == source
+    }
+
+    pub fn default_retransmit_interval() -> u64 {
+        86400 // one day
     }
 }
 
