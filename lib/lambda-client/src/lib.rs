@@ -35,6 +35,35 @@ impl LambdaContext {
         Ok(data[0] as i16)
     }
 
+    pub async fn get_cop(&mut self) -> Result<i16, String> {
+        let data = self
+            .0
+            .read_holding_registers(1013, 1)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(data[0] as i16)
+    }
+
+    pub async fn get_boiler_temps(
+        &mut self,
+    ) -> Result<(i16, i16, i16), String> {
+        let boiler_data = self
+            .0
+            .read_holding_registers(2002, 1)
+            .await
+            .map_err(|e| e.to_string())?;
+        let buffer_data = self
+            .0
+            .read_holding_registers(3002, 2)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok((
+            boiler_data[0] as i16,
+            buffer_data[0] as i16,
+            buffer_data[1] as i16,
+        ))
+    }
+
     pub async fn set_available_power(
         &mut self,
         power: i16,

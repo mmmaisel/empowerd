@@ -142,6 +142,7 @@ impl ApplianceProcessor {
         };
 
         let appliance = match *self.appliance_input.borrow() {
+            Model::Heatpump(ref x) => x.into(),
             Model::SimpleMeter(ref x) => x.clone(),
             Model::None => return TaskResult::Running,
             _ => {

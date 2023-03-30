@@ -24,6 +24,7 @@ pub mod available_power;
 pub mod battery;
 pub mod bidirectional_meter;
 pub mod generator;
+pub mod heatpump;
 pub mod simple_meter;
 pub mod weather;
 
@@ -31,6 +32,7 @@ pub use available_power::AvailablePower;
 pub use battery::Battery;
 pub use bidirectional_meter::BidirectionalMeter;
 pub use generator::Generator;
+pub use heatpump::Heatpump;
 pub use simple_meter::SimpleMeter;
 pub use weather::Weather;
 
@@ -53,9 +55,12 @@ pub enum Model {
     Battery(Battery),
     BidirectionalMeter(BidirectionalMeter),
     Generator(Generator),
+    Heatpump(Heatpump),
     SimpleMeter(SimpleMeter),
     Weather(Weather),
 }
+
+// Conversions to Model
 
 impl From<AvailablePower> for Model {
     fn from(record: AvailablePower) -> Self {
@@ -81,6 +86,12 @@ impl From<Generator> for Model {
     }
 }
 
+impl From<Heatpump> for Model {
+    fn from(record: Heatpump) -> Self {
+        Model::Heatpump(record)
+    }
+}
+
 impl From<SimpleMeter> for Model {
     fn from(record: SimpleMeter) -> Self {
         Model::SimpleMeter(record)
@@ -89,6 +100,14 @@ impl From<SimpleMeter> for Model {
 impl From<Weather> for Model {
     fn from(record: Weather) -> Self {
         Model::Weather(record)
+    }
+}
+
+// "Upcasting" to SimpleMeter
+
+impl From<&Heatpump> for SimpleMeter {
+    fn from(record: &Heatpump) -> Self {
+        SimpleMeter::new(record.time, record.energy, record.power)
     }
 }
 
