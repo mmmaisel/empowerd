@@ -22,6 +22,7 @@ use crate::task_group::TaskResult;
 use chrono::{DateTime, Utc};
 use lambda_client::LambdaClient;
 use slog::{error, trace};
+use std::collections::VecDeque;
 use std::time::{Duration, UNIX_EPOCH};
 
 pub struct LambdaHeatPumpSource {
@@ -29,18 +30,21 @@ pub struct LambdaHeatPumpSource {
     client: LambdaClient,
     count: u64,
     energy: f64,
+    cops: VecDeque<i16>,
 }
 
 impl LambdaHeatPumpSource {
     pub fn new(base: SourceBase, address: String) -> Result<Self, String> {
         let address = parse_socketaddr_with_default(&address, 502)?;
         let client = LambdaClient::new(address);
+        let cops = vec![0; base.oversample_factor as usize].into();
 
         Ok(Self {
             base,
             client,
             count: 0,
             energy: 0.0,
+            cops,
         })
     }
 
@@ -63,6 +67,20 @@ impl LambdaHeatPumpSource {
                         return Err(());
                     }
                 };
+
+                match context.get_cop().await {
+                    Ok(x) => {
+                        self.cops.pop_front();
+                        self.cops.push_back(x);
+                    }
+                    Err(e) => {
+                        error!(
+                            self.base.logger,
+                            "Query Lambda Heat Pump data failed: {}", e
+                        );
+                        return Err(());
+                    }
+                }
 
                 match context.get_current_power().await {
                     Ok(x) => Ok(x),
@@ -127,6 +145,7 @@ impl LambdaHeatPumpSource {
                     None,
                     None,
                     None,
+                    None,
                 ),
                 InfluxResult::Err(e) => {
                     error!(
@@ -139,6 +158,9 @@ impl LambdaHeatPumpSource {
 
             // Update accumulated energy.
             let energy_wh = self.energy / 3.6e3 + last_record.energy;
+            let cop = self.cops.iter().map(|x| *x as i32).sum::<i32>() as f64
+                / self.cops.len() as f64
+                / 100.0;
 
             let mut context = match self.client.open().await {
                 Ok(x) => x,
@@ -146,16 +168,6 @@ impl LambdaHeatPumpSource {
                     error!(
                         self.base.logger,
                         "Could not connect to Lambda Heat Pump: {}", e
-                    );
-                    return TaskResult::Running;
-                }
-            };
-            let cop = match context.get_cop().await {
-                Ok(x) => x,
-                Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Query Lambda Heat Pump data failed: {}", e
                     );
                     return TaskResult::Running;
                 }
@@ -180,7 +192,11 @@ impl LambdaHeatPumpSource {
                 (energy_wh - last_record.energy) * 3.6e3
                     / ((timing.now - last_record.time.timestamp() as u64)
                         as f64),
-                Some(cop as f64 / 100.0),
+                Some(
+                    last_record.total_heat.unwrap_or(0.0)
+                        + (energy_wh - last_record.energy) * cop,
+                ),
+                Some(cop),
                 Some(boiler.0 as f64 / 10.0),
                 Some(boiler.1 as f64 / 10.0),
                 Some(boiler.2 as f64 / 10.0),

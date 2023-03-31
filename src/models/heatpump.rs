@@ -25,6 +25,7 @@ pub struct Heatpump {
     pub time: DateTime<Utc>,
     pub energy: f64,
     pub power: f64,
+    pub total_heat: Option<f64>,
     pub cop: Option<f64>,
     pub boiler_top: Option<f64>,
     pub boiler_mid: Option<f64>,
@@ -36,6 +37,7 @@ impl Heatpump {
         time: DateTime<Utc>,
         energy: f64,
         power: f64, // TODO: remove, use derivative query
+        total_heat: Option<f64>,
         cop: Option<f64>,
         boiler_top: Option<f64>,
         boiler_mid: Option<f64>,
@@ -45,6 +47,7 @@ impl Heatpump {
             time,
             energy,
             power,
+            total_heat,
             cop,
             boiler_top,
             boiler_mid,
@@ -55,5 +58,5 @@ impl Heatpump {
 
 impl InfluxObject<Heatpump> for Heatpump {
     const FIELDS: &'static str =
-        "energy, power, cop, boiler_top, boiler_mid, boiler_bot";
+        "energy, power, total_heat, cop, boiler_top, boiler_mid, boiler_bot";
 }
