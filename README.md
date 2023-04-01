@@ -2,8 +2,11 @@
 
 Empowerd is a Linux daemon which empowers the offline smart home.
 
-Currently, it supports monitoring of different power sources as well as
-controlling things like valves on Raspi GPIO pins via a web GUI.
+Currently, it supports monitoring of different power sources and
+controlling appliances via modbus or Raspi GPIO pins.
+GPIOs can be controlled manually via the Web-GUI.
+
+The project focuses on code efficiency and robustness.
 
 ## Installation
 
