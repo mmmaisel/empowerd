@@ -17,7 +17,9 @@
 \******************************************************************************/
 use super::ProcessorBase;
 use crate::models::{
-    units::{millisecond, second, watt, Abbreviation, Power, Time},
+    units::{
+        millisecond, second, watt, watt_hour, Abbreviation, Energy, Power, Time,
+    },
     AvailablePower, Model,
 };
 use crate::pt1::PT1;
@@ -46,7 +48,7 @@ pub struct AvailablePowerProcessor {
     battery_input: watch::Receiver<Model>,
     meter_input: watch::Receiver<Model>,
     power_output: watch::Sender<Model>,
-    battery_threshold: f64,
+    battery_threshold: Energy,
     skipped_events: u8,
     filter: PT1<Power>,
 }
@@ -67,7 +69,7 @@ impl AvailablePowerProcessor {
             battery_input,
             meter_input,
             power_output,
-            battery_threshold,
+            battery_threshold: Energy::new::<watt_hour>(battery_threshold),
             skipped_events: 0,
             filter: PT1::new(
                 Time::new::<second>(tau),
@@ -140,10 +142,7 @@ impl AvailablePowerProcessor {
             }
         };
 
-        if (meter_time - Time::new::<second>(battery.time.timestamp() as f64))
-            .abs()
-            > Time::new::<second>(15.0)
-        {
+        if (meter_time - battery.time).abs() > Time::new::<second>(15.0) {
             self.skipped_events += 1;
             if self.skipped_events >= 2 {
                 warn!(
@@ -155,10 +154,8 @@ impl AvailablePowerProcessor {
         }
         self.skipped_events = 0;
 
-        let filtered_power = self.filter.process(
-            Power::new::<watt>(battery.power) - meter_power,
-            meter_time,
-        );
+        let filtered_power =
+            self.filter.process(battery.power - meter_power, meter_time);
         debug!(
             self.base.logger,
             "Available power: {}",
@@ -181,13 +178,17 @@ impl AvailablePowerProcessor {
     fn handle_command(&mut self, command: Command) -> Result<(), String> {
         match command {
             Command::SetThreshold { threshold, resp } => {
-                self.battery_threshold = threshold.abs();
+                self.battery_threshold =
+                    Energy::new::<watt_hour>(threshold.abs());
                 if resp.send(()).is_err() {
                     return Err("Sending SetThreshold response failed!".into());
                 }
             }
             Command::GetThreshold { resp } => {
-                if resp.send(self.battery_threshold).is_err() {
+                if resp
+                    .send(self.battery_threshold.get::<watt_hour>())
+                    .is_err()
+                {
                     return Err("Sending GetThreshold response failed!".into());
                 }
             }

@@ -17,52 +17,115 @@
 \******************************************************************************/
 
 #[derive(Debug, PartialEq)]
-struct Setpoint {
-    pub input_range: [f64; 2],
-    pub output: f64,
+struct Setpoint<T, U> {
+    pub input_range: [T; 2],
+    pub output: U,
 }
 
-pub struct MultiSetpointHysteresis {
-    setpoints: Vec<Setpoint>,
+pub struct MultiSetpointHysteresis<T, U> {
+    setpoints: Vec<Setpoint<T, U>>,
     last_index: usize,
 }
 
-impl MultiSetpointHysteresis {
-    pub fn new_linspace(
-        in_start: f64,
-        in_stop: f64,
-        out_0: f64,
-        out_start: f64,
-        out_stop: f64,
-        out_1: f64,
-        num_points: i32,
-        hysteresis: f64,
-    ) -> Result<Self, String> {
-        if num_points < 2 {
+pub struct LinspaceBuilder<T, U> {
+    in_start: T,
+    in_stop: T,
+    out_low: U,
+    out_start: U,
+    out_stop: U,
+    out_high: U,
+    num_points: i32,
+    hysteresis: T,
+
+    min: T,
+    max: T,
+}
+
+impl<T, U> LinspaceBuilder<T, U>
+where
+    T: Default
+        + Copy
+        + std::cmp::PartialOrd
+        + std::ops::Add<T, Output = T>
+        + std::ops::Sub<T, Output = T>
+        + std::ops::Mul<f64, Output = T>
+        + std::ops::Div<f64, Output = T>,
+    U: Default
+        + Copy
+        + std::ops::Add<U, Output = U>
+        + std::ops::Sub<U, Output = U>
+        + std::ops::Mul<f64, Output = U>
+        + std::ops::Div<f64, Output = U>,
+{
+    pub fn new(min: T, max: T) -> Self {
+        Self {
+            in_start: T::default(),
+            in_stop: T::default(),
+            out_low: U::default(),
+            out_start: U::default(),
+            out_stop: U::default(),
+            out_high: U::default(),
+            num_points: 0,
+            hysteresis: T::default(),
+            min,
+            max,
+        }
+    }
+
+    pub fn input_range(mut self, start: T, stop: T) -> Self {
+        self.in_start = start;
+        self.in_stop = stop;
+        self
+    }
+
+    pub fn output_range(mut self, low: U, start: U, stop: U, high: U) -> Self {
+        self.out_low = low;
+        self.out_start = start;
+        self.out_stop = stop;
+        self.out_high = high;
+        self
+    }
+
+    pub fn point_count(mut self, num: i32) -> Self {
+        self.num_points = num;
+        self
+    }
+
+    pub fn hysteresis(mut self, hysteresis: T) -> Self {
+        self.hysteresis = hysteresis;
+        self
+    }
+
+    pub fn build(self) -> Result<MultiSetpointHysteresis<T, U>, String> {
+        if self.num_points < 2 {
             return Err("'num_points' must be greater than 1!".into());
-        } else if hysteresis < 0.0 {
+        } else if self.hysteresis < T::default() {
             return Err("'hysteresis' must be positive!".into());
-        } else if in_start >= in_stop {
+        } else if self.in_start >= self.in_stop {
             return Err("'in_start' must be smaller than 'in_stop'".into());
         }
 
-        let spacing_in = (in_stop - in_start) / (num_points - 2) as f64;
-        let spacing_out = (out_stop - out_start) / (num_points - 2) as f64;
+        let spacing_in: T =
+            (self.in_stop - self.in_start) / ((self.num_points - 2) as f64);
+        let spacing_out: U =
+            (self.out_stop - self.out_start) / ((self.num_points - 2) as f64);
 
-        let setpoints: Vec<Setpoint> = (0..num_points)
+        let setpoints: Vec<Setpoint<T, U>> = (0..self.num_points)
             .map(|i| {
                 let (input_range, output) = if i == 0 {
-                    ([-f64::MAX, in_start + hysteresis], out_0)
-                } else if i == num_points - 1 {
-                    ([in_stop - hysteresis, f64::MAX], out_1)
+                    ([self.min, self.in_start + self.hysteresis], self.out_low)
+                } else if i == self.num_points - 1 {
+                    ([self.in_stop - self.hysteresis, self.max], self.out_high)
                 } else {
                     (
                         [
-                            in_start + ((i - 1) as f64) * spacing_in
-                                - hysteresis,
-                            in_start + (i as f64) * spacing_in + hysteresis,
+                            self.in_start + spacing_in * ((i - 1) as f64)
+                                - self.hysteresis,
+                            self.in_start
+                                + spacing_in * (i as f64)
+                                + self.hysteresis,
                         ],
-                        out_start + (i as f64) * spacing_out,
+                        self.out_start + spacing_out * (i as f64),
                     )
                 };
 
@@ -73,13 +136,19 @@ impl MultiSetpointHysteresis {
             })
             .collect();
 
-        Ok(Self {
+        Ok(MultiSetpointHysteresis {
             setpoints,
             last_index: 0,
         })
     }
+}
 
-    pub fn process(&mut self, value: f64) -> f64 {
+impl<T, U> MultiSetpointHysteresis<T, U>
+where
+    T: std::cmp::PartialOrd,
+    U: Copy,
+{
+    pub fn process(&mut self, value: T) -> U {
         let last_point = &self.setpoints[self.last_index];
         if value > last_point.input_range[0]
             && value < last_point.input_range[1]
@@ -108,30 +177,46 @@ impl MultiSetpointHysteresis {
 
 #[test]
 fn test_parameter_validation() {
-    if let Ok(_) = MultiSetpointHysteresis::new_linspace(
-        20000.0, 10000.0, 0.0, 0.0, 0.0, 0.0, 5, 0.1,
-    ) {
+    if let Ok(_) = LinspaceBuilder::new(-f64::MAX, f64::MAX)
+        .input_range(20000.0, 10000.0)
+        .output_range(0.0, 0.0, 0.0, 0.0)
+        .point_count(5)
+        .hysteresis(0.1)
+        .build()
+    {
         panic!("Start greater than stop was not rejected!");
     }
 
-    if let Ok(_) = MultiSetpointHysteresis::new_linspace(
-        10000.0, 20000.0, 0.0, 0.0, 0.0, 0.0, 1, 0.1,
-    ) {
+    if let Ok(_) = LinspaceBuilder::new(-f64::MAX, f64::MAX)
+        .input_range(10000.0, 20000.0)
+        .output_range(0.0, 0.0, 0.0, 0.0)
+        .point_count(1)
+        .hysteresis(0.1)
+        .build()
+    {
         panic!("Single point range was not rejected!");
     }
 
-    if let Ok(_) = MultiSetpointHysteresis::new_linspace(
-        10000.0, 20000.0, 0.0, 0.0, 0.0, 0.0, 2, -123.0,
-    ) {
+    if let Ok(_) = LinspaceBuilder::new(-f64::MAX, f64::MAX)
+        .input_range(10000.0, 20000.0)
+        .output_range(0.0, 0.0, 0.0, 0.0)
+        .point_count(2)
+        .hysteresis(-123.0)
+        .build()
+    {
         panic!("Invalid hysteresis was not rejected!");
     }
 }
 
 #[test]
 fn test_linspace_init() {
-    let ctrl = match MultiSetpointHysteresis::new_linspace(
-        10000.0, 20000.0, 250.0, 250.0, 100.0, 0.0, 2, 1000.0,
-    ) {
+    let ctrl = match LinspaceBuilder::new(-f64::MAX, f64::MAX)
+        .input_range(10000.0, 20000.0)
+        .output_range(250.0, 250.0, 100.0, 0.0)
+        .point_count(2)
+        .hysteresis(1000.0)
+        .build()
+    {
         Ok(x) => x,
         Err(e) => {
             panic!("Creating MultiSetpointHysteresis object failed: {}", e)
@@ -150,9 +235,13 @@ fn test_linspace_init() {
     ];
     assert_eq!(expected, ctrl.setpoints);
 
-    let ctrl = match MultiSetpointHysteresis::new_linspace(
-        10000.0, 20000.0, 250.0, 250.0, 100.0, 0.0, 5, 1000.0,
-    ) {
+    let ctrl = match LinspaceBuilder::new(-f64::MAX, f64::MAX)
+        .input_range(10000.0, 20000.0)
+        .output_range(250.0, 250.0, 100.0, 0.0)
+        .point_count(5)
+        .hysteresis(1000.0)
+        .build()
+    {
         Ok(x) => x,
         Err(e) => {
             panic!("Creating MultiSetpointHysteresis object failed: {}", e)
@@ -186,9 +275,13 @@ fn test_linspace_init() {
 
 #[test]
 fn test_processing() {
-    let mut ctrl = match MultiSetpointHysteresis::new_linspace(
-        10000.0, 20000.0, 250.0, 250.0, 100.0, 0.0, 5, 1000.0,
-    ) {
+    let mut ctrl = match LinspaceBuilder::new(-f64::MAX, f64::MAX)
+        .input_range(10000.0, 20000.0)
+        .output_range(250.0, 250.0, 100.0, 0.0)
+        .point_count(5)
+        .hysteresis(1000.0)
+        .build()
+    {
         Ok(x) => x,
         Err(e) => {
             panic!("Creating MultiSetpointHysteresis object failed: {}", e)

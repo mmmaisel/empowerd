@@ -16,7 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::models::Model;
+use crate::models::{
+    units::{watt, Abbreviation, Energy, Power},
+    Model,
+};
 use crate::multi_setpoint_hysteresis::MultiSetpointHysteresis;
 use crate::task_group::TaskResult;
 use slog::{debug, error, warn};
@@ -50,8 +53,8 @@ pub struct LoadControlProcessor {
     ctrl_serial: u32,
     battery_input: watch::Receiver<Model>,
 
-    grid_power: f64,
-    controller: MultiSetpointHysteresis,
+    grid_power: Power,
+    controller: MultiSetpointHysteresis<Energy, Power>,
 
     sma_client: SmaClient,
     session: UdpSocket,
@@ -65,7 +68,7 @@ impl LoadControlProcessor {
         bind_addr: String,
         ctrl_serial: u32,
         battery_input: watch::Receiver<Model>,
-        controller: MultiSetpointHysteresis,
+        controller: MultiSetpointHysteresis<Energy, Power>,
     ) -> Result<Self, String> {
         let meter_addr = SmaClient::sma_sock_addr(meter_addr)?;
         let mut sma_client = SmaClient::new(None);
@@ -82,7 +85,7 @@ impl LoadControlProcessor {
             meter_serial,
             ctrl_serial,
             battery_input,
-            grid_power: 0.0,
+            grid_power: Power::new::<watt>(0.0),
             controller,
             sma_client,
             session,
@@ -144,10 +147,14 @@ impl LoadControlProcessor {
                         Model::None => (),
                         Model::Battery(ref x) => {
                             let grid_power = self.controller.process(x.charge);
-                            if (self.grid_power - grid_power).abs() > 0.1 {
+                            if (self.grid_power - grid_power).abs()
+                                > Power::new::<watt>(0.1)
+                            {
                                 debug!(
                                     self.base.logger,
-                                    "Importing {} W from grid", grid_power
+                                    "Importing {} from grid",
+                                    grid_power
+                                        .into_format_args(watt, Abbreviation),
                                 );
                             }
                             self.grid_power = grid_power;
@@ -171,7 +178,7 @@ impl LoadControlProcessor {
             }
         }
 
-        payload.apply_power_offset(self.grid_power);
+        payload.apply_power_offset(self.grid_power.get::<watt>());
         if let Err(e) = self
             .sma_client
             .broadcast_em_data(

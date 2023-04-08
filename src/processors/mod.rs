@@ -15,8 +15,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::models::Model;
-use crate::multi_setpoint_hysteresis::MultiSetpointHysteresis;
+use crate::models::{
+    units::{joule, watt, watt_hour, Energy, Power},
+    Model,
+};
+use crate::multi_setpoint_hysteresis::LinspaceBuilder;
 use crate::settings::{ProcessorType, Settings};
 use crate::sinks::{ArcSink, GpioProcCreateInfo};
 use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskState};
@@ -288,16 +291,23 @@ pub fn processor_tasks(
                     }
                 };
 
-                let controller = MultiSetpointHysteresis::new_linspace(
-                    setting.battery_empty_cap,
-                    setting.battery_threshold_cap,
-                    -setting.basic_load,
-                    -setting.basic_load,
-                    -setting.min_grid_power,
-                    0.0,
-                    setting.num_points,
-                    setting.hysteresis_cap,
+                let controller = LinspaceBuilder::new(
+                    Energy::new::<joule>(-f64::MAX),
+                    Energy::new::<joule>(f64::MAX),
                 )
+                .input_range(
+                    Energy::new::<watt_hour>(setting.battery_empty_cap),
+                    Energy::new::<watt_hour>(setting.battery_threshold_cap),
+                )
+                .output_range(
+                    Power::new::<watt>(-setting.basic_load),
+                    Power::new::<watt>(-setting.basic_load),
+                    Power::new::<watt>(-setting.min_grid_power),
+                    Power::new::<watt>(0.0),
+                )
+                .point_count(setting.num_points)
+                .hysteresis(Energy::new::<watt_hour>(setting.hysteresis_cap))
+                .build()
                 .map_err(|e| {
                     format!("Creating multi setpoint controller failed: {}", e)
                 })?;

@@ -17,11 +17,12 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{Battery, InfluxResult};
+use crate::models::{
+    units::{second, watt, watt_hour, Energy, Power, Time},
+    Battery, InfluxResult,
+};
 use crate::task_group::TaskResult;
-use chrono::{DateTime, Utc};
 use slog::error;
-use std::time::{Duration, UNIX_EPOCH};
 use sunny_storage_client::{
     SunnyBoyStorageClient, SunnyIslandClient, SunnyStorageClient,
 };
@@ -63,14 +64,18 @@ impl SunnyStorageSource {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let timing = match self.base.sleep_aligned().await {
-            Ok(x) => x,
+        let (timing, _oversample) = match self.base.sleep_aligned().await {
+            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
         };
 
         let (wh_in, wh_out, charge) =
             match self.battery_client.get_in_out_charge().await {
-                Ok((x, y, z)) => (x as f64, y as f64, z),
+                Ok((x, y, z)) => (
+                    Energy::new::<watt_hour>(x as f64),
+                    Energy::new::<watt_hour>(y as f64),
+                    Energy::new::<watt_hour>(z),
+                ),
                 Err(e) => {
                     error!(self.base.logger, "Get battery data failed: {}", e);
                     return TaskResult::Running;
@@ -79,14 +84,12 @@ impl SunnyStorageSource {
 
         let power = match self.base.query_last::<Battery>().await {
             InfluxResult::Some(last_record) => {
-                3600.0
-                    * (wh_in
-                        - last_record.energy_in
-                        - (wh_out - last_record.energy_out))
-                    / ((timing.now - last_record.time.timestamp() as u64)
-                        as f64)
+                (wh_in
+                    - last_record.energy_in
+                    - (wh_out - last_record.energy_out))
+                    / (timing - last_record.time)
             }
-            InfluxResult::None => 0.0,
+            InfluxResult::None => Power::new::<watt>(0.0),
             InfluxResult::Err(e) => {
                 error!(
                     self.base.logger,
@@ -96,15 +99,32 @@ impl SunnyStorageSource {
             }
         };
 
-        let record = Battery::new(
-            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(timing.now)),
-            charge,
-            wh_in,
-            wh_out,
-            power,
-        );
+        let record = Battery::new(timing, charge, wh_in, wh_out, power);
         self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
     }
+}
+
+#[test]
+fn test_power_calculation() {
+    let old = Battery::new(
+        Time::new::<second>(1680966000.0),
+        Energy::new::<watt_hour>(5000.0),
+        Energy::new::<watt_hour>(430.0),
+        Energy::new::<watt_hour>(497.0),
+        Power::new::<watt>(0.0),
+    );
+    let new = Battery::new(
+        Time::new::<second>(1680966300.0),
+        Energy::new::<watt_hour>(5000.0),
+        Energy::new::<watt_hour>(476.0),
+        Energy::new::<watt_hour>(497.0),
+        Power::new::<watt>(0.0),
+    );
+
+    let power =
+        (new.energy_in - old.energy_in - (new.energy_out - old.energy_out))
+            / (new.time - old.time);
+    assert_eq!(552.0, power.get::<watt>());
 }
