@@ -15,35 +15,74 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::InfluxObject;
+use super::{
+    units::{second, watt, watt_hour, Energy, Power, Time},
+    InfluxObject,
+};
 use chrono::{DateTime, Utc};
-use influxdb::InfluxDbWriteable;
+use influxdb::{InfluxDbWriteable, Timestamp, WriteQuery};
 use serde::Deserialize;
 
-#[derive(Clone, Deserialize, Debug, InfluxDbWriteable)]
-pub struct BidirectionalMeter {
+#[derive(Deserialize)]
+pub struct RawBidirectionalMeter {
     pub time: DateTime<Utc>,
     pub energy_consumed: f64,
     pub energy_produced: f64,
     pub power: f64,
 }
 
+#[derive(Clone, Deserialize, Debug)]
+#[serde(from = "RawBidirectionalMeter")]
+pub struct BidirectionalMeter {
+    pub time: Time,
+    pub energy_consumed: Energy,
+    pub energy_produced: Energy,
+    pub power: Power,
+}
+
 impl BidirectionalMeter {
     pub fn new(
-        time: DateTime<Utc>,
-        energy_consumed: f64,
-        energy_produced: f64,
-        power: f64, // TODO: remove, use derivative query
+        time: Time,
+        energy_consumed: Energy,
+        energy_produced: Energy,
+        power: Power, // TODO: remove, use derivative query
     ) -> Self {
-        return Self {
-            time: time,
-            energy_consumed: energy_consumed,
-            energy_produced: energy_produced,
-            power: power,
-        };
+        Self {
+            time,
+            energy_consumed,
+            energy_produced,
+            power,
+        }
     }
 }
 
 impl InfluxObject<BidirectionalMeter> for BidirectionalMeter {
     const FIELDS: &'static str = "energy_consumed, energy_produced, power";
+}
+
+impl InfluxDbWriteable for BidirectionalMeter {
+    fn into_query<T: Into<String>>(self, name: T) -> WriteQuery {
+        Timestamp::Seconds(self.time.get::<second>() as u128)
+            .into_query(name)
+            .add_field(
+                "energy_consumed",
+                self.energy_consumed.get::<watt_hour>(),
+            )
+            .add_field(
+                "energy_produced",
+                self.energy_produced.get::<watt_hour>(),
+            )
+            .add_field("power", self.power.get::<watt>())
+    }
+}
+
+impl From<RawBidirectionalMeter> for BidirectionalMeter {
+    fn from(other: RawBidirectionalMeter) -> Self {
+        Self {
+            time: Time::new::<second>(other.time.timestamp() as f64),
+            energy_consumed: Energy::new::<watt_hour>(other.energy_consumed),
+            energy_produced: Energy::new::<watt_hour>(other.energy_produced),
+            power: Power::new::<watt>(other.power),
+        }
+    }
 }

@@ -64,7 +64,7 @@ impl SunnyStorageSource {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let (timing, _oversample) = match self.base.sleep_aligned().await {
+        let (now, _oversample) = match self.base.sleep_aligned().await {
             Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
         };
@@ -87,7 +87,7 @@ impl SunnyStorageSource {
                 (wh_in
                     - last_record.energy_in
                     - (wh_out - last_record.energy_out))
-                    / (timing - last_record.time)
+                    / (now - last_record.time)
             }
             InfluxResult::None => Power::new::<watt>(0.0),
             InfluxResult::Err(e) => {
@@ -99,7 +99,7 @@ impl SunnyStorageSource {
             }
         };
 
-        let record = Battery::new(timing, charge, wh_in, wh_out, power);
+        let record = Battery::new(now, charge, wh_in, wh_out, power);
         self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running

@@ -110,10 +110,7 @@ impl AvailablePowerProcessor {
         };
 
         let (meter_time, meter_power) = match *self.meter_input.borrow() {
-            Model::BidirectionalMeter(ref x) => (
-                Time::new::<second>(x.time.timestamp() as f64),
-                Power::new::<watt>(x.power),
-            ),
+            Model::BidirectionalMeter(ref x) => (x.time, x.power),
             Model::SimpleMeter(ref x) => (
                 Time::new::<second>(x.time.timestamp() as f64),
                 Power::new::<watt>(x.power),

@@ -16,12 +16,14 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{BidirectionalMeter, InfluxResult};
+use crate::models::{
+    units::{second, watt, watt_hour, Energy, Power, Time},
+    BidirectionalMeter, InfluxResult,
+};
 use crate::task_group::TaskResult;
-use chrono::{DateTime, Utc};
 use slog::{debug, error, trace, warn};
 use sml_client::SmlClient;
-use std::time::{Duration, UNIX_EPOCH};
+use std::time::Duration;
 
 pub struct SmlMeterSource {
     base: SourceBase,
@@ -51,8 +53,8 @@ impl SmlMeterSource {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let timing = match self.base.sleep_aligned().await {
-            Ok(x) => x,
+        let (now, _oversample) = match self.base.sleep_aligned().await {
+            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
         };
 
@@ -88,7 +90,9 @@ impl SmlMeterSource {
             }
         }
         let (consumed, produced) = match meter_data {
-            Ok((x, y)) => (x, y),
+            Ok((x, y)) => {
+                (Energy::new::<watt_hour>(x), Energy::new::<watt_hour>(y))
+            }
             Err(e) => {
                 error!(
                     self.base.logger,
@@ -105,14 +109,12 @@ impl SmlMeterSource {
                     "Read {:?} from database",
                     last_record
                 );
-                3600.0
-                    * (consumed
-                        - last_record.energy_consumed
-                        - (produced - last_record.energy_produced))
-                    / ((timing.now - last_record.time.timestamp() as u64)
-                        as f64)
+                (consumed
+                    - last_record.energy_consumed
+                    - (produced - last_record.energy_produced))
+                    / (now - last_record.time)
             }
-            InfluxResult::None => 0.0,
+            InfluxResult::None => Power::new::<watt>(0.0),
             InfluxResult::Err(e) => {
                 error!(
                     self.base.logger,
@@ -122,12 +124,7 @@ impl SmlMeterSource {
             }
         };
 
-        let record = BidirectionalMeter::new(
-            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(timing.now)),
-            consumed,
-            produced,
-            power,
-        );
+        let record = BidirectionalMeter::new(now, consumed, produced, power);
         self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
