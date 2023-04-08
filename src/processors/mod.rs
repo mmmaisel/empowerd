@@ -42,6 +42,8 @@ pub use dummy::DummyProcessor;
 pub use load_control::LoadControlProcessor;
 pub use poweroff_timer::{Command as PoweroffTimerCmd, PoweroffTimerProcessor};
 
+pub const MAX_POWER_W: f64 = 12800.0;
+
 #[derive(Debug)]
 pub struct CommandSender<T> {
     pub name: String,

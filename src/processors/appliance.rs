@@ -16,7 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::models::Model;
+use crate::models::{
+    units::{second, watt, Power},
+    Model,
+};
 use crate::sinks::ArcSink;
 use crate::task_group::TaskResult;
 use crate::tri_state::TriState;
@@ -155,7 +158,11 @@ impl ApplianceProcessor {
             }
         };
 
-        if (appliance.time - available_power.time).num_seconds().abs() > 15 {
+        if (appliance.time.timestamp()
+            - available_power.time.get::<second>() as i64)
+            .abs()
+            > 15
+        {
             self.skipped_events += 1;
             if self.skipped_events >= 2 {
                 warn!(
@@ -170,7 +177,7 @@ impl ApplianceProcessor {
         let (new_state, output_power, target_power) = Self::calc_power(
             self.force_on_off,
             self.state,
-            available_power.power,
+            available_power.power.get::<watt>(),
             appliance.power,
         );
 
@@ -198,11 +205,11 @@ impl ApplianceProcessor {
             "Available power after {}: {}", self.base.name, output_power,
         );
 
-        self.last_appliance_power = available_power.power;
+        self.last_appliance_power = available_power.power.get::<watt>();
         self.last_target_power = target_power;
         self.state = new_state;
 
-        available_power.power = output_power;
+        available_power.power = Power::new::<watt>(output_power);
         self.power_output.send_replace(available_power.into());
 
         TaskResult::Running

@@ -16,7 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::models::{AvailablePower, Model};
+use crate::models::{
+    units::{millisecond, second, watt, Abbreviation, Power, Time},
+    AvailablePower, Model,
+};
 use crate::pt1::PT1;
 use crate::task_group::TaskResult;
 use chrono::Utc;
@@ -45,7 +48,7 @@ pub struct AvailablePowerProcessor {
     power_output: watch::Sender<Model>,
     battery_threshold: f64,
     skipped_events: u8,
-    filter: PT1,
+    filter: PT1<Power>,
 }
 
 impl AvailablePowerProcessor {
@@ -66,7 +69,13 @@ impl AvailablePowerProcessor {
             power_output,
             battery_threshold,
             skipped_events: 0,
-            filter: PT1::new(tau, 0.0, -12800.0, 12800.0, Utc::now()),
+            filter: PT1::new(
+                Time::new::<second>(tau),
+                Power::new::<watt>(0.0),
+                Power::new::<watt>(-super::MAX_POWER_W),
+                Power::new::<watt>(super::MAX_POWER_W),
+                Time::new::<millisecond>(Utc::now().timestamp_millis() as f64),
+            ),
         }
     }
 
@@ -99,8 +108,14 @@ impl AvailablePowerProcessor {
         };
 
         let (meter_time, meter_power) = match *self.meter_input.borrow() {
-            Model::BidirectionalMeter(ref x) => (x.time, x.power),
-            Model::SimpleMeter(ref x) => (x.time, x.power),
+            Model::BidirectionalMeter(ref x) => (
+                Time::new::<second>(x.time.timestamp() as f64),
+                Power::new::<watt>(x.power),
+            ),
+            Model::SimpleMeter(ref x) => (
+                Time::new::<second>(x.time.timestamp() as f64),
+                Power::new::<watt>(x.power),
+            ),
             Model::None => return TaskResult::Running,
             _ => {
                 error!(
@@ -125,7 +140,10 @@ impl AvailablePowerProcessor {
             }
         };
 
-        if (meter_time - battery.time).num_seconds().abs() > 15 {
+        if (meter_time - Time::new::<second>(battery.time.timestamp() as f64))
+            .abs()
+            > Time::new::<second>(15.0)
+        {
             self.skipped_events += 1;
             if self.skipped_events >= 2 {
                 warn!(
@@ -137,12 +155,21 @@ impl AvailablePowerProcessor {
         }
         self.skipped_events = 0;
 
-        let filtered_power =
-            self.filter.process(battery.power - meter_power, meter_time);
-        debug!(self.base.logger, "Available power: {}", filtered_power);
+        let filtered_power = self.filter.process(
+            Power::new::<watt>(battery.power) - meter_power,
+            meter_time,
+        );
+        debug!(
+            self.base.logger,
+            "Available power: {}",
+            filtered_power.into_format_args(watt, Abbreviation)
+        );
         let available_power = if battery.charge < self.battery_threshold {
             debug!(self.base.logger, "Battery is below threshold!");
-            AvailablePower::new(meter_time, -12800.0)
+            AvailablePower::new(
+                meter_time,
+                Power::new::<watt>(-super::MAX_POWER_W),
+            )
         } else {
             AvailablePower::new(meter_time, filtered_power)
         };
@@ -168,7 +195,7 @@ impl AvailablePowerProcessor {
                 let output = &*self.power_output.borrow();
                 let power = match output {
                     Model::AvailablePower(x) => x.power,
-                    Model::None => 0.0,
+                    Model::None => Power::new::<watt>(0.0),
                     _ => {
                         return Err(format!(
                             "power_output has invalid type: {:?}",
@@ -176,7 +203,7 @@ impl AvailablePowerProcessor {
                         ))
                     }
                 };
-                if resp.send(power).is_err() {
+                if resp.send(power.get::<watt>()).is_err() {
                     return Err("Sending GetPower response failed!".into());
                 }
             }

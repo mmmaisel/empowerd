@@ -15,19 +15,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use chrono::{DateTime, Utc};
+use super::units::{Power, Time};
 
 #[derive(Clone, Debug)]
 pub struct AvailablePower {
-    pub time: DateTime<Utc>,
-    pub power: f64,
+    pub time: Time,
+    pub power: Power,
 }
 
 impl AvailablePower {
-    pub fn new(time: DateTime<Utc>, power: f64) -> Self {
-        return Self {
-            time: time,
-            power: power,
-        };
+    pub fn new(time: Time, power: Power) -> Self {
+        Self { time, power }
     }
 }
