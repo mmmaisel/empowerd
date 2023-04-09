@@ -16,13 +16,14 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{InfluxResult, SimpleMeter};
+use crate::models::{
+    units::{second, watt, watt_hour, Abbreviation, Energy, Power, Time},
+    InfluxResult, SimpleMeter,
+};
 use crate::task_group::TaskResult;
-use chrono::{DateTime, Utc};
 use slog::{debug, error, trace};
 use sma_client::{SmaClient, TimestampedInt};
 use std::net::SocketAddr;
-use std::time::{Duration, UNIX_EPOCH};
 
 pub struct SunnyBoySpeedwireSource {
     base: SourceBase,
@@ -56,16 +57,18 @@ impl SunnyBoySpeedwireSource {
 
     // XXX: this function is much too long
     pub async fn run(&mut self) -> TaskResult {
-        let timing = match self.base.sleep_aligned().await {
-            Ok(x) => x,
+        let (now, _oversample) = match self.base.sleep_aligned().await {
+            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
         };
 
         let last_record = match self.base.query_last::<SimpleMeter>().await {
             InfluxResult::Some(x) => x,
-            InfluxResult::None => {
-                SimpleMeter::new(DateTime::<Utc>::from(UNIX_EPOCH), 0.0, 0.0)
-            }
+            InfluxResult::None => SimpleMeter::new(
+                now,
+                Energy::new::<watt_hour>(0.0),
+                Power::new::<watt>(0.0),
+            ),
             InfluxResult::Err(e) => {
                 error!(
                     self.base.logger,
@@ -117,18 +120,22 @@ impl SunnyBoySpeedwireSource {
         trace!(
             self.base.logger,
             "GetDayData from {} to {}",
-            last_record.time,
-            timing.now
+            last_record.time.into_format_args(second, Abbreviation),
+            now.into_format_args(second, Abbreviation),
         );
 
-        let mut last_timestamp = last_record.time.timestamp() as i64;
-        let mut last_energy = last_record.energy as u32;
+        let mut last_time = last_record.time;
+        let mut last_energy = last_record.energy;
 
         // TODO: this command is not accepted by SMA, needs -86400 ?
         //   this data is delayed by about one hour?
         let points: Vec<TimestampedInt> = match self
             .sma_client
-            .get_day_data(&session, last_timestamp as u32, timing.now as u32)
+            .get_day_data(
+                &session,
+                last_time.get::<second>() as u32,
+                now.get::<second>() as u32,
+            )
             .await
         {
             Err(e) => {
@@ -140,9 +147,13 @@ impl SunnyBoySpeedwireSource {
                 points
                     .into_iter()
                     .filter(|point| {
-                        if point.timestamp as i64 == last_timestamp {
+                        let energy =
+                            Energy::new::<watt_hour>(point.value as f64);
+                        if point.timestamp as u64
+                            == last_time.get::<second>() as u64
+                        {
                             return false;
-                        } else if point.value < last_energy {
+                        } else if energy < last_energy {
                             // Sometimes, the last value from speedwire is just garbage.
                             debug!(
                                 self.base.logger,
@@ -153,7 +164,7 @@ impl SunnyBoySpeedwireSource {
                             debug!(self.base.logger, "Skipping NaN SMA record");
                             return false;
                         } else {
-                            last_energy = point.value;
+                            last_energy = energy;
                             return true;
                         }
                     })
@@ -165,32 +176,25 @@ impl SunnyBoySpeedwireSource {
         //   (handled in database?) and missing ones (delta_t > 300)
         // TODO: handle NaN (0xFFFFFFFF, 0xFFFF) values(in SMA client validators)
         // TODO: always UTC, handle DST transition
-        let mut last_energy = last_record.energy as f64;
+        last_energy = last_record.energy;
 
         if let Err(e) = self.sma_client.logout(&session).await {
             error!(self.base.logger, "Logout failed: {}", e);
         }
 
-        // TODO: move this calculation to model
         let num_points = points.len();
         for point in points {
-            // TODO: this is an ugly mess
-            let power = if last_timestamp == 0 {
-                0.0
+            let time = Time::new::<second>(point.timestamp as f64);
+            let energy = Energy::new::<watt_hour>(point.value as f64);
+            let power = if last_time.get::<second>() as i64 == 0 {
+                Power::new::<watt>(0.0)
             } else {
-                3600.0 * ((point.value as f64) - last_energy)
-                    / (((point.timestamp as i64) - last_timestamp) as f64)
+                (energy - last_energy) / (time - last_time)
             };
 
-            let record = SimpleMeter::new(
-                DateTime::<Utc>::from(
-                    UNIX_EPOCH + Duration::from_secs(point.timestamp as u64),
-                ),
-                point.value.into(),
-                power,
-            );
-            last_energy = point.value as f64;
-            last_timestamp = point.timestamp as i64;
+            let record = SimpleMeter::new(now, energy, power);
+            last_energy = energy;
+            last_time = time;
 
             self.base.notify_processors(&record);
             if self.base.save_record(record).await.is_err() {

@@ -16,15 +16,16 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::SimpleMeter;
+use crate::models::{
+    units::{joule, second, watt, Energy, Power, Time},
+    SimpleMeter,
+};
 use crate::task_group::TaskResult;
-use chrono::{DateTime, Utc};
 use slog::debug;
-use std::time::{Duration, UNIX_EPOCH};
 
 pub struct DebugSource {
     base: SourceBase,
-    energy: f64,
+    energy: Energy,
     phase: f64,
 }
 
@@ -32,24 +33,22 @@ impl DebugSource {
     pub fn new(base: SourceBase) -> Self {
         Self {
             base,
-            energy: 0.0,
+            energy: Energy::new::<joule>(0.0),
             phase: 0.0,
         }
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let timing = match self.base.sleep_aligned().await {
-            Ok(x) => x,
+        let (now, _oversample) = match self.base.sleep_aligned().await {
+            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
         };
 
-        let power = self.phase.sin().abs();
-        let record = SimpleMeter::new(
-            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(timing.now)),
-            self.energy,
-            power,
-        );
-        self.energy += power;
+        let power = Power::new::<watt>(self.phase.sin().abs());
+        let energy_inc =
+            power * Time::new::<second>(self.base.interval.as_secs() as f64);
+        let record = SimpleMeter::new(now, self.energy + energy_inc, power);
+        self.energy += energy_inc;
         self.phase += 0.1;
 
         debug!(self.base.logger, "Emitting {:?}", &record);

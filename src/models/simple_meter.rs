@@ -15,32 +15,62 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::InfluxObject;
+use super::{
+    units::{second, watt, watt_hour, Energy, Power, Time},
+    InfluxObject,
+};
 use chrono::{DateTime, Utc};
-use influxdb::InfluxDbWriteable;
+use influxdb::{InfluxDbWriteable, Timestamp, WriteQuery};
 use serde::Deserialize;
 
-#[derive(Clone, Deserialize, Debug, InfluxDbWriteable)]
-pub struct SimpleMeter {
+#[derive(Deserialize)]
+pub struct RawSimpleMeter {
     pub time: DateTime<Utc>,
     pub energy: f64,
     pub power: f64,
 }
 
+#[derive(Clone, Deserialize, Debug)]
+#[serde(from = "RawSimpleMeter")]
+pub struct SimpleMeter {
+    pub time: Time,
+    pub energy: Energy,
+    pub power: Power,
+}
+
 impl SimpleMeter {
     pub fn new(
-        time: DateTime<Utc>,
-        energy: f64,
-        power: f64, // TODO: remove, use derivative query
+        time: Time,
+        energy: Energy,
+        power: Power, // TODO: remove, use derivative query
     ) -> Self {
-        return Self {
-            time: time,
-            energy: energy,
-            power: power,
-        };
+        Self {
+            time,
+            energy,
+            power,
+        }
     }
 }
 
 impl InfluxObject<SimpleMeter> for SimpleMeter {
     const FIELDS: &'static str = "energy, power";
+}
+
+impl InfluxDbWriteable for SimpleMeter {
+    fn into_query<T: Into<String>>(self, name: T) -> WriteQuery {
+        Timestamp::Seconds(self.time.get::<second>() as u128)
+            .into_query(name)
+            .add_field("energy", self.energy.get::<watt_hour>())
+            .add_field("power", self.power.get::<watt>())
+    }
+}
+
+impl From<RawSimpleMeter> for SimpleMeter {
+    fn from(other: RawSimpleMeter) -> Self {
+        Self {
+            time: Time::new::<second>(other.time.timestamp() as f64),
+            energy: Energy::new::<watt_hour>(other.energy),
+            power: Power::new::<watt>(other.power),
+        }
+    }
 }

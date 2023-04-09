@@ -17,11 +17,12 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{InfluxResult, SimpleMeter};
+use crate::models::{
+    units::{second, watt, watt_hour, Abbreviation, Energy, Power, Time},
+    InfluxResult, SimpleMeter,
+};
 use crate::task_group::TaskResult;
-use chrono::{DateTime, Utc};
 use slog::{error, trace};
-use std::time::{Duration, UNIX_EPOCH};
 use sunspec_client::SunspecClient;
 
 pub struct SunspecSolarSource {
@@ -42,8 +43,8 @@ impl SunspecSolarSource {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let timing = match self.base.sleep_aligned().await {
-            Ok(x) => x,
+        let (now, _oversample) = match self.base.sleep_aligned().await {
+            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
         };
 
@@ -69,13 +70,17 @@ impl SunspecSolarSource {
         }
 
         let energy = match self.client.get_total_yield(&mut context).await {
-            Ok(x) => x,
+            Ok(x) => Energy::new::<watt_hour>(x),
             Err(e) => {
                 error!(self.base.logger, "Could not read energy yield: {}", e);
                 return TaskResult::Running;
             }
         };
-        trace!(self.base.logger, "Total energy is {}", &energy);
+        trace!(
+            self.base.logger,
+            "Total energy is {}",
+            energy.into_format_args(watt_hour, Abbreviation),
+        );
 
         let power = match self.base.query_last::<SimpleMeter>().await {
             InfluxResult::Some(last_record) => {
@@ -84,11 +89,9 @@ impl SunspecSolarSource {
                     "Read {:?} from database",
                     last_record
                 );
-                3600.0 * (energy - last_record.energy)
-                    / ((timing.now - last_record.time.timestamp() as u64)
-                        as f64)
+                (energy - last_record.energy) / (now - last_record.time)
             }
-            InfluxResult::None => 0.0,
+            InfluxResult::None => Power::new::<watt>(0.0),
             InfluxResult::Err(e) => {
                 error!(
                     self.base.logger,
@@ -98,11 +101,7 @@ impl SunspecSolarSource {
             }
         };
 
-        let record = SimpleMeter::new(
-            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(timing.now)),
-            energy,
-            power,
-        );
+        let record = SimpleMeter::new(now, energy, power);
         self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running

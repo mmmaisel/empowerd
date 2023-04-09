@@ -17,7 +17,7 @@
 \******************************************************************************/
 use super::ProcessorBase;
 use crate::models::{
-    units::{second, watt, Power},
+    units::{second, watt, Abbreviation, Power},
     Model,
 };
 use crate::sinks::ArcSink;
@@ -54,8 +54,8 @@ pub struct ApplianceProcessor {
     appliance_output: ArcSink,
     retransmit_interval: Duration,
     skipped_events: u8,
-    last_target_power: f64,
-    last_appliance_power: f64,
+    last_target_power: Power,
+    last_appliance_power: Power,
     state: State,
     force_on_off: TriState,
 }
@@ -79,8 +79,8 @@ impl ApplianceProcessor {
             appliance_input,
             retransmit_interval,
             skipped_events: 0,
-            last_target_power: 0.0,
-            last_appliance_power: 0.0,
+            last_target_power: Power::new::<watt>(0.0),
+            last_appliance_power: Power::new::<watt>(0.0),
             state: State::Off,
             force_on_off: TriState::Auto,
         }
@@ -158,8 +158,8 @@ impl ApplianceProcessor {
             }
         };
 
-        if (appliance.time.timestamp()
-            - available_power.time.get::<second>() as i64)
+        if ((appliance.time.get::<second>()
+            - available_power.time.get::<second>()) as i64)
             .abs()
             > 15
         {
@@ -177,7 +177,7 @@ impl ApplianceProcessor {
         let (new_state, output_power, target_power) = Self::calc_power(
             self.force_on_off,
             self.state,
-            available_power.power.get::<watt>(),
+            available_power.power,
             appliance.power,
         );
 
@@ -198,18 +198,22 @@ impl ApplianceProcessor {
         );
         debug!(
             self.base.logger,
-            "Appliance '{}' power: {}", self.base.name, target_power
+            "Appliance '{}' power: {}",
+            self.base.name,
+            target_power.into_format_args(watt, Abbreviation)
         );
         debug!(
             self.base.logger,
-            "Available power after {}: {}", self.base.name, output_power,
+            "Available power after {}: {}",
+            self.base.name,
+            output_power.into_format_args(watt, Abbreviation)
         );
 
-        self.last_appliance_power = available_power.power.get::<watt>();
+        self.last_appliance_power = available_power.power;
         self.last_target_power = target_power;
         self.state = new_state;
 
-        available_power.power = Power::new::<watt>(output_power);
+        available_power.power = output_power;
         self.power_output.send_replace(available_power.into());
 
         TaskResult::Running
@@ -218,28 +222,28 @@ impl ApplianceProcessor {
     fn calc_power(
         force_on_off: TriState,
         state: State,
-        input_power: f64,
-        appliance_power: f64,
-    ) -> (State, f64, f64) {
+        input_power: Power,
+        appliance_power: Power,
+    ) -> (State, Power, Power) {
         match force_on_off {
             TriState::Auto => match state {
                 State::Off => {
-                    if input_power > 0.0 {
+                    if input_power > Power::new::<watt>(0.0) {
                         // Switch on the appliance. Divert all input power to
                         // newly enabled appliance. We dont know the actual
                         // power consumption of the appliance yet so set the
                         // excess power to zero.
-                        (State::On, 0.0, input_power)
+                        (State::On, Power::new::<watt>(0.0), input_power)
                     } else {
                         // Not enough power available to enable appliance.
-                        (State::Off, input_power, 0.0)
+                        (State::Off, input_power, Power::new::<watt>(0.0))
                     }
                 }
                 State::On => {
                     if -input_power > appliance_power {
                         // Available power is smaller than current appliance
                         // power consumption so disable the appliance.
-                        (State::Off, input_power, 0.0)
+                        (State::Off, input_power, Power::new::<watt>(0.0))
                     } else {
                         // Adjust appliance power to match available input
                         // power. Add measured appliance power to output
@@ -252,10 +256,10 @@ impl ApplianceProcessor {
                 }
             },
             // Appliance is forced off so all input power is excess power.
-            TriState::Off => (State::Off, input_power, 0.0),
+            TriState::Off => (State::Off, input_power, Power::new::<watt>(0.0)),
             TriState::On => {
                 // Maximum power of one phase
-                let max_power = 230.0 * 16.0;
+                let max_power = Power::new::<watt>(230.0 * 16.0);
                 // Appliance is forced on.
                 // All input power is excess power. Actual appliance power
                 // consumption is implicitely subtractur from measured input
@@ -267,17 +271,20 @@ impl ApplianceProcessor {
 
     async fn set_output(
         output: &ArcSink,
-        target_power: f64,
-        current_power: f64,
+        target_power: Power,
+        current_power: Power,
     ) -> Result<bool, String> {
         match output {
             ArcSink::KeContact(wallbox) => {
                 wallbox
-                    .set_available_power(target_power, current_power)
+                    .set_available_power(
+                        target_power.get::<watt>(),
+                        current_power.get::<watt>(),
+                    )
                     .await
             }
             ArcSink::LambdaHeatPump(lambda) => {
-                lambda.set_available_power(target_power).await
+                lambda.set_available_power(target_power.get::<watt>()).await
             }
             _ => Err("Unsupported appliance type".into()),
         }
@@ -305,53 +312,111 @@ impl ApplianceProcessor {
 #[test]
 fn test_state_transitions() {
     assert_eq!(
-        ApplianceProcessor::calc_power(TriState::Auto, State::Off, 100.0, 0.0),
-        (State::On, 0.0, 100.0),
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::Off,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(0.0)
+        ),
+        (
+            State::On,
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(100.0)
+        ),
         "Appliance did not switch on",
     );
     assert_eq!(
-        ApplianceProcessor::calc_power(TriState::Auto, State::Off, 0.0, 100.0),
-        (State::Off, 0.0, 0.0),
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::Off,
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(100.0)
+        ),
+        (State::Off, Power::new::<watt>(0.0), Power::new::<watt>(0.0)),
         "Appliance switched on when it should not",
     );
     assert_eq!(
-        ApplianceProcessor::calc_power(TriState::Auto, State::Off, -100.0, 0.0),
-        (State::Off, -100.0, 0.0),
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::Off,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(0.0)
+        ),
+        (
+            State::Off,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(0.0)
+        ),
         "Negative excess power is not passed on",
     );
     assert_eq!(
         ApplianceProcessor::calc_power(
             TriState::Auto,
             State::On,
-            -101.0,
-            100.0
+            Power::new::<watt>(-101.0),
+            Power::new::<watt>(100.0)
         ),
-        (State::Off, -101.0, 0.0),
+        (
+            State::Off,
+            Power::new::<watt>(-101.0),
+            Power::new::<watt>(0.0)
+        ),
         "Appliance did not switch off",
     );
     assert_eq!(
-        ApplianceProcessor::calc_power(TriState::Auto, State::On, 100.0, 100.0),
-        (State::On, 100.0, 200.0),
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(100.0)
+        ),
+        (
+            State::On,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(200.0)
+        ),
         "Appliance power did not increase",
     );
     assert_eq!(
         ApplianceProcessor::calc_power(
             TriState::Auto,
             State::On,
-            -100.0,
-            200.0
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(200.0)
         ),
-        (State::On, -100.0, 100.0),
+        (
+            State::On,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(100.0)
+        ),
         "Appliance power did not decrease",
     );
     assert_eq!(
-        ApplianceProcessor::calc_power(TriState::Auto, State::On, 0.0, 200.0),
-        (State::On, 0.0, 200.0),
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(200.0)
+        ),
+        (
+            State::On,
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(200.0)
+        ),
         "Appliance power was not kept",
     );
     assert_eq!(
-        ApplianceProcessor::calc_power(TriState::Auto, State::On, 100.0, 200.0),
-        (State::On, 100.0, 300.0),
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(200.0)
+        ),
+        (
+            State::On,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(300.0)
+        ),
         "Excess power is incorrect",
     );
 }
@@ -359,13 +424,31 @@ fn test_state_transitions() {
 #[test]
 fn test_force_on() {
     assert_eq!(
-        ApplianceProcessor::calc_power(TriState::On, State::Off, 100.0, 200.0),
-        (State::On, 100.0, 3680.0),
+        ApplianceProcessor::calc_power(
+            TriState::On,
+            State::Off,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(200.0)
+        ),
+        (
+            State::On,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(3680.0)
+        ),
         "Excess power is incorrect if there is still power available",
     );
     assert_eq!(
-        ApplianceProcessor::calc_power(TriState::On, State::Off, -100.0, 200.0),
-        (State::On, -100.0, 3680.0),
+        ApplianceProcessor::calc_power(
+            TriState::On,
+            State::Off,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(200.0)
+        ),
+        (
+            State::On,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(3680.0)
+        ),
         "Excess power is incorrect if there is no power available",
     );
 }
@@ -373,18 +456,31 @@ fn test_force_on() {
 #[test]
 fn test_force_off() {
     assert_eq!(
-        ApplianceProcessor::calc_power(TriState::Off, State::Off, 100.0, 200.0),
-        (State::Off, 100.0, 0.0),
+        ApplianceProcessor::calc_power(
+            TriState::Off,
+            State::Off,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(200.0)
+        ),
+        (
+            State::Off,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(0.0)
+        ),
         "Excess power is incorrect if there is still power available",
     );
     assert_eq!(
         ApplianceProcessor::calc_power(
             TriState::Off,
             State::Off,
-            -100.0,
-            200.0
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(200.0)
         ),
-        (State::Off, -100.0, 0.0),
+        (
+            State::Off,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(0.0)
+        ),
         "Excess power is incorrect if there is no power available",
     );
 }
