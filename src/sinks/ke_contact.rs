@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::misc::parse_socketaddr_with_default;
+use crate::models::units::{watt, Power};
 use kecontact_client::KeContactClient;
 use slog::{debug, Logger};
 
@@ -43,11 +44,13 @@ impl KeContactSink {
 
     pub async fn set_available_power(
         &self,
-        charging_power: f64,
-        current_power: f64,
+        charging_power: Power,
+        current_power: Power,
     ) -> Result<bool, String> {
-        if charging_power < 6.0 * 230.0 && current_power < 10.0
-            || charging_power < 7.0 * 230.0 && current_power >= 10.0
+        if charging_power < Power::new::<watt>(6.0 * 230.0)
+            && current_power < Power::new::<watt>(10.0)
+            || charging_power < Power::new::<watt>(7.0 * 230.0)
+                && current_power >= Power::new::<watt>(10.0)
         {
             debug!(self.logger, "Disable charging");
             if let Err(e) = self.client.set_enable(false).await {
@@ -55,7 +58,8 @@ impl KeContactSink {
             }
             return Ok(false);
         } else {
-            let charging_current = (charging_power / 230.0 * 1000.0) as u16;
+            let charging_current =
+                (charging_power.get::<watt>() / 230.0 * 1000.0) as u16;
             debug!(self.logger, "Set current to {} mA", charging_current);
             if let Err(e) = self.client.set_max_current(charging_current).await
             {

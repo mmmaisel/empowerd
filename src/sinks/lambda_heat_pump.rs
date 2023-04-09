@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::misc::parse_socketaddr_with_default;
+use crate::models::units::{watt, Power};
 use lambda_client::LambdaClient;
 use slog::{debug, Logger};
 
@@ -43,12 +44,12 @@ impl LambdaHeatPumpSink {
 
     pub async fn set_available_power(
         &self,
-        power: f64,
+        power: Power,
     ) -> Result<bool, String> {
-        let power = (power as i64)
+        let power = (power.get::<watt>() as i64)
             .try_into()
             .map_err(|e| format!("Could not convert power to u16: {}", e))?;
-        debug!(self.logger, "Setting heatpump power to {}", power);
+        debug!(self.logger, "Setting heatpump power to {} W", power);
         let mut context = self.client.open().await?;
         context.set_available_power(power).await.map_err(|e| {
             format!("Setting available power for {} failed: {}", self.name, e)

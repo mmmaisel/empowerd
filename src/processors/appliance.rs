@@ -277,14 +277,11 @@ impl ApplianceProcessor {
         match output {
             ArcSink::KeContact(wallbox) => {
                 wallbox
-                    .set_available_power(
-                        target_power.get::<watt>(),
-                        current_power.get::<watt>(),
-                    )
+                    .set_available_power(target_power, current_power)
                     .await
             }
             ArcSink::LambdaHeatPump(lambda) => {
-                lambda.set_available_power(target_power.get::<watt>()).await
+                lambda.set_available_power(target_power).await
             }
             _ => Err("Unsupported appliance type".into()),
         }
