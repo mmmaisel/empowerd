@@ -17,19 +17,23 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::misc::parse_socketaddr_with_default;
-use crate::models::{Heatpump, InfluxResult};
+use crate::models::{
+    units::{
+        celsius, joule, ratio, second, watt, watt_hour, Energy, Power, Ratio,
+        Temperature, Time,
+    },
+    Heatpump, InfluxResult,
+};
 use crate::task_group::TaskResult;
-use chrono::{DateTime, Utc};
 use lambda_client::LambdaClient;
 use slog::{error, trace};
 use std::collections::VecDeque;
-use std::time::{Duration, UNIX_EPOCH};
 
 pub struct LambdaHeatPumpSource {
     base: SourceBase,
     client: LambdaClient,
     count: u64,
-    energy: f64,
+    energy_interval: Energy,
     cops: VecDeque<i16>,
 }
 
@@ -43,14 +47,14 @@ impl LambdaHeatPumpSource {
             base,
             client,
             count: 0,
-            energy: 0.0,
+            energy_interval: Energy::new::<joule>(0.0),
             cops,
         })
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let timing = match self.base.sleep_aligned().await {
-            Ok(x) => x,
+        let (now, oversample) = match self.base.sleep_aligned().await {
+            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
         };
 
@@ -97,7 +101,7 @@ impl LambdaHeatPumpSource {
         .await
         {
             Ok(result) => match result {
-                Ok(x) => x as f64,
+                Ok(x) => Power::new::<watt>(x as f64),
                 Err(_) => return TaskResult::Running,
             },
             Err(e) => {
@@ -110,12 +114,14 @@ impl LambdaHeatPumpSource {
         };
 
         // Calculate energy from oversampled power.
-        self.energy += power
-            * (self.base.interval.as_secs() / self.base.oversample_factor)
-                as f64;
+        self.energy_interval += power
+            * (Time::new::<second>(
+                (self.base.interval.as_secs() / self.base.oversample_factor)
+                    as f64,
+            ));
         self.count += 1;
 
-        if !timing.oversample {
+        if !oversample {
             // Discard incomplete samples.
             if self.count != self.base.oversample_factor {
                 self.reset_sample();
@@ -133,14 +139,11 @@ impl LambdaHeatPumpSource {
                     last_record
                 }
                 InfluxResult::None => Heatpump::new(
-                    DateTime::<Utc>::from(
-                        UNIX_EPOCH
-                            + Duration::from_secs(
-                                timing.now - self.base.interval.as_secs(),
-                            ),
+                    now - Time::new::<second>(
+                        self.base.interval.as_secs() as f64
                     ),
-                    0.0,
-                    0.0,
+                    Energy::new::<watt_hour>(0.0),
+                    Power::new::<watt>(0.0),
                     None,
                     None,
                     None,
@@ -157,10 +160,12 @@ impl LambdaHeatPumpSource {
             };
 
             // Update accumulated energy.
-            let energy_wh = self.energy / 3.6e3 + last_record.energy;
-            let cop = self.cops.iter().map(|x| *x as i32).sum::<i32>() as f64
-                / self.cops.len() as f64
-                / 100.0;
+            let energy_total = self.energy_interval + last_record.energy;
+            let cop = Ratio::new::<ratio>(
+                self.cops.iter().map(|x| *x as i32).sum::<i32>() as f64
+                    / self.cops.len() as f64
+                    / 100.0,
+            );
 
             let mut context = match self.client.open().await {
                 Ok(x) => x,
@@ -185,21 +190,17 @@ impl LambdaHeatPumpSource {
 
             // Commit new sample to database.
             let record = Heatpump::new(
-                DateTime::<Utc>::from(
-                    UNIX_EPOCH + Duration::from_secs(timing.now),
-                ),
-                energy_wh,
-                (energy_wh - last_record.energy) * 3.6e3
-                    / ((timing.now - last_record.time.timestamp() as u64)
-                        as f64),
+                now,
+                energy_total,
+                (energy_total - last_record.energy) / (now - last_record.time),
                 Some(
-                    last_record.total_heat.unwrap_or(0.0)
-                        + (energy_wh - last_record.energy) * cop,
+                    last_record.total_heat.unwrap_or(Energy::new::<joule>(0.0))
+                        + (energy_total - last_record.energy) * cop,
                 ),
                 Some(cop),
-                Some(boiler.0 as f64 / 10.0),
-                Some(boiler.1 as f64 / 10.0),
-                Some(boiler.2 as f64 / 10.0),
+                Some(Temperature::new::<celsius>(boiler.0 as f64 / 10.0)),
+                Some(Temperature::new::<celsius>(boiler.1 as f64 / 10.0)),
+                Some(Temperature::new::<celsius>(boiler.2 as f64 / 10.0)),
             );
             self.base.notify_processors(&record);
             let _: Result<(), ()> = self.base.save_record(record).await;
@@ -210,7 +211,7 @@ impl LambdaHeatPumpSource {
     }
 
     fn reset_sample(&mut self) {
-        self.energy = 0.0;
+        self.energy_interval = Energy::new::<joule>(0.0);
         self.count = 0;
     }
 }

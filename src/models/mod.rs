@@ -15,6 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use chrono::{TimeZone, Utc};
 use influxdb::{
     integrations::serde_integration::{DatabaseQueryResult, Series},
     Error, InfluxDbWriteable, ReadQuery, WriteQuery,
@@ -24,9 +25,12 @@ pub mod units {
     pub use uom::fmt::DisplayStyle::Abbreviation;
     pub use uom::si::{
         energy::{joule, kilowatt_hour, watt_hour},
-        f64::{Energy, Power, Time},
+        f64::{
+            Energy, Power, Ratio, ThermodynamicTemperature as Temperature, Time,
+        },
         power::watt,
         ratio::ratio,
+        thermodynamic_temperature::degree_celsius as celsius,
         time::{millisecond, second},
     };
 }
@@ -118,7 +122,12 @@ impl From<Weather> for Model {
 
 impl From<&Heatpump> for SimpleMeter {
     fn from(record: &Heatpump) -> Self {
-        SimpleMeter::new(record.time, record.energy, record.power)
+        SimpleMeter::new(
+            Utc.timestamp_opt(record.time.get::<units::second>() as i64, 0)
+                .unwrap(),
+            record.energy.get::<units::watt_hour>(),
+            record.power.get::<units::watt>(),
+        )
     }
 }
 
