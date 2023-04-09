@@ -16,12 +16,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{Generator, InfluxResult};
+use crate::models::{
+    units::{kilowatt_hour, second, watt, Energy, Power, Time},
+    Generator, InfluxResult,
+};
 use crate::task_group::TaskResult;
-use chrono::{DateTime, Utc};
 use dachs_client::DachsClient;
 use slog::{error, trace};
-use std::time::{Duration, UNIX_EPOCH};
 
 pub struct DachsMsrSSource {
     base: SourceBase,
@@ -38,8 +39,8 @@ impl DachsMsrSSource {
     }
 
     pub async fn run(&mut self) -> TaskResult {
-        let timing = match self.base.sleep_aligned().await {
-            Ok(x) => x,
+        let (now, _oversample) = match self.base.sleep_aligned().await {
+            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
         };
 
@@ -72,7 +73,10 @@ impl DachsMsrSSource {
         .await
         {
             Ok(result) => match result {
-                Ok((runtime, energy)) => (runtime, energy),
+                Ok((runtime, energy)) => (
+                    Time::new::<second>(runtime as f64),
+                    Energy::new::<kilowatt_hour>(energy as f64),
+                ),
                 Err(_) => return TaskResult::Running,
             },
             Err(err) => {
@@ -84,13 +88,15 @@ impl DachsMsrSSource {
         let power = match self.base.query_last::<Generator>().await {
             InfluxResult::Some(last_record) => {
                 // TODO: derive nonlinear power from delta timestamp and delta runtime
-                if dachs_runtime != last_record.runtime as i32 {
-                    800.0
+                if (dachs_runtime.get::<second>() as i64)
+                    != (last_record.runtime.get::<second>() as i64)
+                {
+                    Power::new::<watt>(800.0)
                 } else {
-                    0.0
+                    Power::new::<watt>(0.0)
                 }
             }
-            InfluxResult::None => 0.0,
+            InfluxResult::None => Power::new::<watt>(0.0),
             InfluxResult::Err(e) => {
                 error!(
                     self.base.logger,
@@ -100,12 +106,7 @@ impl DachsMsrSSource {
             }
         };
 
-        let record = Generator::new(
-            DateTime::<Utc>::from(UNIX_EPOCH + Duration::from_secs(timing.now)),
-            dachs_energy.into(),
-            power,
-            dachs_runtime.into(),
-        );
+        let record = Generator::new(now, dachs_energy, power, dachs_runtime);
 
         self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;

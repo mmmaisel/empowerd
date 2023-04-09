@@ -23,7 +23,7 @@ use influxdb::{
 pub mod units {
     pub use uom::fmt::DisplayStyle::Abbreviation;
     pub use uom::si::{
-        energy::{joule, watt_hour},
+        energy::{joule, kilowatt_hour, watt_hour},
         f64::{Energy, Power, Time},
         power::watt,
         ratio::ratio,
