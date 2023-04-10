@@ -23,14 +23,19 @@ use influxdb::{
 pub mod units {
     pub use uom::fmt::DisplayStyle::Abbreviation;
     pub use uom::si::{
+        angle::degree,
         energy::{joule, kilowatt_hour, watt_hour},
         f64::{
-            Energy, Power, Ratio, ThermodynamicTemperature as Temperature, Time,
+            Angle, Energy, Length, Power, Pressure, Ratio,
+            ThermodynamicTemperature as Temperature, Time, Velocity,
         },
+        length::millimeter,
         power::watt,
-        ratio::ratio,
+        pressure::hectopascal,
+        ratio::{percent, ratio},
         thermodynamic_temperature::degree_celsius as celsius,
         time::{millisecond, second},
+        velocity::meter_per_second,
     };
 }
 
