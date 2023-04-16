@@ -65,7 +65,7 @@ impl SunnyBoySpeedwireSource {
         let last_record = match self.base.query_last::<SimpleMeter>().await {
             InfluxResult::Some(x) => x,
             InfluxResult::None => SimpleMeter::new(
-                now,
+                Time::new::<second>(0.0),
                 Energy::new::<watt_hour>(0.0),
                 Power::new::<watt>(0.0),
             ),
@@ -192,7 +192,7 @@ impl SunnyBoySpeedwireSource {
                 (energy - last_energy) / (time - last_time)
             };
 
-            let record = SimpleMeter::new(now, energy, power);
+            let record = SimpleMeter::new(time, energy, power);
             last_energy = energy;
             last_time = time;
 
