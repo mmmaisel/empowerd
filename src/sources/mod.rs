@@ -78,27 +78,27 @@ impl SourceBaseBuilder {
         }
     }
 
-    pub fn name(&mut self, name: String) -> &mut Self {
+    pub fn name(mut self, name: String) -> Self {
         self.name = name;
         self
     }
 
-    pub fn interval(&mut self, interval: Duration) -> &mut Self {
+    pub fn interval(mut self, interval: Duration) -> Self {
         self.interval = interval;
         self
     }
 
-    pub fn oversample_factor(&mut self, oversample_factor: u64) -> &mut Self {
+    pub fn oversample_factor(mut self, oversample_factor: u64) -> Self {
         self.oversample_factor = oversample_factor;
         self
     }
 
     pub fn add_processor(
-        &mut self,
+        mut self,
         name: &str,
         settings: &Settings,
         outputs: &mut BTreeMap<String, watch::Receiver<Model>>,
-    ) -> &mut Self {
+    ) -> Self {
         if settings.has_processor(name) {
             let (tx, rx) = watch::channel(Model::None);
             self.processors = Some(tx);
@@ -108,15 +108,15 @@ impl SourceBaseBuilder {
     }
 
     pub fn build(self) -> SourceBase {
-        SourceBase::new(
-            self.name,
-            self.interval,
-            self.oversample_factor,
-            self.influx,
-            self.canceled,
-            self.logger,
-            self.processors,
-        )
+        SourceBase {
+            name: self.name,
+            interval: self.interval,
+            oversample_factor: self.oversample_factor,
+            influx: self.influx,
+            canceled: self.canceled,
+            logger: self.logger,
+            processors: self.processors,
+        }
     }
 }
 
@@ -131,26 +131,6 @@ pub struct SourceBase {
 }
 
 impl SourceBase {
-    pub fn new(
-        name: String,
-        interval: Duration,
-        oversample_factor: u64,
-        influx: influxdb::Client,
-        canceled: watch::Receiver<TaskState>,
-        logger: Logger,
-        processors: Option<watch::Sender<Model>>,
-    ) -> Self {
-        Self {
-            canceled,
-            influx,
-            oversample_factor,
-            name,
-            interval,
-            logger,
-            processors,
-        }
-    }
-
     pub async fn sleep_aligned(&mut self) -> Result<TaskTiming, TaskResult> {
         match sleep_aligned(
             self.interval,
@@ -225,7 +205,7 @@ pub fn polling_tasks(
     .with_auth(&settings.database.user, &settings.database.password);
 
     for source in &settings.sources {
-        let mut base_builder = SourceBaseBuilder::new(
+        let base_builder = SourceBaseBuilder::new(
             influx_client.clone(),
             tasks.cancel_rx(),
             logger.clone(),
@@ -233,126 +213,130 @@ pub fn polling_tasks(
 
         match &source.variant {
             SourceType::Debug(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
-                let mut source = DebugSource::new(base_builder.build());
+                let mut source = DebugSource::new(
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
+                );
                 tasks.add_task(task_loop!(source));
             }
             SourceType::SunnyIsland(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SunnyStorageSource::new(
-                    base_builder.build(),
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
                     "sunny_island",
                     setting.address.clone(),
                 )?;
                 tasks.add_task(task_loop!(source));
             }
             SourceType::SunnyBoyStorage(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SunnyStorageSource::new(
-                    base_builder.build(),
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
                     "sunny_boy_storage",
                     setting.address.clone(),
                 )?;
                 tasks.add_task(task_loop!(source));
             }
             SourceType::SunspecSolar(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SunspecSolarSource::new(
-                    base_builder.build(),
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
                     setting.address.clone(),
                     setting.modbus_id,
                 )?;
                 tasks.add_task(task_loop!(source));
             }
             SourceType::DachsMsrS(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = DachsMsrSSource::new(
-                    base_builder.build(),
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
                     setting.address.clone(),
                     setting.password.clone(),
                 );
                 tasks.add_task(task_loop!(source));
             }
             SourceType::KeContact(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = KeContactSource::new(
-                    base_builder.build(),
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
                     setting.address.clone(),
                 )?;
                 tasks.add_task(task_loop!(source));
             }
             SourceType::LambdaHeatPump(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .oversample_factor(setting.oversample_factor)
-                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = LambdaHeatPumpSource::new(
-                    base_builder.build(),
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .oversample_factor(setting.oversample_factor)
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
                     setting.address.clone(),
                 )?;
                 tasks.add_task(task_loop!(source));
             }
             SourceType::SmaMeter(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SmaMeterSource::new(
-                    base_builder.build(),
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
                     setting.address.clone(),
                     setting.bind_address.clone(),
                 )?;
                 tasks.add_task(task_loop!(source));
             }
             SourceType::SmlMeter(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SmlMeterSource::new(
-                    base_builder.build(),
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
                     setting.device.clone(),
                     setting.baud,
                 )?;
                 tasks.add_task(task_loop!(source));
             }
             SourceType::SunnyBoySpeedwire(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
                 let mut source = SunnyBoySpeedwireSource::new(
-                    base_builder.build(),
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
                     setting.password.clone(),
                     setting.address.clone(),
                 )?;
                 tasks.add_task(task_loop!(source));
             }
             SourceType::Bresser6in1(setting) => {
-                base_builder
-                    .name(source.name.clone())
-                    .interval(Duration::from_secs(setting.poll_interval))
-                    .add_processor(&source.name, settings, &mut outputs);
-                let mut source = Bresser6in1Source::new(base_builder.build());
+                let mut source = Bresser6in1Source::new(
+                    base_builder
+                        .name(source.name.clone())
+                        .interval(Duration::from_secs(setting.poll_interval))
+                        .add_processor(&source.name, settings, &mut outputs)
+                        .build(),
+                );
                 tasks.add_task(task_loop!(source));
             }
         }
@@ -360,15 +344,12 @@ pub fn polling_tasks(
 
     if !tasks.has_tasks() {
         debug!(logger, "No sources enabled, using dummy");
-        let mut dummy = DummySource::new(SourceBase::new(
-            "dummy".into(),
-            Duration::from_secs(86400),
-            1,
-            influx_client,
-            tasks.cancel_rx(),
-            logger,
-            None,
-        ));
+        let mut dummy = DummySource::new(
+            SourceBaseBuilder::new(influx_client, tasks.cancel_rx(), logger)
+                .name("dummy".into())
+                .interval(Duration::from_secs(86400))
+                .build(),
+        );
         tasks.add_task(task_loop!(dummy));
     }
 
