@@ -19,7 +19,8 @@
 
 use clap::{Arg, Command};
 use empowerd::{
-    models::Battery, settings::Settings, InfluxObject, InfluxSeriesResult,
+    models::units::watt_hour, settings::Settings, Battery, InfluxObject,
+    InfluxSeriesResult,
 };
 
 async fn migrate_batch(
@@ -53,7 +54,7 @@ async fn migrate_batch(
     let mut records = series.values.len();
     let mut skipped = 0;
     for mut value in &mut series.values.into_iter() {
-        if value.charge > 1.0 {
+        if value.charge.get::<watt_hour>() > 1.0 {
             skipped += 1;
             records -= 1;
             continue; // Already migrated
