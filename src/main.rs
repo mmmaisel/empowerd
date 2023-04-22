@@ -43,6 +43,7 @@ mod models;
 mod multi_setpoint_hysteresis;
 mod processors;
 mod pt1;
+mod seasonal;
 mod session_manager;
 mod settings;
 mod sinks;

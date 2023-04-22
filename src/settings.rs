@@ -84,6 +84,12 @@ impl Default for GraphQL {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct Location {
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct DebugSource {
     pub poll_interval: u64,
 }
@@ -197,6 +203,13 @@ pub struct Source {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct Seasonal {
+    pub offset: f64,
+    pub gain: f64,
+    pub phase: i64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct DebugProcessor {
     pub input: String,
     pub output: String,
@@ -229,6 +242,7 @@ pub struct ApplianceProcessor {
     pub appliance_output: String,
     #[serde(default = "ApplianceProcessor::default_retransmit_interval")]
     pub retransmit_interval: u64,
+    pub seasonal: Option<Seasonal>,
 }
 
 impl ApplianceProcessor {
@@ -345,6 +359,7 @@ pub struct Settings {
     pub log_level: sloggers::types::Severity,
     pub database: Database,
     pub graphql: GraphQL,
+    pub location: Option<Location>,
 
     #[serde(rename = "source")]
     pub sources: Vec<Source>,
@@ -365,6 +380,7 @@ impl Default for Settings {
             log_level: sloggers::types::Severity::Info,
             database: Database::default(),
             graphql: GraphQL::default(),
+            location: None,
             sources: Vec::new(),
             processors: Vec::new(),
             sinks: Vec::new(),
