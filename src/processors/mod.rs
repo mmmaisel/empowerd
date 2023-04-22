@@ -20,6 +20,7 @@ use crate::models::{
     Model,
 };
 use crate::multi_setpoint_hysteresis::LinspaceBuilder;
+use crate::seasonal::SeasonalBuilder;
 use crate::settings::{ProcessorType, Settings};
 use crate::sinks::{ArcSink, GpioProcCreateInfo};
 use crate::task_group::{TaskGroup, TaskGroupBuilder, TaskState};
@@ -260,6 +261,30 @@ pub fn processor_tasks(
                         &appliance_sink
                     ));
                 }
+
+                let seasonal = match setting.seasonal {
+                    Some(ref x) => {
+                        let builder = match settings.location {
+                            Some(ref y) => SeasonalBuilder::new()
+                                .latitude(y.latitude)
+                                .longitude(y.longitude),
+                            None => {
+                                return Err(format!(
+                                "Location is require for seasonal correction"
+                            ))
+                            }
+                        };
+                        Some(
+                            builder
+                                .offset_hour(x.offset)
+                                .gain_per_hour(x.gain)
+                                .phase_days(x.phase as f64)
+                                .build()?,
+                        )
+                    }
+                    None => None,
+                };
+
                 let (command_tx, command_rx) = mpsc::channel(1);
                 let mut processor = ApplianceProcessor::new(
                     ProcessorBase::new(
@@ -273,6 +298,7 @@ pub fn processor_tasks(
                     power_sink,
                     appliance_sink,
                     Duration::from_secs(setting.retransmit_interval),
+                    seasonal,
                 );
                 tasks.add_task(task_loop!(processor));
                 commands.appliance.push(CommandSender {

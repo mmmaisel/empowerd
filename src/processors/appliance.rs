@@ -20,6 +20,7 @@ use crate::models::{
     units::{second, watt, Abbreviation, Power},
     Model,
 };
+use crate::seasonal::Seasonal;
 use crate::sinks::ArcSink;
 use crate::task_group::TaskResult;
 use crate::tri_state::TriState;
@@ -58,6 +59,7 @@ pub struct ApplianceProcessor {
     last_appliance_power: Power,
     state: State,
     force_on_off: TriState,
+    seasonal: Option<Seasonal>,
 }
 
 impl ApplianceProcessor {
@@ -69,6 +71,7 @@ impl ApplianceProcessor {
         power_output: watch::Sender<Model>,
         appliance_output: ArcSink,
         retransmit_interval: Duration,
+        seasonal: Option<Seasonal>,
     ) -> Self {
         Self {
             base,
@@ -83,6 +86,7 @@ impl ApplianceProcessor {
             last_appliance_power: Power::new::<watt>(0.0),
             state: State::Off,
             force_on_off: TriState::Auto,
+            seasonal,
         }
     }
 
@@ -174,11 +178,25 @@ impl ApplianceProcessor {
         }
         self.skipped_events = 0;
 
+        let seasonal_correction = match self.seasonal {
+            Some(ref x) => {
+                let correction = Power::new::<watt>(x.current_correction());
+                debug!(
+                    self.base.logger,
+                    "Seasonal correction is {}",
+                    correction.into_format_args(watt, Abbreviation)
+                );
+                correction
+            }
+            None => Power::new::<watt>(0.0),
+        };
+
         let (new_state, output_power, target_power) = Self::calc_power(
             self.force_on_off,
             self.state,
             available_power.power,
             appliance.power,
+            seasonal_correction,
         );
 
         if let Err(e) = Self::set_output(
@@ -224,23 +242,26 @@ impl ApplianceProcessor {
         state: State,
         input_power: Power,
         appliance_power: Power,
+        seasonal_correction: Power,
     ) -> (State, Power, Power) {
+        let corrected_power = input_power + seasonal_correction;
+
         match force_on_off {
             TriState::Auto => match state {
                 State::Off => {
-                    if input_power > Power::new::<watt>(0.0) {
+                    if corrected_power > Power::new::<watt>(0.0) {
                         // Switch on the appliance. Divert all input power to
                         // newly enabled appliance. We dont know the actual
                         // power consumption of the appliance yet so set the
                         // excess power to zero.
-                        (State::On, Power::new::<watt>(0.0), input_power)
+                        (State::On, Power::new::<watt>(0.0), corrected_power)
                     } else {
                         // Not enough power available to enable appliance.
                         (State::Off, input_power, Power::new::<watt>(0.0))
                     }
                 }
                 State::On => {
-                    if -input_power > appliance_power {
+                    if -corrected_power > appliance_power {
                         // Available power is smaller than current appliance
                         // power consumption so disable the appliance.
                         (State::Off, input_power, Power::new::<watt>(0.0))
@@ -251,7 +272,11 @@ impl ApplianceProcessor {
                         // measured sum power.
                         // Set excess power to input since we do not
                         // know the new actual power consumption of the appliance.
-                        (State::On, input_power, input_power + appliance_power)
+                        (
+                            State::On,
+                            input_power,
+                            corrected_power + appliance_power,
+                        )
                     }
                 }
             },
@@ -313,12 +338,13 @@ fn test_state_transitions() {
             TriState::Auto,
             State::Off,
             Power::new::<watt>(100.0),
-            Power::new::<watt>(0.0)
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::On,
             Power::new::<watt>(0.0),
-            Power::new::<watt>(100.0)
+            Power::new::<watt>(100.0),
         ),
         "Appliance did not switch on",
     );
@@ -327,7 +353,8 @@ fn test_state_transitions() {
             TriState::Auto,
             State::Off,
             Power::new::<watt>(0.0),
-            Power::new::<watt>(100.0)
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(0.0),
         ),
         (State::Off, Power::new::<watt>(0.0), Power::new::<watt>(0.0)),
         "Appliance switched on when it should not",
@@ -337,12 +364,13 @@ fn test_state_transitions() {
             TriState::Auto,
             State::Off,
             Power::new::<watt>(-100.0),
-            Power::new::<watt>(0.0)
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::Off,
             Power::new::<watt>(-100.0),
-            Power::new::<watt>(0.0)
+            Power::new::<watt>(0.0),
         ),
         "Negative excess power is not passed on",
     );
@@ -351,12 +379,13 @@ fn test_state_transitions() {
             TriState::Auto,
             State::On,
             Power::new::<watt>(-101.0),
-            Power::new::<watt>(100.0)
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::Off,
             Power::new::<watt>(-101.0),
-            Power::new::<watt>(0.0)
+            Power::new::<watt>(0.0),
         ),
         "Appliance did not switch off",
     );
@@ -365,12 +394,13 @@ fn test_state_transitions() {
             TriState::Auto,
             State::On,
             Power::new::<watt>(100.0),
-            Power::new::<watt>(100.0)
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::On,
             Power::new::<watt>(100.0),
-            Power::new::<watt>(200.0)
+            Power::new::<watt>(200.0),
         ),
         "Appliance power did not increase",
     );
@@ -379,12 +409,13 @@ fn test_state_transitions() {
             TriState::Auto,
             State::On,
             Power::new::<watt>(-100.0),
-            Power::new::<watt>(200.0)
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::On,
             Power::new::<watt>(-100.0),
-            Power::new::<watt>(100.0)
+            Power::new::<watt>(100.0),
         ),
         "Appliance power did not decrease",
     );
@@ -393,12 +424,13 @@ fn test_state_transitions() {
             TriState::Auto,
             State::On,
             Power::new::<watt>(0.0),
-            Power::new::<watt>(200.0)
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::On,
             Power::new::<watt>(0.0),
-            Power::new::<watt>(200.0)
+            Power::new::<watt>(200.0),
         ),
         "Appliance power was not kept",
     );
@@ -407,12 +439,137 @@ fn test_state_transitions() {
             TriState::Auto,
             State::On,
             Power::new::<watt>(100.0),
-            Power::new::<watt>(200.0)
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::On,
             Power::new::<watt>(100.0),
-            Power::new::<watt>(300.0)
+            Power::new::<watt>(300.0),
+        ),
+        "Excess power is incorrect",
+    );
+}
+
+#[test]
+fn test_seasonal_correction() {
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::Off,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(100.0),
+        ),
+        (
+            State::On,
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(200.0),
+        ),
+        "Appliance did not switch on",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::Off,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(100.0),
+        ),
+        (
+            State::Off,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(0.0)
+        ),
+        "Appliance switched on when it should not",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::Off,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(100.0),
+        ),
+        (
+            State::Off,
+            Power::new::<watt>(-100.0),
+            Power::new::<watt>(0.0),
+        ),
+        "Negative excess power is not passed on",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            Power::new::<watt>(-201.0),
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(100.0),
+        ),
+        (
+            State::Off,
+            Power::new::<watt>(-201.0),
+            Power::new::<watt>(0.0),
+        ),
+        "Appliance did not switch off",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(100.0),
+        ),
+        (
+            State::On,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(300.0),
+        ),
+        "Appliance power did not increase",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            Power::new::<watt>(-200.0),
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(100.0),
+        ),
+        (
+            State::On,
+            Power::new::<watt>(-200.0),
+            Power::new::<watt>(100.0),
+        ),
+        "Appliance power did not decrease",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(100.0),
+        ),
+        (
+            State::On,
+            Power::new::<watt>(0.0),
+            Power::new::<watt>(300.0),
+        ),
+        "Appliance power was not kept",
+    );
+    assert_eq!(
+        ApplianceProcessor::calc_power(
+            TriState::Auto,
+            State::On,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(100.0),
+        ),
+        (
+            State::On,
+            Power::new::<watt>(100.0),
+            Power::new::<watt>(400.0),
         ),
         "Excess power is incorrect",
     );
@@ -425,12 +582,13 @@ fn test_force_on() {
             TriState::On,
             State::Off,
             Power::new::<watt>(100.0),
-            Power::new::<watt>(200.0)
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::On,
             Power::new::<watt>(100.0),
-            Power::new::<watt>(3680.0)
+            Power::new::<watt>(3680.0),
         ),
         "Excess power is incorrect if there is still power available",
     );
@@ -439,12 +597,13 @@ fn test_force_on() {
             TriState::On,
             State::Off,
             Power::new::<watt>(-100.0),
-            Power::new::<watt>(200.0)
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::On,
             Power::new::<watt>(-100.0),
-            Power::new::<watt>(3680.0)
+            Power::new::<watt>(3680.0),
         ),
         "Excess power is incorrect if there is no power available",
     );
@@ -457,12 +616,13 @@ fn test_force_off() {
             TriState::Off,
             State::Off,
             Power::new::<watt>(100.0),
-            Power::new::<watt>(200.0)
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::Off,
             Power::new::<watt>(100.0),
-            Power::new::<watt>(0.0)
+            Power::new::<watt>(0.0),
         ),
         "Excess power is incorrect if there is still power available",
     );
@@ -471,12 +631,13 @@ fn test_force_off() {
             TriState::Off,
             State::Off,
             Power::new::<watt>(-100.0),
-            Power::new::<watt>(200.0)
+            Power::new::<watt>(200.0),
+            Power::new::<watt>(0.0),
         ),
         (
             State::Off,
             Power::new::<watt>(-100.0),
-            Power::new::<watt>(0.0)
+            Power::new::<watt>(0.0),
         ),
         "Excess power is incorrect if there is no power available",
     );
