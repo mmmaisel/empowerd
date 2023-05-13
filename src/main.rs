@@ -18,6 +18,7 @@
 #![forbid(unsafe_code)]
 #![allow(clippy::needless_return)]
 #![allow(clippy::redundant_field_names)]
+#![doc = include_str!("../README.md")]
 
 use daemonize::Daemonize;
 use slog::{debug, error, info, trace, Logger};
