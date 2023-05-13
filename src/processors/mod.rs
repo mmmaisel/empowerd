@@ -268,11 +268,10 @@ pub fn processor_tasks(
                             Some(ref y) => SeasonalBuilder::new()
                                 .latitude(y.latitude)
                                 .longitude(y.longitude),
-                            None => {
-                                return Err(format!(
-                                "Location is require for seasonal correction"
-                            ))
-                            }
+                            None => return Err(
+                                "Location is required for seasonal correction"
+                                    .into(),
+                            ),
                         };
                         Some(
                             builder
@@ -338,6 +337,28 @@ pub fn processor_tasks(
                     format!("Creating multi setpoint controller failed: {}", e)
                 })?;
 
+                let seasonal = match setting.seasonal {
+                    Some(ref x) => {
+                        let builder = match settings.location {
+                            Some(ref y) => SeasonalBuilder::new()
+                                .latitude(y.latitude)
+                                .longitude(y.longitude),
+                            None => return Err(
+                                "Location is required for seasonal correction"
+                                    .into(),
+                            ),
+                        };
+                        Some(
+                            builder
+                                .offset_hour(x.offset)
+                                .gain_per_hour(x.gain)
+                                .phase_days(x.phase as f64)
+                                .build()?,
+                        )
+                    }
+                    None => None,
+                };
+
                 let mut processor = match LoadControlProcessor::new(
                     ProcessorBase::new(
                         p.name.clone(),
@@ -350,6 +371,7 @@ pub fn processor_tasks(
                     setting.ctrl_serial,
                     battery_source,
                     controller,
+                    seasonal,
                 ) {
                     Ok(x) => x,
                     Err(e) => {

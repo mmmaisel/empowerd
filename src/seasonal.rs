@@ -103,7 +103,6 @@ impl Seasonal {
                 SunriseAndSet::PolarNight => 0,
             };
         let deviation = daytime - 12 * 3600;
-        println!("deviation sec: {}", deviation);
         (deviation as f64 + self.offset) * self.gain
     }
     pub fn current_correction(&self) -> f64 {

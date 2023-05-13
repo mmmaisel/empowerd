@@ -268,6 +268,7 @@ pub struct LoadControlProcessor {
     pub basic_load: f64,
     pub min_grid_power: f64,
     pub num_points: i32,
+    pub seasonal: Option<Seasonal>,
 }
 
 impl LoadControlProcessor {

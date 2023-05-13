@@ -17,10 +17,11 @@
 \******************************************************************************/
 use super::ProcessorBase;
 use crate::models::{
-    units::{watt, Abbreviation, Energy, Power},
+    units::{watt, watt_hour, Abbreviation, Energy, Power},
     Model,
 };
 use crate::multi_setpoint_hysteresis::MultiSetpointHysteresis;
+use crate::seasonal::Seasonal;
 use crate::task_group::TaskResult;
 use slog::{debug, error, warn};
 use sma_client::SmaClient;
@@ -55,6 +56,7 @@ pub struct LoadControlProcessor {
 
     grid_power: Power,
     controller: MultiSetpointHysteresis<Energy, Power>,
+    seasonal: Option<Seasonal>,
 
     sma_client: SmaClient,
     session: UdpSocket,
@@ -69,6 +71,7 @@ impl LoadControlProcessor {
         ctrl_serial: u32,
         battery_input: watch::Receiver<Model>,
         controller: MultiSetpointHysteresis<Energy, Power>,
+        seasonal: Option<Seasonal>,
     ) -> Result<Self, String> {
         let meter_addr = SmaClient::sma_sock_addr(meter_addr)?;
         let mut sma_client = SmaClient::new(None);
@@ -87,6 +90,7 @@ impl LoadControlProcessor {
             battery_input,
             grid_power: Power::new::<watt>(0.0),
             controller,
+            seasonal,
             sma_client,
             session,
         })
@@ -146,18 +150,25 @@ impl LoadControlProcessor {
                     match *self.battery_input.borrow() {
                         Model::None => (),
                         Model::Battery(ref x) => {
-                            let grid_power = self.controller.process(x.charge);
-                            if (self.grid_power - grid_power).abs()
+                            let (new_grid_power, seasonal_correction) =
+                                Self::calc_grid_power(
+                                    &mut self.controller,
+                                    &self.seasonal,
+                                    x.charge.to_owned(),
+                                );
+                            // Print a debug message when grid power has changed.
+                            if (self.grid_power - new_grid_power).abs()
                                 > Power::new::<watt>(0.1)
                             {
                                 debug!(
                                     self.base.logger,
-                                    "Importing {} from grid",
-                                    grid_power
+                                    "Importing {} from grid with seasonal correction {}",
+                                    new_grid_power
                                         .into_format_args(watt, Abbreviation),
+                                    seasonal_correction.into_format_args(watt_hour, Abbreviation),
                                 );
                             }
-                            self.grid_power = grid_power;
+                            self.grid_power = new_grid_power;
                         }
                         _ => {
                             error!(
@@ -201,6 +212,24 @@ impl LoadControlProcessor {
         );
 
         TaskResult::Running
+    }
+
+    fn calc_grid_power(
+        controller: &mut MultiSetpointHysteresis<Energy, Power>,
+        seasonal: &Option<Seasonal>,
+        charge: Energy,
+    ) -> (Power, Energy) {
+        let seasonal_correction = match seasonal {
+            Some(ref x) => {
+                let correction =
+                    Energy::new::<watt_hour>(x.current_correction());
+                correction
+            }
+            None => Energy::new::<watt_hour>(0.0),
+        };
+
+        let new_grid_power = controller.process(charge + seasonal_correction);
+        (new_grid_power, seasonal_correction)
     }
 }
 
