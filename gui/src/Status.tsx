@@ -23,7 +23,7 @@ class Status extends Component<StatusProps, StatusState> {
 
     onSwitch = (id: number): void => {
         let switches = this.state.switches;
-        let switch_ = this.state.switches.find((x: Switch) => {
+        let switch_ = switches.find((x: Switch) => {
             return x.id === id;
         });
 
@@ -34,7 +34,7 @@ class Status extends Component<StatusProps, StatusState> {
 
         this.props.api.setSwitch(
             id,
-            switch_.open,
+            !switch_.open,
             (response: Switch) => {
                 let switches = this.state.switches;
                 switches[id].open = response.open;
