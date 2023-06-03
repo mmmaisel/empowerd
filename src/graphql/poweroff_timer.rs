@@ -23,16 +23,16 @@ pub struct PoweroffTimer {
     pub id: i32,
     /// Current on time in seconds.
     pub on_time: i32,
-    /// Name of the channel.
-    pub name: String,
+    /// ID of the controlled switch.
+    pub switch_id: i32,
 }
 
 impl PoweroffTimer {
-    pub fn new(id: i32, name: String) -> Self {
+    pub fn new(id: i32, switch_id: i32) -> Self {
         Self {
             id,
             on_time: 0,
-            name,
+            switch_id,
         }
     }
 }

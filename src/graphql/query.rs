@@ -116,8 +116,12 @@ impl Query {
         for (i, processor) in
             ctx.globals.processor_cmds.poweroff_timer.iter().enumerate()
         {
-            let mut result =
-                PoweroffTimer::new(i as i32, processor.name.clone());
+            let switch_id = match processor.switch_id {
+                Some(x) => x as i32,
+                None => return Err("iMissing switch ID".into()),
+            };
+
+            let mut result = PoweroffTimer::new(i as i32, switch_id);
             if get_on_time {
                 let (tx, rx) = oneshot::channel();
                 let cmd = PoweroffTimerCmd::GetOnTime { resp: tx };

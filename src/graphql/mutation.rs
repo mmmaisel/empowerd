@@ -183,6 +183,11 @@ impl Mutation {
                 }
             };
 
+        let switch_id = match processor.switch_id {
+            Some(x) => x as i32,
+            None => return Err("iMissing switch ID".into()),
+        };
+
         let (tx, rx) = oneshot::channel();
         let cmd = PoweroffTimerCmd::SetOnTime { on_time, resp: tx };
 
@@ -193,7 +198,7 @@ impl Mutation {
         Ok(PoweroffTimer {
             id: input.id,
             on_time: input.on_time,
-            name: processor.name.clone(),
+            switch_id,
         })
     }
 

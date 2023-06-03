@@ -51,6 +51,7 @@ pub const MAX_POWER_W: f64 = 12800.0;
 #[derive(Debug)]
 pub struct CommandSender<T> {
     pub name: String,
+    pub switch_id: Option<usize>,
     pub tx: mpsc::Sender<T>,
 }
 
@@ -175,6 +176,7 @@ pub fn processor_tasks(
                 tasks.add_task(task_loop!(processor));
                 commands.available_power.push(CommandSender {
                     name: p.name.clone(),
+                    switch_id: None,
                     tx: command_tx,
                 });
             }
@@ -302,6 +304,7 @@ pub fn processor_tasks(
                 tasks.add_task(task_loop!(processor));
                 commands.appliance.push(CommandSender {
                     name: p.name.clone(),
+                    switch_id: None,
                     tx: command_tx,
                 });
             }
@@ -409,6 +412,7 @@ pub fn processor_tasks(
                     tasks.add_task(task_loop!(processor));
                     commands.poweroff_timer.push(CommandSender {
                         name,
+                        switch_id: Some(id),
                         tx: command_tx,
                     });
                 }
