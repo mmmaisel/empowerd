@@ -4,6 +4,7 @@
     display: inline-grid;
     width: 100%;
     justify-items: center;
+    grid-template-rows: 0.3fr 0.4fr 0.5fr;
 
     img,
     div {
@@ -11,7 +12,7 @@
     }
 
     .name {
-        transform: rotate(90deg);
+        transform: rotate(-90deg) translateX(-20%);
         text-align: start;
         @include textWithGlow;
     }

@@ -37,8 +37,8 @@ export type Appliance = {
 
 export type PoweroffTimer = {
     id: number;
-    name: string;
     on_time: number;
+    switch_id: number;
 };
 
 export type Switch = {
@@ -209,7 +209,7 @@ class EmpowerdApi {
         on_error: (error: GraphQlError[]) => void
     ): void => {
         this.query(
-            "poweroffTimers{id,name,onTime}",
+            "poweroffTimers{id,onTime,switchId}",
             (data: Record<string, GraphQlData>) => {
                 on_success((data as { timers: PoweroffTimer[] }).timers);
             },

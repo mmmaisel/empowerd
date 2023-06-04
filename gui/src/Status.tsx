@@ -1,7 +1,11 @@
 import React, { Component, ReactNode } from "react";
-import WaterSwitch from "./WaterSwitch";
+import WaterSwitch, { WaterSwitchConfig } from "./WaterSwitch";
 import PowerSwitch from "./PowerSwitch";
-import EmpowerdApi, { GraphQlError, Switch } from "./EmpowerdApi";
+import EmpowerdApi, {
+    GraphQlError,
+    PoweroffTimer,
+    Switch,
+} from "./EmpowerdApi";
 
 // TODO: use React.fragment everywhere where possible
 
@@ -11,6 +15,7 @@ type StatusProps = {
 
 type StatusState = {
     switches: Switch[];
+    poweroff_timers: PoweroffTimer[];
 };
 
 class Status extends Component<StatusProps, StatusState> {
@@ -18,6 +23,7 @@ class Status extends Component<StatusProps, StatusState> {
         super(props);
         this.state = {
             switches: [],
+            poweroff_timers: [],
         };
     }
 
@@ -47,6 +53,32 @@ class Status extends Component<StatusProps, StatusState> {
         );
     };
 
+    onConfigureTimer = (id: number): void => {
+        let switches = this.state.switches;
+        let switch_maybe_undef = switches.find((x: Switch) => {
+            return x.id === id;
+        });
+
+        if (switch_maybe_undef === undefined) {
+            console.log(`Could not find switch with id '${id}'.`);
+            return;
+        }
+
+        // Stupid Typescript does not recognize the guard above!
+        let switch_ = switch_maybe_undef;
+
+        let timers = this.state.poweroff_timers;
+        let timer = timers.find((x: PoweroffTimer) => {
+            return x.switch_id === switch_.id;
+        });
+
+        if (timer === undefined) {
+            console.log(`Could not find poweroff_timer with id '${id}'.`);
+            return;
+        }
+        alert(`Clicked configure ${timer.id}`);
+    };
+
     // TODO: show if it is automatically activated
     // TODO: show remaining active time
 
@@ -54,6 +86,15 @@ class Status extends Component<StatusProps, StatusState> {
         this.props.api.switches(
             (response: Switch[]) => {
                 this.setState({ switches: response });
+            },
+            (errors: GraphQlError[]) => {
+                console.log(errors);
+            }
+        );
+
+        this.props.api.poweroffTimers(
+            (response: PoweroffTimer[]) => {
+                this.setState({ poweroff_timers: response });
             },
             (errors: GraphQlError[]) => {
                 console.log(errors);
@@ -71,10 +112,24 @@ class Status extends Component<StatusProps, StatusState> {
         let switches: Switch[] = this.state.switches.filter((x) => {
             return x.icon === "Power";
         });
+        let configurations: (WaterSwitchConfig | null)[] =
+            this.state.poweroff_timers.reduce((acc, timer, i) => {
+                acc[timer.switch_id] = {
+                    id: timer.id,
+                    name: this.state.switches[timer.switch_id].name,
+                    on_time: timer.on_time,
+                };
+                return acc;
+            }, Array<WaterSwitchConfig | null>(valves.length).fill(null));
 
         return (
             <div className="mainframe">
-                <WaterSwitch switches={valves} onClick={this.onSwitch} />
+                <WaterSwitch
+                    switches={valves}
+                    configurations={configurations}
+                    onClick={this.onSwitch}
+                    onConfigure={this.onConfigureTimer}
+                />
                 <PowerSwitch switches={switches} onClick={this.onSwitch} />
             </div>
         );

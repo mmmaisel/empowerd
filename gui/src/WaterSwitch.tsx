@@ -2,9 +2,17 @@ import React, { Component, ReactNode } from "react";
 import { Switch } from "./EmpowerdApi";
 import "./WaterSwitch.scss";
 
+export type WaterSwitchConfig = {
+    id: number;
+    name: String;
+    on_time: number;
+};
+
 type WaterSwitchProps = {
     switches: Switch[];
     onClick: (id: number) => void;
+    onConfigure: (id: number) => void;
+    configurations: (WaterSwitchConfig | null)[];
 };
 
 class WaterSwitch extends Component<WaterSwitchProps, {}> {
@@ -12,8 +20,27 @@ class WaterSwitch extends Component<WaterSwitchProps, {}> {
         const count: number = this.props.switches.length;
 
         let pipes: ReactNode[] = Array<ReactNode>(count);
-        for (let i = 0; i < count; i++) {
-            const img = this.props.switches[i].open === true ? "open" : "close";
+        for (let i = 0; i < count; ++i) {
+            const switch_ = this.props.switches[i];
+            const img = switch_.open === true ? "open" : "close";
+
+            let config = null;
+            if (this.props.configurations[i]) {
+                config = (
+                    <div style={{ gridArea: `1/${i + 2}/1/${i + 2}` }}>
+                        <div
+                            className="btn"
+                            onClick={this.props.onConfigure.bind(
+                                this,
+                                switch_.id
+                            )}
+                        >
+                            <img alt="configure" src="config.svg" />
+                        </div>
+                    </div>
+                );
+            }
+
             pipes[i] = (
                 <React.Fragment>
                     <img
@@ -21,12 +48,11 @@ class WaterSwitch extends Component<WaterSwitchProps, {}> {
                         alt=""
                         src={`water-switch.tile-${img}.svg`}
                     />
-                    <div style={{ gridArea: `1/${i + 2}/1/${i + 2}` }}></div>
+                    {config}
                     <div style={{ gridArea: `2/${i + 2}/2/${i + 2}` }}>
                         <div
                             className="btn"
-                            style={{ marginBottom: "96px" }}
-                            onClick={this.props.onClick.bind(this, i)}
+                            onClick={this.props.onClick.bind(this, switch_.id)}
                         >
                             <img
                                 alt={`valve-${img}`}
@@ -34,11 +60,8 @@ class WaterSwitch extends Component<WaterSwitchProps, {}> {
                             />
                         </div>
                     </div>
-                    <div
-                        className="name"
-                        style={{ gridArea: `3/${i + 2}/3/${i + 2}` }}
-                    >
-                        {this.props.switches[i].name}
+                    <div style={{ gridArea: `3/${i + 2}/3/${i + 2}` }}>
+                        <div className="name">{switch_.name}</div>
                     </div>
                 </React.Fragment>
             );
