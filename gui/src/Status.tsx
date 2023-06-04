@@ -1,6 +1,7 @@
 import React, { Component, ReactNode } from "react";
 import WaterSwitch, { WaterSwitchConfig } from "./WaterSwitch";
 import PowerSwitch from "./PowerSwitch";
+import PoweroffTimerModal, { NamedPoweroffTimer } from "./PoweroffTimerModal";
 import EmpowerdApi, {
     GraphQlError,
     PoweroffTimer,
@@ -16,6 +17,7 @@ type StatusProps = {
 type StatusState = {
     switches: Switch[];
     poweroff_timers: PoweroffTimer[];
+    poweroff_timer_modal: NamedPoweroffTimer | null;
 };
 
 class Status extends Component<StatusProps, StatusState> {
@@ -24,6 +26,7 @@ class Status extends Component<StatusProps, StatusState> {
         this.state = {
             switches: [],
             poweroff_timers: [],
+            poweroff_timer_modal: null,
         };
     }
 
@@ -69,14 +72,46 @@ class Status extends Component<StatusProps, StatusState> {
 
         let timers = this.state.poweroff_timers;
         let timer = timers.find((x: PoweroffTimer) => {
-            return x.switch_id === switch_.id;
+            return x.switchId === switch_.id;
         });
 
         if (timer === undefined) {
             console.log(`Could not find poweroff_timer with id '${id}'.`);
             return;
         }
-        alert(`Clicked configure ${timer.id}`);
+
+        this.setState({
+            poweroff_timer_modal: {
+                timer,
+                name: switch_.name,
+            },
+        });
+    };
+
+    onClosePoweroffTimerModal = (on_time: number, canceled: boolean): void => {
+        if (canceled || this.state.poweroff_timer_modal === null) {
+            this.setState({ poweroff_timer_modal: null });
+            return;
+        }
+
+        let timer = this.state.poweroff_timer_modal.timer;
+
+        this.props.api.setPoweroffTimer(
+            timer.id,
+            on_time,
+            (response: PoweroffTimer) => {
+                let timers = this.state.poweroff_timers;
+                timers[timer.id].onTime = response.onTime;
+                this.setState({
+                    poweroff_timers: timers,
+                    poweroff_timer_modal: null,
+                });
+            },
+            (errors: GraphQlError[]) => {
+                alert("Setting poweroff timer failed");
+                console.log(errors);
+            }
+        );
     };
 
     // TODO: show if it is automatically activated
@@ -114,10 +149,10 @@ class Status extends Component<StatusProps, StatusState> {
         });
         let configurations: (WaterSwitchConfig | null)[] =
             this.state.poweroff_timers.reduce((acc, timer, i) => {
-                acc[timer.switch_id] = {
+                acc[timer.switchId] = {
                     id: timer.id,
-                    name: this.state.switches[timer.switch_id].name,
-                    on_time: timer.on_time,
+                    name: this.state.switches[timer.switchId].name,
+                    on_time: timer.onTime,
                 };
                 return acc;
             }, Array<WaterSwitchConfig | null>(valves.length).fill(null));
@@ -131,6 +166,10 @@ class Status extends Component<StatusProps, StatusState> {
                     onConfigure={this.onConfigureTimer}
                 />
                 <PowerSwitch switches={switches} onClick={this.onSwitch} />
+                <PoweroffTimerModal
+                    timer={this.state.poweroff_timer_modal}
+                    onClose={this.onClosePoweroffTimerModal}
+                />
             </div>
         );
     }

@@ -32,13 +32,13 @@ export enum TriState {
 export type Appliance = {
     id: number;
     name: string;
-    force_on_off: TriState;
+    forceOnOff: TriState;
 };
 
 export type PoweroffTimer = {
     id: number;
-    on_time: number;
-    switch_id: number;
+    onTime: number;
+    switchId: number;
 };
 
 export type Switch = {
@@ -196,7 +196,7 @@ class EmpowerdApi {
         on_error: (error: GraphQlError[]) => void
     ): void => {
         this.mutation(
-            `setAppliance(input:{id:${id},forceOnOff:${force_on_off}}){force_on_off}`,
+            `setAppliance(input:{id:${id},forceOnOff:${force_on_off}}){forceOnOff}`,
             (data: Record<string, GraphQlData>) => {
                 on_success((data as { appliances: Appliance[] }).appliances);
             },
@@ -211,7 +211,9 @@ class EmpowerdApi {
         this.query(
             "poweroffTimers{id,onTime,switchId}",
             (data: Record<string, GraphQlData>) => {
-                on_success((data as { timers: PoweroffTimer[] }).timers);
+                on_success(
+                    (data as { poweroffTimers: PoweroffTimer[] }).poweroffTimers
+                );
             },
             on_error
         );
@@ -220,13 +222,16 @@ class EmpowerdApi {
     setPoweroffTimer = (
         id: number,
         on_time: number,
-        on_success: (timer: PoweroffTimer[]) => void,
+        on_success: (timer: PoweroffTimer) => void,
         on_error: (error: GraphQlError[]) => void
     ): void => {
         this.mutation(
-            `setPoweroffTimer(input:{id:${id},onTime:${on_time}}){on_time}`,
+            `setPoweroffTimer(input:{id:${id},onTime:${on_time}}){onTime}`,
             (data: Record<string, GraphQlData>) => {
-                on_success((data as { timers: PoweroffTimer[] }).timers);
+                on_success(
+                    (data as { setPoweroffTimer: PoweroffTimer })
+                        .setPoweroffTimer
+                );
             },
             on_error
         );

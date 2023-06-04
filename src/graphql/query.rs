@@ -80,7 +80,7 @@ impl Query {
         }
 
         let lookahead = executor.look_ahead();
-        let get_force_on_off = lookahead.has_child("force_on_off");
+        let get_force_on_off = lookahead.has_child("forceOnOff");
 
         let mut result_vec = Vec::<Appliance>::new();
         for (i, processor) in
@@ -110,7 +110,7 @@ impl Query {
         }
 
         let lookahead = executor.look_ahead();
-        let get_on_time = lookahead.has_child("on_time");
+        let get_on_time = lookahead.has_child("onTime");
 
         let mut result_vec = Vec::<PoweroffTimer>::new();
         for (i, processor) in
@@ -118,7 +118,7 @@ impl Query {
         {
             let switch_id = match processor.switch_id {
                 Some(x) => x as i32,
-                None => return Err("iMissing switch ID".into()),
+                None => return Err("Missing switch ID".into()),
             };
 
             let mut result = PoweroffTimer::new(i as i32, switch_id);
