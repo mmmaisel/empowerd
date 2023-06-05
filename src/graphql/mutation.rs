@@ -169,6 +169,11 @@ impl Mutation {
             .on_time
             .try_into()
             .map_err(|_| "'on_time' is_invalid".to_string())?;
+
+        if on_time_u == 0 {
+            return Err(format!("'on_time' must be greater than zero!").into());
+        }
+
         let on_time = Duration::from_secs(on_time_u);
 
         let processor =
