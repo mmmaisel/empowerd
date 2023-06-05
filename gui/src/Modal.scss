@@ -10,7 +10,9 @@
     @extend .dialogBorder;
 
     position: absolute;
-    inset: 20% 20% auto 20%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     overflow: hidden;
 
     &:focus-visible {

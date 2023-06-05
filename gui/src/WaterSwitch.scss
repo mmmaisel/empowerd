@@ -4,7 +4,7 @@
     display: inline-grid;
     width: 100%;
     justify-items: center;
-    grid-template-rows: 0.3fr 0.4fr 0.5fr;
+    grid-template-rows: 0.3fr 0.45fr 1fr;
 
     img,
     div {
@@ -12,9 +12,15 @@
     }
 
     .name {
-        transform: rotate(-90deg) translateX(-20%);
-        text-align: start;
         @include textWithGlow;
+
+        text-align: start;
+        font-size: 24pt;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transform: rotate(180deg) translate(3px);
+        writing-mode: vertical-lr;
     }
 
     .btn {
