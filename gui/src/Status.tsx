@@ -1,7 +1,7 @@
 import React, { Component, ReactNode } from "react";
 import WaterSwitch, { WaterSwitchConfig } from "./WaterSwitch";
 import PowerSwitch from "./PowerSwitch";
-import PoweroffTimerModal, { NamedPoweroffTimer } from "./PoweroffTimerModal";
+import PoweroffTimerConfig, { NamedPoweroffTimer } from "./PoweroffTimerConfig";
 import EmpowerdApi, {
     GraphQlError,
     PoweroffTimer,
@@ -173,7 +173,7 @@ class Status extends Component<StatusProps, StatusState> {
                     onConfigure={this.onConfigureTimer}
                 />
                 <PowerSwitch switches={switches} onClick={this.onSwitch} />
-                <PoweroffTimerModal
+                <PoweroffTimerConfig
                     timer={this.state.poweroff_timer_modal}
                     onClose={this.onClosePoweroffTimerModal}
                 />

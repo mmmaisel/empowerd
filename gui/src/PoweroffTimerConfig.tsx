@@ -8,20 +8,20 @@ export type NamedPoweroffTimer = {
     timer: PoweroffTimer;
 };
 
-type PoweroffTimerModalProps = {
+type PoweroffTimerConfigProps = {
     timer: NamedPoweroffTimer | null;
     onClose: (on_time: number | null, canceled: boolean) => void;
 };
 
-type PoweroffTimerModalState = {
+type PoweroffTimerConfigState = {
     on_time: number | null;
 };
 
-class PoweroffTimerModal extends Component<
-    PoweroffTimerModalProps,
-    PoweroffTimerModalState
+class PoweroffTimerConfig extends Component<
+    PoweroffTimerConfigProps,
+    PoweroffTimerConfigState
 > {
-    constructor(props: PoweroffTimerModalProps) {
+    constructor(props: PoweroffTimerConfigProps) {
         super(props);
 
         this.state = {
@@ -84,4 +84,4 @@ class PoweroffTimerModal extends Component<
     }
 }
 
-export default PoweroffTimerModal;
+export default PoweroffTimerConfig;
