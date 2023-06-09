@@ -88,8 +88,15 @@ class Status extends Component<StatusProps, StatusState> {
         });
     };
 
-    onClosePoweroffTimerModal = (on_time: number, canceled: boolean): void => {
-        if (canceled || this.state.poweroff_timer_modal === null) {
+    onClosePoweroffTimerModal = (
+        on_time: number | null,
+        canceled: boolean
+    ): void => {
+        if (
+            canceled ||
+            on_time === null ||
+            this.state.poweroff_timer_modal === null
+        ) {
             this.setState({ poweroff_timer_modal: null });
             return;
         }

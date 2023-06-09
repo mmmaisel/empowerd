@@ -10,11 +10,11 @@ export type NamedPoweroffTimer = {
 
 type PoweroffTimerModalProps = {
     timer: NamedPoweroffTimer | null;
-    onClose: (on_time: number, canceled: boolean) => void;
+    onClose: (on_time: number | null, canceled: boolean) => void;
 };
 
 type PoweroffTimerModalState = {
-    on_time: number;
+    on_time: number | null;
 };
 
 class PoweroffTimerModal extends Component<
@@ -25,7 +25,7 @@ class PoweroffTimerModal extends Component<
         super(props);
 
         this.state = {
-            on_time: (props.timer && props.timer.timer.onTime) || 0,
+            on_time: (props.timer && props.timer.timer.onTime) || null,
         };
     }
 
@@ -35,21 +35,20 @@ class PoweroffTimerModal extends Component<
     };
 
     onCancel = (): void => {
-        this.setState({ on_time: 0 });
-        this.props.onClose(0, true);
+        this.setState({ on_time: null });
+        this.props.onClose(null, true);
     };
 
     onApply = (): void => {
-        this.setState({ on_time: 0 });
         this.props.onClose(this.state.on_time, false);
+        this.setState({ on_time: null });
     };
 
     dialog_content(): ReactNode {
         if (this.props.timer === null) return null;
 
         let named_timer = this.props.timer;
-        let on_time = this.state.on_time;
-        if (on_time === 0) on_time = this.props.timer.timer.onTime;
+        let on_time = this.state.on_time || this.props.timer.timer.onTime;
 
         return (
             <React.Fragment>

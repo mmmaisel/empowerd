@@ -775,6 +775,8 @@ class PowerSwitch extends SwitchWidget {
 
     render() {
         const count: number = this.props.switches.length;
+        if (count === 0) return null;
+
         return (
             <svg
                 viewBox={`8 20 ${40 + 30 * count} ${

@@ -18,6 +18,7 @@ type WaterSwitchProps = {
 class WaterSwitch extends Component<WaterSwitchProps, {}> {
     render(): ReactNode {
         const count: number = this.props.switches.length;
+        if (count === 0) return null;
 
         let pipes: ReactNode[] = Array<ReactNode>(count);
         for (let i = 0; i < count; ++i) {
