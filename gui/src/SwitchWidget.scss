@@ -1,10 +1,9 @@
 @import "Colors.scss";
 
-.waterSwitch {
+.switchWidget {
     display: inline-grid;
     width: 100%;
     justify-items: center;
-    grid-template-rows: 0.3fr 0.45fr 1fr;
 
     img,
     div {

@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from "react";
 import { Switch } from "./EmpowerdApi";
-import "./WaterSwitch.scss";
+import "./SwitchWidget.scss";
 
 export type WaterSwitchConfig = {
     id: number;
@@ -70,8 +70,11 @@ class WaterSwitch extends Component<WaterSwitchProps, {}> {
 
         return (
             <div
-                className="waterSwitch"
-                style={{ gridTemplateColumns: `repeat(${count + 2}, 1fr)` }}
+                className="switchWidget"
+                style={{
+                    gridTemplateColumns: `repeat(${count + 2}, 1fr)`,
+                    gridTemplateRows: "0.3fr 0.45fr 1fr",
+                }}
             >
                 <img
                     style={{ gridArea: "1/1/3/1" }}
