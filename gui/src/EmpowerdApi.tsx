@@ -198,7 +198,7 @@ class EmpowerdApi {
         this.mutation(
             `setAppliance(input:{id:${id},forceOnOff:${force_on_off}}){forceOnOff}`,
             (data: Record<string, GraphQlData>) => {
-                on_success((data as { appliances: Appliance }).appliances);
+                on_success((data as { setAppliance: Appliance }).setAppliance);
             },
             on_error
         );
