@@ -192,13 +192,13 @@ class EmpowerdApi {
     setAppliance = (
         id: number,
         force_on_off: string,
-        on_success: (appliance: Appliance[]) => void,
+        on_success: (appliance: Appliance) => void,
         on_error: (error: GraphQlError[]) => void
     ): void => {
         this.mutation(
             `setAppliance(input:{id:${id},forceOnOff:${force_on_off}}){forceOnOff}`,
             (data: Record<string, GraphQlData>) => {
-                on_success((data as { appliances: Appliance[] }).appliances);
+                on_success((data as { appliances: Appliance }).appliances);
             },
             on_error
         );

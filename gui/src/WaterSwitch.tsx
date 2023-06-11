@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from "react";
-import { Switch } from "./EmpowerdApi";
+import SwitchItem from "./SwitchItem";
+import { TriState } from "./EmpowerdApi";
 import "./SwitchWidget.scss";
 
 export type WaterSwitchConfig = {
@@ -9,21 +10,28 @@ export type WaterSwitchConfig = {
 };
 
 type WaterSwitchProps = {
-    switches: Map<string, Switch>;
+    switches: Map<string, SwitchItem>;
     onClick: (key: string) => void;
     onConfigure: (key: string) => void;
+    // TODO: replace configs with switchItem.configure()
     configurations: Map<string, WaterSwitchConfig>;
 };
 
 class WaterSwitch extends Component<WaterSwitchProps, {}> {
+    imgFromState(state: TriState): string {
+        if (state === TriState.On) return "open";
+        else if (state === TriState.Off) return "close";
+        else return "none";
+    }
+
     render(): ReactNode {
         const count: number = this.props.switches.size;
         if (count === 0) return null;
 
         let pipes: ReactNode[] = Array<ReactNode>(count);
         let i = 0;
-        for (const [key, switch_] of this.props.switches) {
-            const img = switch_.open === true ? "open" : "close";
+        for (const [key, sw] of this.props.switches) {
+            const img = this.imgFromState(sw.state);
 
             let config_src = this.props.configurations.get(key);
             let config_node = null;
@@ -61,7 +69,7 @@ class WaterSwitch extends Component<WaterSwitchProps, {}> {
                         </div>
                     </div>
                     <div style={{ gridArea: `3/${i + 2}/3/${i + 2}` }}>
-                        <div className="name">{switch_.name}</div>
+                        <div className="name">{sw.name}</div>
                     </div>
                 </React.Fragment>
             );

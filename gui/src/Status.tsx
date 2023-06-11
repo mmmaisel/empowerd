@@ -2,7 +2,9 @@ import React, { Component, ReactNode } from "react";
 import WaterSwitch, { WaterSwitchConfig } from "./WaterSwitch";
 import PowerSwitch from "./PowerSwitch";
 import PoweroffTimerConfig, { NamedPoweroffTimer } from "./PoweroffTimerConfig";
+import SwitchItem, { SwitchItemFactory } from "./SwitchItem";
 import EmpowerdApi, {
+    Appliance,
     GraphQlError,
     PoweroffTimer,
     Switch,
@@ -15,7 +17,7 @@ type StatusProps = {
 };
 
 type StatusState = {
-    switches: Map<string, Switch>;
+    switchItems: Map<string, SwitchItem>;
     poweroff_timers: Map<string, PoweroffTimer>;
     poweroff_timer_modal: NamedPoweroffTimer | null;
 };
@@ -24,48 +26,36 @@ class Status extends Component<StatusProps, StatusState> {
     constructor(props: StatusProps) {
         super(props);
         this.state = {
-            switches: new Map<string, Switch>(),
+            switchItems: new Map<string, SwitchItem>(),
             poweroff_timers: new Map<string, PoweroffTimer>(),
             poweroff_timer_modal: null,
         };
     }
 
     onSwitch = (key: string): void => {
-        let switches = this.state.switches;
-        let switch_ = switches.get(key);
+        let sw = this.state.switchItems.get(key);
 
-        if (switch_ === undefined) {
-            console.log(`Could not find switch with id '${key}'.`);
+        if (sw === undefined) {
+            console.log(`Could not find switch with id ${key}.`);
             return;
         }
 
-        this.props.api.setSwitch(
-            switch_.id,
-            !switch_.open,
-            (response: Switch) => {
-                let switches = this.state.switches;
-                let key = `switch${response.id}`;
-
-                let switch_ = switches.get(key);
-                if (switch_ === undefined) {
-                    console.log(`Switch object '${key}' does not exist`);
-                    return;
-                }
-
-                switch_.open = response.open;
-                switches.set(key, switch_);
-                this.setState({ switches: switches });
+        let new_sw = sw.toggle();
+        new_sw.save(
+            this.props.api,
+            (item: SwitchItem) => {
+                let items = this.state.switchItems;
+                items.set(item.key(), item);
+                this.setState({ switchItems: items });
             },
-            (errors: GraphQlError[]) => {
-                alert("Setting switch failed");
-                console.log(errors);
+            (error: string) => {
+                alert(error);
             }
         );
     };
 
     onConfigureTimer = (key: string): void => {
-        let switches = this.state.switches;
-        let switch_maybe_undef = switches.get(key);
+        let switch_maybe_undef = this.state.switchItems.get(key);
 
         if (switch_maybe_undef === undefined) {
             console.log(`Could not find switch with id '${key}'.`);
@@ -77,7 +67,7 @@ class Status extends Component<StatusProps, StatusState> {
 
         let timers = this.state.poweroff_timers;
         let timer = null;
-        for (const [_, x] of timers) {
+        for (const [_k, x] of timers) {
             if (x.switchId === switch_.id) {
                 timer = x;
                 break;
@@ -142,28 +132,46 @@ class Status extends Component<StatusProps, StatusState> {
     // TODO: show if it is automatically activated
     // TODO: show remaining active time
 
-    buildSwitchMap(switches: Switch[]): Map<string, Switch> {
-        let result = new Map<string, Switch>();
-
-        for (const switch_ of switches)
-            result.set(`switch${switch_.id}`, switch_);
-
-        return result;
-    }
-
-    buildTimerMap(timers: PoweroffTimer[]): Map<string, PoweroffTimer> {
-        let result = new Map<string, PoweroffTimer>();
-
-        for (const timer of timers)
-            result.set(`poweroffTimer${timer.id}`, timer);
-
-        return result;
+    cloneSwitchItems(): Map<string, SwitchItem> {
+        let clone = new Map<string, SwitchItem>();
+        for (const [k, v] of this.state.switchItems) {
+            clone.set(k, v.clone());
+        }
+        return clone;
     }
 
     componentDidMount(): void {
+        this.props.api.appliances(
+            (response: Appliance[]) => {
+                let items = this.cloneSwitchItems();
+                for (const [k, _v] of items) {
+                    if (k.startsWith("appliance")) items.delete(k);
+                }
+
+                for (const appliance of response) {
+                    let item = SwitchItemFactory.fromAppliance(appliance);
+                    items.set(item.key(), item);
+                }
+
+                this.setState({ switchItems: items });
+            },
+            (errors: GraphQlError[]) => {
+                console.log(errors);
+            }
+        );
         this.props.api.switches(
             (response: Switch[]) => {
-                this.setState({ switches: this.buildSwitchMap(response) });
+                let items = this.cloneSwitchItems();
+                for (const [k, _v] of items) {
+                    if (k.startsWith("switch")) items.delete(k);
+                }
+
+                for (const sw of response) {
+                    let item = SwitchItemFactory.fromGpioSwitch(sw);
+                    items.set(item.key(), item);
+                }
+
+                this.setState({ switchItems: items });
             },
             (errors: GraphQlError[]) => {
                 console.log(errors);
@@ -172,8 +180,14 @@ class Status extends Component<StatusProps, StatusState> {
 
         this.props.api.poweroffTimers(
             (response: PoweroffTimer[]) => {
+                let timers = new Map<string, PoweroffTimer>();
+
+                for (const timer of response) {
+                    timers.set(`poweroffTimer${timer.id}`, timer);
+                }
+
                 this.setState({
-                    poweroff_timers: this.buildTimerMap(response),
+                    poweroff_timers: timers,
                 });
             },
             (errors: GraphQlError[]) => {
@@ -186,31 +200,31 @@ class Status extends Component<StatusProps, StatusState> {
         // TODO: server time, manual trigger, next event
         // XXX: split after n items into another Switch widget
 
-        let valves: Map<string, Switch> = new Map(
-            [...this.state.switches].filter(([_, x]) => {
-                return x.icon === "Valve";
+        let valves: Map<string, SwitchItem> = new Map(
+            [...this.state.switchItems].filter(([_key, item]) => {
+                return item.icon === "Valve";
             })
         );
-        let switches: Map<string, Switch> = new Map(
-            [...this.state.switches].filter(([_, x]) => {
-                return x.icon === "Power";
+        let switches: Map<string, SwitchItem> = new Map(
+            [...this.state.switchItems].filter(([_key, item]) => {
+                return item.icon === "Power";
             })
         );
         let configurations: Map<string, WaterSwitchConfig> = new Map(
             [...this.state.poweroff_timers].reduce((acc, [_key, timer], i) => {
-                let switch_ = this.state.switches.get(
-                    `switch${timer.switchId}`
-                );
-                if (switch_ === undefined) {
-                    console.log("Missing switch for poweroffTimer");
+                let sw = this.state.switchItems.get(`switch${timer.switchId}`);
+                if (sw === undefined) {
+                    console.log(
+                        `Missing switch for poweroffTimer ${timer.switchId}.`
+                    );
                     return acc;
                 }
 
                 acc.push([
-                    `switch${switch_.id}`,
+                    sw.key(),
                     {
                         id: timer.id,
-                        name: switch_.name,
+                        name: sw.name,
                         on_time: timer.onTime,
                     },
                 ]);

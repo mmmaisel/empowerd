@@ -1,23 +1,31 @@
 import React, { Component, ReactNode } from "react";
-import { Switch } from "./EmpowerdApi";
+import SwitchItem from "./SwitchItem";
+import { TriState } from "./EmpowerdApi";
 import "./SwitchWidget.scss";
 
+// TODO: dedup PowerSwitch/WaterSwitch
+//
 type PowerSwitchProps = {
-    switches: Map<string, Switch>;
+    switches: Map<string, SwitchItem>;
     onClick: (key: string) => void;
 };
 
 class PowerSwitch extends Component<PowerSwitchProps, {}> {
+    imgFromState(state: TriState): string {
+        if (state === TriState.On) return "on";
+        else if (state === TriState.Off) return "off";
+        else return "auto";
+    }
+
     render(): ReactNode {
         const count: number = this.props.switches.size;
         if (count === 0) return null;
 
         let buttons: ReactNode[] = Array<ReactNode>(count);
         let i = 0;
-        for (const [key, switch_] of this.props.switches) {
-            const img = switch_.open === true ? "on" : "off";
+        for (const [key, sw] of this.props.switches) {
+            const img = this.imgFromState(sw.state);
 
-            // TODO: add tri-state switch, keep two-state indicator
             buttons[i] = (
                 <React.Fragment>
                     <img
@@ -37,7 +45,7 @@ class PowerSwitch extends Component<PowerSwitchProps, {}> {
                         </div>
                     </div>
                     <div style={{ gridArea: `3/${i + 2}/3/${i + 2}` }}>
-                        <div className="name">{switch_.name}</div>
+                        <div className="name">{sw.name}</div>
                     </div>
                 </React.Fragment>
             );
