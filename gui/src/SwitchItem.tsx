@@ -10,39 +10,45 @@ abstract class SwitchItem {
     name: string;
     icon: string;
     state: TriState;
+    configHandle: string | null;
 
     abstract key(): string;
     abstract clone(): SwitchItem;
     abstract toggle(): SwitchItem;
-    abstract configHandle(): string | null;
     abstract save(
         api: EmpowerdApi,
         onSuccess: (x: SwitchItem) => void,
         onError: (e: string) => void
     ): void;
 
-    constructor(id: number, name: string, icon: string, state: TriState) {
+    constructor(
+        id: number,
+        name: string,
+        icon: string,
+        state: TriState,
+        configHandle: string | null
+    ) {
         this.id = id;
         this.name = name;
         this.icon = icon;
         this.state = state;
+        this.configHandle = configHandle;
     }
 }
 
 export class GpioSwitchItem extends SwitchItem {
-    timerKey: string | null;
-
-    constructor(id: number, name: string, icon: string, state: TriState) {
-        super(id, name, icon, state);
-        this.timerKey = null;
-    }
-
     key(): string {
         return `switch${this.id}`;
     }
 
     clone(): GpioSwitchItem {
-        return new GpioSwitchItem(this.id, this.name, this.icon, this.state);
+        return new GpioSwitchItem(
+            this.id,
+            this.name,
+            this.icon,
+            this.state,
+            this.configHandle
+        );
     }
 
     toggle(): SwitchItem {
@@ -51,10 +57,6 @@ export class GpioSwitchItem extends SwitchItem {
         else clone.state = TriState.On;
 
         return clone;
-    }
-
-    configHandle(): string | null {
-        return this.timerKey;
     }
 
     save(
@@ -88,7 +90,8 @@ export class ApplianceSwitchItem extends SwitchItem {
             this.id,
             this.name,
             this.icon,
-            this.state
+            this.state,
+            this.configHandle
         );
     }
 
@@ -99,10 +102,6 @@ export class ApplianceSwitchItem extends SwitchItem {
         else clone.state = TriState.On;
 
         return clone;
-    }
-
-    configHandle(): string | null {
-        return null;
     }
 
     save(
@@ -128,7 +127,13 @@ export class ApplianceSwitchItem extends SwitchItem {
 
 export class SwitchItemFactory {
     static fromAppliance(a: Appliance): SwitchItem {
-        return new ApplianceSwitchItem(a.id, a.name, "Power", a.forceOnOff);
+        return new ApplianceSwitchItem(
+            a.id,
+            a.name,
+            "Power",
+            a.forceOnOff,
+            null
+        );
     }
 
     static fromGpioSwitch(sw: Switch): SwitchItem {
@@ -136,7 +141,8 @@ export class SwitchItemFactory {
             sw.id,
             sw.name,
             sw.icon,
-            sw.open ? TriState.On : TriState.Off
+            sw.open ? TriState.On : TriState.Off,
+            null
         );
     }
 }

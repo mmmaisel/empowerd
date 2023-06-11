@@ -11,6 +11,7 @@ type SwitchWidgetProps = {
 
 abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
     abstract graphics: string;
+    abstract templateRows: string;
 
     stateToImg(state: TriState): string {
         if (state === TriState.On) return "on";
@@ -28,7 +29,7 @@ abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
             const img = this.stateToImg(sw.state);
 
             let config_node = null;
-            if (sw.configHandle() !== null) {
+            if (sw.configHandle !== null) {
                 config_node = (
                     <div style={{ gridArea: `1/${i + 2}/1/${i + 2}` }}>
                         <div
@@ -73,7 +74,7 @@ abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
                 className="switchWidget"
                 style={{
                     gridTemplateColumns: `repeat(${count + 2}, 1fr)`,
-                    gridTemplateRows: "0.3fr 0.45fr 1fr",
+                    gridTemplateRows: this.templateRows,
                 }}
             >
                 <img
@@ -94,10 +95,12 @@ abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
 
 export class PowerSwitch extends SwitchWidget {
     graphics: string = "power";
+    templateRows: string = "0.35fr 0.55fr 1fr";
 }
 
 export class WaterSwitch extends SwitchWidget {
     graphics: string = "water";
+    templateRows: string = "0.3fr 0.45fr 1fr";
 }
 
 export default SwitchWidget;

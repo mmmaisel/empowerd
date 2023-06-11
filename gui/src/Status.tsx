@@ -64,7 +64,7 @@ class Status extends Component<StatusProps, StatusState> {
         // Stupid Typescript does not recognize the guard above!
         let sw = switch_maybe_undef;
 
-        let timer = this.state.poweroffTimers.get(sw.configHandle() || "");
+        let timer = this.state.poweroffTimers.get(sw.configHandle || "");
         if (timer === undefined) {
             console.log(`Could not find poweroff_timer with id '${key}'.`);
             return;
@@ -98,13 +98,7 @@ class Status extends Component<StatusProps, StatusState> {
             on_time,
             (response: PoweroffTimer) => {
                 let timers = this.state.poweroffTimers;
-                let key = `timer${response.id}`;
-                let timer = timers.get(key);
-
-                if (timer === undefined) {
-                    console.log(`Timer object '${response.id}' does not exist`);
-                    return;
-                }
+                let key = `poweroffTimer${timer.id}`;
 
                 timer.onTime = response.onTime;
                 timers.set(key, timer);
@@ -131,7 +125,7 @@ class Status extends Component<StatusProps, StatusState> {
         return clone;
     }
 
-    componentDidMount(): void {
+    loadAppliances(): void {
         this.props.api.appliances(
             (response: Appliance[]) => {
                 let items = this.cloneSwitchItems();
@@ -145,11 +139,15 @@ class Status extends Component<StatusProps, StatusState> {
                 }
 
                 this.setState({ switchItems: items });
+                this.loadSwitches();
             },
             (errors: GraphQlError[]) => {
                 console.log(errors);
             }
         );
+    }
+
+    loadSwitches(): void {
         this.props.api.switches(
             (response: Switch[]) => {
                 let items = this.cloneSwitchItems();
@@ -163,12 +161,15 @@ class Status extends Component<StatusProps, StatusState> {
                 }
 
                 this.setState({ switchItems: items });
+                this.loadPoweroffTimers();
             },
             (errors: GraphQlError[]) => {
                 console.log(errors);
             }
         );
+    }
 
+    loadPoweroffTimers(): void {
         this.props.api.poweroffTimers(
             (response: PoweroffTimer[]) => {
                 let timers = new Map<string, PoweroffTimer>();
@@ -177,7 +178,13 @@ class Status extends Component<StatusProps, StatusState> {
                     timers.set(`poweroffTimer${timer.id}`, timer);
                 }
 
+                let items = this.state.switchItems;
+                for (const [key, timer] of timers) {
+                    let sw = items.get(`switch${timer.switchId}`);
+                    if (sw !== undefined) sw.configHandle = key;
+                }
                 this.setState({
+                    switchItems: items,
                     poweroffTimers: timers,
                 });
             },
@@ -185,6 +192,10 @@ class Status extends Component<StatusProps, StatusState> {
                 console.log(errors);
             }
         );
+    }
+
+    componentDidMount(): void {
+        this.loadAppliances();
     }
 
     render(): ReactNode {
