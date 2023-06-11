@@ -9,32 +9,31 @@ export type WaterSwitchConfig = {
 };
 
 type WaterSwitchProps = {
-    switches: Switch[];
-    onClick: (id: number) => void;
-    onConfigure: (id: number) => void;
-    configurations: (WaterSwitchConfig | null)[];
+    switches: Map<string, Switch>;
+    onClick: (key: string) => void;
+    onConfigure: (key: string) => void;
+    configurations: Map<string, WaterSwitchConfig>;
 };
 
 class WaterSwitch extends Component<WaterSwitchProps, {}> {
     render(): ReactNode {
-        const count: number = this.props.switches.length;
+        const count: number = this.props.switches.size;
         if (count === 0) return null;
 
         let pipes: ReactNode[] = Array<ReactNode>(count);
-        for (let i = 0; i < count; ++i) {
-            const switch_ = this.props.switches[i];
+        let i = 0;
+        for (const [key, switch_] of this.props.switches) {
             const img = switch_.open === true ? "open" : "close";
 
-            let config = null;
-            if (this.props.configurations[i]) {
-                config = (
+            let config_src = this.props.configurations.get(key);
+            let config_node = null;
+
+            if (config_src !== undefined) {
+                config_node = (
                     <div style={{ gridArea: `1/${i + 2}/1/${i + 2}` }}>
                         <div
                             className="btn"
-                            onClick={this.props.onConfigure.bind(
-                                this,
-                                switch_.id
-                            )}
+                            onClick={this.props.onConfigure.bind(this, key)}
                         >
                             <img alt="configure" src="config.svg" />
                         </div>
@@ -49,11 +48,11 @@ class WaterSwitch extends Component<WaterSwitchProps, {}> {
                         alt=""
                         src={`water-switch.tile-${img}.svg`}
                     />
-                    {config}
+                    {config_node}
                     <div style={{ gridArea: `2/${i + 2}/2/${i + 2}` }}>
                         <div
                             className="btn"
-                            onClick={this.props.onClick.bind(this, switch_.id)}
+                            onClick={this.props.onClick.bind(this, key)}
                         >
                             <img
                                 alt={`valve-${img}`}
@@ -66,6 +65,7 @@ class WaterSwitch extends Component<WaterSwitchProps, {}> {
                     </div>
                 </React.Fragment>
             );
+            ++i;
         }
 
         return (

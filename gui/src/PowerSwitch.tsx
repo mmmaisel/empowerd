@@ -3,18 +3,18 @@ import { Switch } from "./EmpowerdApi";
 import "./SwitchWidget.scss";
 
 type PowerSwitchProps = {
-    switches: Switch[];
-    onClick: (id: number) => void;
+    switches: Map<string, Switch>;
+    onClick: (key: string) => void;
 };
 
 class PowerSwitch extends Component<PowerSwitchProps, {}> {
     render(): ReactNode {
-        const count: number = this.props.switches.length;
+        const count: number = this.props.switches.size;
         if (count === 0) return null;
 
         let buttons: ReactNode[] = Array<ReactNode>(count);
-        for (let i = 0; i < count; ++i) {
-            const switch_ = this.props.switches[i];
+        let i = 0;
+        for (const [key, switch_] of this.props.switches) {
             const img = switch_.open === true ? "on" : "off";
 
             // TODO: add tri-state switch, keep two-state indicator
@@ -28,7 +28,7 @@ class PowerSwitch extends Component<PowerSwitchProps, {}> {
                     <div style={{ gridArea: `2/${i + 2}/2/${i + 2}` }}>
                         <div
                             className="btn"
-                            onClick={this.props.onClick.bind(this, switch_.id)}
+                            onClick={this.props.onClick.bind(this, key)}
                         >
                             <img
                                 alt={`switch-${img}`}
@@ -41,6 +41,7 @@ class PowerSwitch extends Component<PowerSwitchProps, {}> {
                     </div>
                 </React.Fragment>
             );
+            ++i;
         }
 
         return (
