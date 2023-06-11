@@ -14,7 +14,7 @@ abstract class SwitchItem {
     abstract key(): string;
     abstract clone(): SwitchItem;
     abstract toggle(): SwitchItem;
-    abstract isConfigurable(): boolean;
+    abstract configHandle(): string | null;
     abstract save(
         api: EmpowerdApi,
         onSuccess: (x: SwitchItem) => void,
@@ -53,8 +53,8 @@ export class GpioSwitchItem extends SwitchItem {
         return clone;
     }
 
-    isConfigurable(): boolean {
-        return this.timerKey !== null;
+    configHandle(): string | null {
+        return this.timerKey;
     }
 
     save(
@@ -101,8 +101,8 @@ export class ApplianceSwitchItem extends SwitchItem {
         return clone;
     }
 
-    isConfigurable(): boolean {
-        return false;
+    configHandle(): string | null {
+        return null;
     }
 
     save(

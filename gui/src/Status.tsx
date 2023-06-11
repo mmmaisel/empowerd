@@ -1,6 +1,5 @@
 import React, { Component, ReactNode } from "react";
-import WaterSwitch, { WaterSwitchConfig } from "./WaterSwitch";
-import PowerSwitch from "./PowerSwitch";
+import { PowerSwitch, WaterSwitch } from "./SwitchWidget";
 import PoweroffTimerConfig, { NamedPoweroffTimer } from "./PoweroffTimerConfig";
 import SwitchItem, { SwitchItemFactory } from "./SwitchItem";
 import EmpowerdApi, {
@@ -18,8 +17,8 @@ type StatusProps = {
 
 type StatusState = {
     switchItems: Map<string, SwitchItem>;
-    poweroff_timers: Map<string, PoweroffTimer>;
-    poweroff_timer_modal: NamedPoweroffTimer | null;
+    poweroffTimers: Map<string, PoweroffTimer>;
+    poweroffTimerModal: NamedPoweroffTimer | null;
 };
 
 class Status extends Component<StatusProps, StatusState> {
@@ -27,8 +26,8 @@ class Status extends Component<StatusProps, StatusState> {
         super(props);
         this.state = {
             switchItems: new Map<string, SwitchItem>(),
-            poweroff_timers: new Map<string, PoweroffTimer>(),
-            poweroff_timer_modal: null,
+            poweroffTimers: new Map<string, PoweroffTimer>(),
+            poweroffTimerModal: null,
         };
     }
 
@@ -63,26 +62,18 @@ class Status extends Component<StatusProps, StatusState> {
         }
 
         // Stupid Typescript does not recognize the guard above!
-        let switch_ = switch_maybe_undef;
+        let sw = switch_maybe_undef;
 
-        let timers = this.state.poweroff_timers;
-        let timer = null;
-        for (const [_k, x] of timers) {
-            if (x.switchId === switch_.id) {
-                timer = x;
-                break;
-            }
-        }
-
-        if (timer === null) {
+        let timer = this.state.poweroffTimers.get(sw.configHandle() || "");
+        if (timer === undefined) {
             console.log(`Could not find poweroff_timer with id '${key}'.`);
             return;
         }
 
         this.setState({
-            poweroff_timer_modal: {
+            poweroffTimerModal: {
                 timer,
-                name: switch_.name,
+                name: sw.name,
             },
         });
     };
@@ -94,19 +85,19 @@ class Status extends Component<StatusProps, StatusState> {
         if (
             canceled ||
             on_time === null ||
-            this.state.poweroff_timer_modal === null
+            this.state.poweroffTimerModal === null
         ) {
-            this.setState({ poweroff_timer_modal: null });
+            this.setState({ poweroffTimerModal: null });
             return;
         }
 
-        let timer = this.state.poweroff_timer_modal.timer;
+        let timer = this.state.poweroffTimerModal.timer;
 
         this.props.api.setPoweroffTimer(
             timer.id,
             on_time,
             (response: PoweroffTimer) => {
-                let timers = this.state.poweroff_timers;
+                let timers = this.state.poweroffTimers;
                 let key = `timer${response.id}`;
                 let timer = timers.get(key);
 
@@ -118,8 +109,8 @@ class Status extends Component<StatusProps, StatusState> {
                 timer.onTime = response.onTime;
                 timers.set(key, timer);
                 this.setState({
-                    poweroff_timers: timers,
-                    poweroff_timer_modal: null,
+                    poweroffTimers: timers,
+                    poweroffTimerModal: null,
                 });
             },
             (errors: GraphQlError[]) => {
@@ -187,7 +178,7 @@ class Status extends Component<StatusProps, StatusState> {
                 }
 
                 this.setState({
-                    poweroff_timers: timers,
+                    poweroffTimers: timers,
                 });
             },
             (errors: GraphQlError[]) => {
@@ -210,39 +201,21 @@ class Status extends Component<StatusProps, StatusState> {
                 return item.icon === "Power";
             })
         );
-        let configurations: Map<string, WaterSwitchConfig> = new Map(
-            [...this.state.poweroff_timers].reduce((acc, [_key, timer], i) => {
-                let sw = this.state.switchItems.get(`switch${timer.switchId}`);
-                if (sw === undefined) {
-                    console.log(
-                        `Missing switch for poweroffTimer ${timer.switchId}.`
-                    );
-                    return acc;
-                }
-
-                acc.push([
-                    sw.key(),
-                    {
-                        id: timer.id,
-                        name: sw.name,
-                        on_time: timer.onTime,
-                    },
-                ]);
-                return acc;
-            }, new Array<[string, WaterSwitchConfig]>())
-        );
 
         return (
             <div className="mainframe">
                 <WaterSwitch
                     switches={valves}
-                    configurations={configurations}
                     onClick={this.onSwitch}
                     onConfigure={this.onConfigureTimer}
                 />
-                <PowerSwitch switches={switches} onClick={this.onSwitch} />
+                <PowerSwitch
+                    switches={switches}
+                    onClick={this.onSwitch}
+                    onConfigure={(key: string): void => {}}
+                />
                 <PoweroffTimerConfig
-                    timer={this.state.poweroff_timer_modal}
+                    timer={this.state.poweroffTimerModal}
                     onClose={this.onClosePoweroffTimerModal}
                 />
             </div>
