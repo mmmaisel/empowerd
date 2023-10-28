@@ -362,6 +362,8 @@ pub struct LoadControlProcessor {
     pub min_grid_power: f64,
     /// Number of steps between minimum and maximum grid power.
     pub num_points: i32,
+    /// Power for grid based battery charging.
+    pub charge_power: f64,
     /// Optional seasonal correction.
     pub seasonal: Option<Seasonal>,
 }

@@ -43,7 +43,7 @@ pub use available_power::{
 };
 pub use debug::DebugProcessor;
 pub use dummy::DummyProcessor;
-pub use load_control::LoadControlProcessor;
+pub use load_control::{Command as LoadControlCmd, LoadControlProcessor};
 pub use poweroff_timer::{Command as PoweroffTimerCmd, PoweroffTimerProcessor};
 
 pub const MAX_POWER_W: f64 = 12800.0;
@@ -84,6 +84,7 @@ impl<T> CommandSender<T> {
 pub struct ProcessorCommands {
     pub available_power: Vec<CommandSender<AvailablePowerCmd>>,
     pub appliance: Vec<CommandSender<ApplianceCmd>>,
+    pub load_control: Option<CommandSender<LoadControlCmd>>,
     pub poweroff_timer: Vec<CommandSender<PoweroffTimerCmd>>,
 }
 
@@ -362,12 +363,14 @@ pub fn processor_tasks(
                     None => None,
                 };
 
+                let (command_tx, command_rx) = mpsc::channel(1);
                 let mut processor = match LoadControlProcessor::new(
                     ProcessorBase::new(
                         p.name.clone(),
                         tasks.cancel_rx(),
                         logger.clone(),
                     ),
+                    command_rx,
                     setting.meter_addr.clone(),
                     setting.meter_serial,
                     setting.bind_addr.clone(),
@@ -375,6 +378,7 @@ pub fn processor_tasks(
                     battery_source,
                     controller,
                     seasonal,
+                    Power::new::<watt>(-setting.charge_power),
                 ) {
                     Ok(x) => x,
                     Err(e) => {
@@ -385,6 +389,11 @@ pub fn processor_tasks(
                     }
                 };
                 tasks.add_task(task_loop!(processor));
+                commands.load_control = Some(CommandSender {
+                    name: p.name.clone(),
+                    switch_id: None,
+                    tx: command_tx,
+                });
             }
         }
     }

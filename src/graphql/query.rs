@@ -21,9 +21,12 @@ use tokio::sync::oneshot;
 
 use super::appliance::Appliance;
 use super::available_power::AvailablePower;
+use super::load_control::LoadControl;
 use super::poweroff_timer::PoweroffTimer;
 use super::switch::Switch;
-use crate::processors::{ApplianceCmd, AvailablePowerCmd, PoweroffTimerCmd};
+use crate::processors::{
+    ApplianceCmd, AvailablePowerCmd, LoadControlCmd, PoweroffTimerCmd,
+};
 use crate::Context;
 
 pub struct Query;
@@ -99,6 +102,34 @@ impl Query {
         }
 
         Ok(result_vec)
+    }
+
+    /// Get grid load control mode.
+    async fn load_control(
+        ctx: &Context,
+    ) -> juniper::FieldResult<Option<LoadControl>> {
+        if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
+            return Err(e.to_string(&ctx.globals.logger).into());
+        }
+
+        let lookahead = executor.look_ahead();
+        let get_charge_mode = lookahead.has_child("chargeMode");
+
+        let mut result_opt = None;
+        if let Some(load_ctrl) = &ctx.globals.processor_cmds.load_control {
+            let mut result = LoadControl::new(load_ctrl.name.clone());
+            if get_charge_mode {
+                let (tx, rx) = oneshot::channel();
+                let cmd = LoadControlCmd::GetChargeMode { resp: tx };
+                result.charge_mode = load_ctrl
+                    .issue_command(&ctx.globals.logger, cmd, rx)
+                    .await?;
+            }
+
+            result_opt = Some(result);
+        }
+
+        Ok(result_opt)
     }
 
     /// Get all poweroff timers.

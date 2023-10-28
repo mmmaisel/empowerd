@@ -22,9 +22,12 @@ use tokio::sync::oneshot;
 
 use super::appliance::{Appliance, InputAppliance};
 use super::available_power::{AvailablePower, InputAvailablePower};
+use super::load_control::{InputLoadControl, LoadControl};
 use super::poweroff_timer::{InputPoweroffTimer, PoweroffTimer};
 use super::switch::{InputSwitch, Switch};
-use crate::processors::{ApplianceCmd, AvailablePowerCmd, PoweroffTimerCmd};
+use crate::processors::{
+    ApplianceCmd, AvailablePowerCmd, LoadControlCmd, PoweroffTimerCmd,
+};
 use crate::Context;
 
 pub struct Mutation;
@@ -149,6 +152,36 @@ impl Mutation {
             id: input.id,
             force_on_off: input.force_on_off,
             name: processor.name.clone(),
+        })
+    }
+
+    /// Controls grid load control mode.
+    async fn set_load_control(
+        ctx: &Context,
+        input: InputLoadControl,
+    ) -> juniper::FieldResult<LoadControl> {
+        if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
+            return Err(e.to_string(&ctx.globals.logger).into());
+        }
+
+        let load_ctrl = match &ctx.globals.processor_cmds.load_control {
+            Some(x) => x,
+            None => return Err("LoadControl is not available".into()),
+        };
+
+        let (tx, rx) = oneshot::channel();
+        let cmd = LoadControlCmd::SetChargeMode {
+            enabled: input.charge_mode,
+            resp: tx,
+        };
+
+        load_ctrl
+            .issue_command(&ctx.globals.logger, cmd, rx)
+            .await?;
+
+        Ok(LoadControl {
+            charge_mode: input.charge_mode,
+            name: load_ctrl.name.clone(),
         })
     }
 

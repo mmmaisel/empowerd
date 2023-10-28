@@ -28,7 +28,7 @@ use sma_client::SmaClient;
 use std::collections::BTreeMap;
 use std::net::Ipv4Addr;
 use tokio::net::UdpSocket;
-use tokio::sync::watch;
+use tokio::sync::{mpsc, oneshot, watch};
 
 #[cfg(debug_assertions)]
 use {slog::trace, std::time::Instant};
@@ -48,8 +48,20 @@ const OBIS_VOLTAGE: u32 = 0x000b0400;
 const OBIS_POWER_FACTOR: u32 = 0x000c0400;
 const OBIS_VERSION: u32 = 0x90000000;
 
+#[derive(Debug)]
+pub enum Command {
+    SetChargeMode {
+        enabled: bool,
+        resp: oneshot::Sender<()>,
+    },
+    GetChargeMode {
+        resp: oneshot::Sender<bool>,
+    },
+}
+
 pub struct LoadControlProcessor {
     base: ProcessorBase,
+    command_input: mpsc::Receiver<Command>,
     meter_serial: u32,
     ctrl_serial: u32,
     battery_input: watch::Receiver<Model>,
@@ -57,6 +69,8 @@ pub struct LoadControlProcessor {
     grid_power: Power,
     controller: MultiSetpointHysteresis<Energy, Power>,
     seasonal: Option<Seasonal>,
+    charge_power: Power,
+    charge_power_setpoint: Power,
 
     sma_client: SmaClient,
     session: UdpSocket,
@@ -65,6 +79,7 @@ pub struct LoadControlProcessor {
 impl LoadControlProcessor {
     pub fn new(
         base: ProcessorBase,
+        command_input: mpsc::Receiver<Command>,
         meter_addr: String,
         meter_serial: u32,
         bind_addr: String,
@@ -72,6 +87,7 @@ impl LoadControlProcessor {
         battery_input: watch::Receiver<Model>,
         controller: MultiSetpointHysteresis<Energy, Power>,
         seasonal: Option<Seasonal>,
+        charge_power_setpoint: Power,
     ) -> Result<Self, String> {
         let meter_addr = SmaClient::sma_sock_addr(meter_addr)?;
         let mut sma_client = SmaClient::new(None);
@@ -85,12 +101,15 @@ impl LoadControlProcessor {
 
         Ok(Self {
             base,
+            command_input,
             meter_serial,
             ctrl_serial,
             battery_input,
             grid_power: Power::new::<watt>(0.0),
             controller,
             seasonal,
+            charge_power: Power::new::<watt>(0.0),
+            charge_power_setpoint,
             sma_client,
             session,
         })
@@ -144,48 +163,63 @@ impl LoadControlProcessor {
             }
         };
 
-        match self.battery_input.has_changed() {
-            Ok(changed) => {
-                if changed {
-                    match *self.battery_input.borrow() {
-                        Model::None => (),
-                        Model::Battery(ref x) => {
-                            let (new_grid_power, seasonal_correction) =
-                                Self::calc_grid_power(
-                                    &mut self.controller,
-                                    &self.seasonal,
-                                    x.charge.to_owned(),
-                                );
-                            // Print a debug message when grid power has changed.
-                            if (self.grid_power - new_grid_power).abs()
-                                > Power::new::<watt>(0.1)
-                            {
-                                debug!(
-                                    self.base.logger,
-                                    "Importing {} from grid with seasonal correction {}",
-                                    new_grid_power
-                                        .into_format_args(watt, Abbreviation),
-                                    seasonal_correction.into_format_args(watt_hour, Abbreviation),
-                                );
-                            }
-                            self.grid_power = new_grid_power;
-                        }
-                        _ => {
-                            error!(
-                                self.base.logger,
-                                "Received invalid model from battery input: {:?}",
-                                *self.battery_input.borrow()
-                            );
-                            return TaskResult::Running;
-                        }
-                    }
+        let command_received = match self.command_input.try_recv() {
+            Ok(command) => {
+                if let Err(e) = self.handle_command(command) {
+                    return TaskResult::Err(e);
                 }
+                true
             }
+            Err(mpsc::error::TryRecvError::Empty) => false,
+            Err(mpsc::error::TryRecvError::Disconnected) => {
+                error!(self.base.logger, "Command input closed");
+                false
+            }
+        };
+
+        let battery_changed = match self.battery_input.has_changed() {
+            Ok(changed) => changed,
             Err(e) => {
                 return TaskResult::Err(format!(
                     "Reading battery input failed: {}",
                     e
                 ));
+            }
+        };
+
+        if command_received || battery_changed {
+            match *self.battery_input.borrow() {
+                Model::None => (),
+                Model::Battery(ref x) => {
+                    let (new_grid_power, seasonal_correction) =
+                        Self::calc_grid_power(
+                            &mut self.controller,
+                            &self.seasonal,
+                            self.charge_power,
+                            x.charge.to_owned(),
+                        );
+                    // Print a debug message when grid power has changed.
+                    if (self.grid_power - new_grid_power).abs()
+                        > Power::new::<watt>(0.1)
+                    {
+                        debug!(
+                            self.base.logger,
+                            "Importing {} from grid with seasonal correction {}",
+                            new_grid_power
+                                .into_format_args(watt, Abbreviation),
+                            seasonal_correction.into_format_args(watt_hour, Abbreviation),
+                        );
+                    }
+                    self.grid_power = new_grid_power;
+                }
+                _ => {
+                    error!(
+                        self.base.logger,
+                        "Received invalid model from battery input: {:?}",
+                        *self.battery_input.borrow()
+                    );
+                    return TaskResult::Running;
+                }
             }
         }
 
@@ -217,6 +251,7 @@ impl LoadControlProcessor {
     fn calc_grid_power(
         controller: &mut MultiSetpointHysteresis<Energy, Power>,
         seasonal: &Option<Seasonal>,
+        charge_power: Power,
         charge: Energy,
     ) -> (Power, Energy) {
         let seasonal_correction = match seasonal {
@@ -229,7 +264,31 @@ impl LoadControlProcessor {
         };
 
         let new_grid_power = controller.process(charge + seasonal_correction);
-        (new_grid_power, seasonal_correction)
+        (new_grid_power + charge_power, seasonal_correction)
+    }
+
+    fn handle_command(&mut self, command: Command) -> Result<(), String> {
+        match command {
+            Command::SetChargeMode { enabled, resp } => {
+                if enabled {
+                    self.charge_power = self.charge_power_setpoint;
+                } else {
+                    self.charge_power = Power::new::<watt>(0.0);
+                }
+
+                if resp.send(()).is_err() {
+                    return Err("Sending SetChargeMode response failed!".into());
+                }
+            }
+            Command::GetChargeMode { resp } => {
+                let enabled = self.charge_power > Power::new::<watt>(0.1);
+                if resp.send(enabled).is_err() {
+                    return Err("Sending GetChargeMode response failed!".into());
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 

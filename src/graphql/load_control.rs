@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,11 +16,27 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 
-pub mod mutation;
-pub mod query;
+#[derive(juniper::GraphQLObject)]
+/// Reads the grid mode.
+pub struct LoadControl {
+    /// If the grid charge mode is enabled.
+    pub charge_mode: bool,
+    /// Displayed name.
+    pub name: String,
+}
 
-pub mod appliance;
-pub mod available_power;
-pub mod load_control;
-pub mod poweroff_timer;
-pub mod switch;
+impl LoadControl {
+    pub fn new(name: String) -> Self {
+        Self {
+            charge_mode: false,
+            name,
+        }
+    }
+}
+
+#[derive(juniper::GraphQLInputObject)]
+/// Controls the grid mode.
+pub struct InputLoadControl {
+    /// If the grid charge mode is enabled.
+    pub charge_mode: bool,
+}
