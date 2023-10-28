@@ -161,7 +161,7 @@ impl SessionManager {
 
         match self.sessions.lock() {
             Ok(mut x) => match x.get_mut(&requested_session.id) {
-                Some(mut session) => {
+                Some(session) => {
                     let now = SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .map_err(|e| {
