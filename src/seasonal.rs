@@ -175,3 +175,22 @@ fn test_seasonal_calculation() {
         "Offset is not applied correctly"
     );
 }
+
+#[ignore]
+#[test]
+fn plot_day_lengths() {
+    let seasonal = SeasonalBuilder::new()
+        .latitude(50.0)
+        .longitude(10.0)
+        .gain_per_hour(1.0)
+        .offset_hour(0.0)
+        .phase_days(0.0)
+        .build()
+        .unwrap();
+    let start = DateTime::parse_from_rfc3339("2023-01-01T12:00:00Z").unwrap();
+
+    for day in 0..365 {
+        let now = start + chrono::Duration::days(day);
+        println!("{}", seasonal.calc_correction(now.into()));
+    }
+}
