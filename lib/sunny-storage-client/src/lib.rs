@@ -160,10 +160,6 @@ async fn get_in_out_charge(
         logger,
     )?;
 
-    if charge == 0 {
-        return Err("Received invalid value 0 for charge.".into());
-    }
-
     return Ok((wh_in, wh_out, (charge as f64) * (capacity as f64) / 100.0));
 }
 
