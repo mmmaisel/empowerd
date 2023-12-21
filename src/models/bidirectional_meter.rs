@@ -54,6 +54,18 @@ impl BidirectionalMeter {
             power,
         }
     }
+
+    // TODO: dedup this
+    pub fn calc_power(&self, other: &Self) -> Power {
+        if self.time == other.time {
+            Power::new::<watt>(0.0)
+        } else {
+            (self.energy_consumed
+                - other.energy_consumed
+                - (self.energy_produced - other.energy_produced))
+                / (self.time - other.time).abs()
+        }
+    }
 }
 
 impl InfluxObject<BidirectionalMeter> for BidirectionalMeter {

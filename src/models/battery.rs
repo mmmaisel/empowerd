@@ -58,6 +58,17 @@ impl Battery {
             power,
         }
     }
+
+    pub fn calc_power(&self, other: &Self) -> Power {
+        if self.time == other.time {
+            Power::new::<watt>(0.0)
+        } else {
+            (self.energy_in
+                - other.energy_in
+                - (self.energy_out - other.energy_out))
+                / (self.time - other.time).abs()
+        }
+    }
 }
 
 impl InfluxObject<Battery> for Battery {
@@ -85,4 +96,24 @@ impl From<RawBattery> for Battery {
             power: Power::new::<watt>(other.power),
         }
     }
+}
+
+#[test]
+fn test_power_calculation() {
+    let old = Battery::new(
+        Time::new::<second>(1680966000.0),
+        Energy::new::<watt_hour>(5000.0),
+        Energy::new::<watt_hour>(430.0),
+        Energy::new::<watt_hour>(497.0),
+        Power::new::<watt>(0.0),
+    );
+    let new = Battery::new(
+        Time::new::<second>(1680966300.0),
+        Energy::new::<watt_hour>(5000.0),
+        Energy::new::<watt_hour>(476.0),
+        Energy::new::<watt_hour>(497.0),
+        Power::new::<watt>(0.0),
+    );
+
+    assert_eq!(552.0, new.calc_power(&old).get::<watt>());
 }

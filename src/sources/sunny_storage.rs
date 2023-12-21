@@ -82,13 +82,10 @@ impl SunnyStorageSource {
                 }
             };
 
-        let power = match self.base.query_last::<Battery>().await {
-            InfluxResult::Some(last_record) => {
-                (wh_in
-                    - last_record.energy_in
-                    - (wh_out - last_record.energy_out))
-                    / (now - last_record.time)
-            }
+        let mut record =
+            Battery::new(now, charge, wh_in, wh_out, Power::new::<watt>(0.0));
+        record.power = match self.base.query_last::<Battery>().await {
+            InfluxResult::Some(last_record) => record.calc_power(&last_record),
             InfluxResult::None => Power::new::<watt>(0.0),
             InfluxResult::Err(e) => {
                 error!(
@@ -99,32 +96,8 @@ impl SunnyStorageSource {
             }
         };
 
-        let record = Battery::new(now, charge, wh_in, wh_out, power);
         self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
     }
-}
-
-#[test]
-fn test_power_calculation() {
-    let old = Battery::new(
-        Time::new::<second>(1680966000.0),
-        Energy::new::<watt_hour>(5000.0),
-        Energy::new::<watt_hour>(430.0),
-        Energy::new::<watt_hour>(497.0),
-        Power::new::<watt>(0.0),
-    );
-    let new = Battery::new(
-        Time::new::<second>(1680966300.0),
-        Energy::new::<watt_hour>(5000.0),
-        Energy::new::<watt_hour>(476.0),
-        Energy::new::<watt_hour>(497.0),
-        Power::new::<watt>(0.0),
-    );
-
-    let power =
-        (new.energy_in - old.energy_in - (new.energy_out - old.energy_out))
-            / (new.time - old.time);
-    assert_eq!(552.0, power.get::<watt>());
 }

@@ -189,10 +189,10 @@ impl LambdaHeatPumpSource {
             };
 
             // Commit new sample to database.
-            let record = Heatpump::new(
+            let mut record = Heatpump::new(
                 now,
                 energy_total,
-                (energy_total - last_record.energy) / (now - last_record.time),
+                Power::new::<watt>(0.0),
                 Some(
                     last_record.total_heat.unwrap_or(Energy::new::<joule>(0.0))
                         + (energy_total - last_record.energy) * cop,
@@ -202,6 +202,8 @@ impl LambdaHeatPumpSource {
                 Some(Temperature::new::<celsius>(boiler.1 as f64 / 10.0)),
                 Some(Temperature::new::<celsius>(boiler.2 as f64 / 10.0)),
             );
+            record.power = record.calc_power(&last_record);
+
             self.base.notify_processors(&record);
             let _: Result<(), ()> = self.base.save_record(record).await;
 

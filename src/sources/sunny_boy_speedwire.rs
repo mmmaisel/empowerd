@@ -62,7 +62,8 @@ impl SunnyBoySpeedwireSource {
             Err(e) => return e,
         };
 
-        let last_record = match self.base.query_last::<SimpleMeter>().await {
+        let mut last_record = match self.base.query_last::<SimpleMeter>().await
+        {
             InfluxResult::Some(x) => x,
             InfluxResult::None => SimpleMeter::new(
                 Time::new::<second>(0.0),
@@ -124,7 +125,6 @@ impl SunnyBoySpeedwireSource {
             now.into_format_args(second, Abbreviation),
         );
 
-        let mut last_time = last_record.time;
         let mut last_energy = last_record.energy;
 
         // TODO: this command is not accepted by SMA, needs -86400 ?
@@ -133,7 +133,7 @@ impl SunnyBoySpeedwireSource {
             .sma_client
             .get_day_data(
                 &session,
-                last_time.get::<second>() as u32,
+                last_record.time.get::<second>() as u32,
                 now.get::<second>() as u32,
             )
             .await
@@ -150,7 +150,7 @@ impl SunnyBoySpeedwireSource {
                         let energy =
                             Energy::new::<watt_hour>(point.value as f64);
                         if point.timestamp as u64
-                            == last_time.get::<second>() as u64
+                            == last_record.time.get::<second>() as u64
                         {
                             return false;
                         } else if energy < last_energy {
@@ -176,7 +176,6 @@ impl SunnyBoySpeedwireSource {
         //   (handled in database?) and missing ones (delta_t > 300)
         // TODO: handle NaN (0xFFFFFFFF, 0xFFFF) values(in SMA client validators)
         // TODO: always UTC, handle DST transition
-        last_energy = last_record.energy;
 
         if let Err(e) = self.sma_client.logout(&session).await {
             error!(self.base.logger, "Logout failed: {}", e);
@@ -186,15 +185,10 @@ impl SunnyBoySpeedwireSource {
         for point in points {
             let time = Time::new::<second>(point.timestamp as f64);
             let energy = Energy::new::<watt_hour>(point.value as f64);
-            let power = if last_time.get::<second>() as i64 == 0 {
-                Power::new::<watt>(0.0)
-            } else {
-                (energy - last_energy) / (time - last_time)
-            };
-
-            let record = SimpleMeter::new(time, energy, power);
-            last_energy = energy;
-            last_time = time;
+            let mut record =
+                SimpleMeter::new(time, energy, Power::new::<watt>(0.0));
+            record.power = record.calc_power(&last_record);
+            last_record = record.clone();
 
             self.base.notify_processors(&record);
             if self.base.save_record(record).await.is_err() {

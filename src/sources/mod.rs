@@ -374,7 +374,6 @@ fn sleep_duration(
     (next_duration, next_duration != main_duration)
 }
 
-// TODO: use a watch channel to notify processors of new source values
 pub async fn sleep_aligned(
     interval: Duration,
     oversample_factor: u64,

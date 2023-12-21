@@ -102,17 +102,21 @@ impl SmlMeterSource {
             }
         };
 
-        let power = match self.base.query_last::<BidirectionalMeter>().await {
+        let mut record = BidirectionalMeter::new(
+            now,
+            consumed,
+            produced,
+            Power::new::<watt>(0.0),
+        );
+        record.power = match self.base.query_last::<BidirectionalMeter>().await
+        {
             InfluxResult::Some(last_record) => {
                 trace!(
                     self.base.logger,
                     "Read {:?} from database",
                     last_record
                 );
-                (consumed
-                    - last_record.energy_consumed
-                    - (produced - last_record.energy_produced))
-                    / (now - last_record.time)
+                record.calc_power(&last_record)
             }
             InfluxResult::None => Power::new::<watt>(0.0),
             InfluxResult::Err(e) => {
@@ -124,7 +128,6 @@ impl SmlMeterSource {
             }
         };
 
-        let record = BidirectionalMeter::new(now, consumed, produced, power);
         self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running

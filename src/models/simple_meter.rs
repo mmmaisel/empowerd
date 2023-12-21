@@ -50,6 +50,14 @@ impl SimpleMeter {
             power,
         }
     }
+
+    pub fn calc_power(&self, other: &Self) -> Power {
+        if self.time == other.time {
+            Power::new::<watt>(0.0)
+        } else {
+            (self.energy - other.energy) / (self.time - other.time).abs()
+        }
+    }
 }
 
 impl InfluxObject<SimpleMeter> for SimpleMeter {

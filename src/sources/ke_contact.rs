@@ -76,14 +76,15 @@ impl KeContactSource {
 
         let energy = Energy::new::<watt_hour>((report.e_total as f64) / 10.0);
 
-        let power = match self.base.query_last::<SimpleMeter>().await {
+        let mut record = SimpleMeter::new(now, energy, Power::new::<watt>(0.0));
+        record.power = match self.base.query_last::<SimpleMeter>().await {
             InfluxResult::Some(last_record) => {
                 trace!(
                     self.base.logger,
                     "Read {:?} from database",
                     last_record
                 );
-                (energy - last_record.energy) / (now - last_record.time)
+                record.calc_power(&last_record)
             }
             InfluxResult::None => Power::new::<watt>(0.0),
             InfluxResult::Err(e) => {
@@ -95,7 +96,6 @@ impl KeContactSource {
             }
         };
 
-        let record = SimpleMeter::new(now, energy, power);
         self.base.notify_processors(&record);
         let _: Result<(), ()> = self.base.save_record(record).await;
         TaskResult::Running
