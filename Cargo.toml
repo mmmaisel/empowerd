@@ -48,13 +48,8 @@ members = [
 ]
 
 [lib]
+name = "libempowerd"
 path = "src/lib.rs"
-doc = false
-
-[[bin]]
-name = "empowerd"
-path = "src/main.rs"
-doc = true
 
 [dependencies]
 bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }

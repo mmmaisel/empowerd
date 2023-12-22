@@ -18,7 +18,7 @@
 #![forbid(unsafe_code)]
 #![allow(clippy::needless_return)]
 #![allow(clippy::redundant_field_names)]
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("../../README.md")]
 
 use daemonize::Daemonize;
 use slog::{debug, error, info, trace, Logger};
@@ -38,43 +38,16 @@ use juniper::{EmptySubscription, RootNode};
 use std::{convert::Infallible, net, process, sync::Arc};
 use tokio::{runtime::Runtime, signal};
 
-mod graphql;
-mod misc;
-mod models;
-mod multi_setpoint_hysteresis;
-mod processors;
-mod pt1;
-mod seasonal;
-mod session_manager;
-mod settings;
-mod sinks;
-mod sources;
-mod task_group;
-mod tri_state;
-
-use graphql::mutation::Mutation;
-use graphql::query::Query;
-use processors::{ProcessorCommands, ProcessorInfo};
-use session_manager::SessionManager;
-use settings::Settings;
-use sinks::gpio_switch::GpioSwitch;
-use task_group::TaskGroup;
-
-#[derive(Debug)]
-pub struct Globals {
-    logger: Logger,
-    username: String,
-    hashed_pw: String,
-    session_manager: SessionManager,
-    gpio_switch: Arc<GpioSwitch>,
-    processor_cmds: ProcessorCommands,
-}
-
-#[derive(Debug)]
-pub struct Context {
-    globals: Arc<Globals>,
-    token: String,
-}
+use libempowerd::{
+    graphql::mutation::Mutation,
+    graphql::query::Query,
+    processors::{self, ProcessorInfo},
+    session_manager::SessionManager,
+    settings::Settings,
+    sinks, sources,
+    task_group::TaskGroup,
+    Context, Globals,
+};
 
 fn main() {
     let settings = match Settings::load() {

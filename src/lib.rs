@@ -19,8 +19,38 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::redundant_field_names)]
 
+pub mod graphql;
+pub mod misc;
 pub mod models;
+pub mod multi_setpoint_hysteresis;
+pub mod processors;
+pub mod pt1;
+pub mod seasonal;
+pub mod session_manager;
 pub mod settings;
+pub mod sinks;
+pub mod sources;
+pub mod task_group;
+pub mod tri_state;
 
-pub use models::*;
-pub use settings::*;
+use processors::ProcessorCommands;
+use session_manager::SessionManager;
+use sinks::GpioSwitch;
+use slog::Logger;
+use std::sync::Arc;
+
+#[derive(Debug)]
+pub struct Globals {
+    pub logger: Logger,
+    pub username: String,
+    pub hashed_pw: String,
+    pub session_manager: SessionManager,
+    pub gpio_switch: Arc<GpioSwitch>,
+    pub processor_cmds: ProcessorCommands,
+}
+
+#[derive(Debug)]
+pub struct Context {
+    pub globals: Arc<Globals>,
+    pub token: String,
+}

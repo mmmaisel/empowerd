@@ -16,8 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
+use crate::sinks::GpioSwitch;
 use crate::task_group::TaskResult;
-use crate::GpioSwitch;
 use slog::{debug, error};
 use std::sync::Arc;
 use std::time::Duration;

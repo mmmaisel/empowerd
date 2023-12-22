@@ -18,9 +18,9 @@
 #![forbid(unsafe_code)]
 
 use clap::{Arg, Command};
-use empowerd::{
-    models::units::watt_hour, settings::Settings, Battery, InfluxObject,
-    InfluxSeriesResult,
+use libempowerd::{
+    models::{units::watt_hour, Battery, InfluxObject, InfluxSeriesResult},
+    settings::Settings,
 };
 
 async fn migrate_batch(
