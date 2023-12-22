@@ -197,8 +197,8 @@ impl From<RawWeather> for Weather {
             humidity_in: Ratio::new::<percent>(other.humidity_in),
             temperature_out: other
                 .temperature_out
-                .map(|x| Temperature::new::<celsius>(x)),
-            humidity_out: other.humidity_out.map(|x| Ratio::new::<percent>(x)),
+                .map(Temperature::new::<celsius>),
+            humidity_out: other.humidity_out.map(Ratio::new::<percent>),
             rain_day: Length::new::<millimeter>(other.rain_day),
             rain_actual: Length::new::<millimeter>(other.rain_actual),
             wind_actual: Velocity::new::<meter_per_second>(other.wind_actual),
@@ -207,19 +207,19 @@ impl From<RawWeather> for Weather {
             baro_sea: Pressure::new::<hectopascal>(other.baro_sea),
             baro_absolute: Pressure::new::<hectopascal>(other.baro_absolute),
             uv_index: Ratio::new::<ratio>(other.uv_index),
-            dew_point: other.dew_point.map(|x| Temperature::new::<celsius>(x)),
+            dew_point: other.dew_point.map(Temperature::new::<celsius>),
             temperature_x1: other
                 .temperature_x1
-                .map(|x| Temperature::new::<celsius>(x)),
-            humidity_x1: other.humidity_x1.map(|x| Ratio::new::<percent>(x)),
+                .map(Temperature::new::<celsius>),
+            humidity_x1: other.humidity_x1.map(Ratio::new::<percent>),
             temperature_x2: other
                 .temperature_x2
-                .map(|x| Temperature::new::<celsius>(x)),
-            humidity_x2: other.humidity_x2.map(|x| Ratio::new::<percent>(x)),
+                .map(Temperature::new::<celsius>),
+            humidity_x2: other.humidity_x2.map(Ratio::new::<percent>),
             temperature_x3: other
                 .temperature_x3
-                .map(|x| Temperature::new::<celsius>(x)),
-            humidity_x3: other.humidity_x3.map(|x| Ratio::new::<percent>(x)),
+                .map(Temperature::new::<celsius>),
+            humidity_x3: other.humidity_x3.map(Ratio::new::<percent>),
         }
     }
 }

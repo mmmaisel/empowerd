@@ -121,17 +121,11 @@ impl From<RawHeatpump> for Heatpump {
             time: Time::new::<second>(other.time.timestamp() as f64),
             energy: Energy::new::<watt_hour>(other.energy),
             power: Power::new::<watt>(other.power),
-            total_heat: other.total_heat.map(|x| Energy::new::<watt_hour>(x)),
-            cop: other.cop.map(|x| Ratio::new::<ratio>(x)),
-            boiler_top: other
-                .boiler_top
-                .map(|x| Temperature::new::<celsius>(x)),
-            boiler_mid: other
-                .boiler_mid
-                .map(|x| Temperature::new::<celsius>(x)),
-            boiler_bot: other
-                .boiler_bot
-                .map(|x| Temperature::new::<celsius>(x)),
+            total_heat: other.total_heat.map(Energy::new::<watt_hour>),
+            cop: other.cop.map(Ratio::new::<ratio>),
+            boiler_top: other.boiler_top.map(Temperature::new::<celsius>),
+            boiler_mid: other.boiler_mid.map(Temperature::new::<celsius>),
+            boiler_bot: other.boiler_bot.map(Temperature::new::<celsius>),
         }
     }
 }

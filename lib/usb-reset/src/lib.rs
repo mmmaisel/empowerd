@@ -89,7 +89,7 @@ fn reset_device(mut device: Option<Device>) -> Result<(), String> {
                     None => return Err("USB parent device has no node".into()),
                 };
 
-                return match OpenOptions::new().write(true).open(&devnode) {
+                return match OpenOptions::new().write(true).open(devnode) {
                     Ok(devfile) => unsafe {
                         if let Err(e) = usbdevfs_reset(devfile.as_raw_fd()) {
                             Err(format!("Reset USB device failed: {}", e))

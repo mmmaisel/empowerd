@@ -204,7 +204,7 @@ impl Mutation {
             .map_err(|_| "'on_time' is_invalid".to_string())?;
 
         if on_time_u == 0 {
-            return Err(format!("'on_time' must be greater than zero!").into());
+            return Err("'on_time' must be greater than zero!".into());
         }
 
         let on_time = Duration::from_secs(on_time_u);

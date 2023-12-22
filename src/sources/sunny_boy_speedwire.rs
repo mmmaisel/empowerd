@@ -160,7 +160,7 @@ impl SunnyBoySpeedwireSource {
                                 "Energy meter run backwards. Ignoring point."
                             );
                             return false;
-                        } else if point.value as u32 == 0xFFFFFFFF {
+                        } else if point.value == 0xFFFFFFFF {
                             debug!(self.base.logger, "Skipping NaN SMA record");
                             return false;
                         } else {

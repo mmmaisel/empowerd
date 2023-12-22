@@ -125,7 +125,7 @@ impl SessionManager {
         };
 
         let session = Session {
-            id: BASE64_STANDARD_NO_PAD.encode(&raw_id),
+            id: BASE64_STANDARD_NO_PAD.encode(raw_id),
             valid_until: valid_until,
         };
 
