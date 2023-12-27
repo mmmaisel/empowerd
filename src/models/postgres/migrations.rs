@@ -15,3 +15,17 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use diesel::{pg::PgConnection, Connection};
+use diesel_migrations::{
+    embed_migrations, EmbeddedMigrations, MigrationHarness,
+};
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("db");
+
+pub fn run_migrations(db_url: &str) -> Result<(), String> {
+    let mut conn =
+        PgConnection::establish(db_url).map_err(|e| e.to_string())?;
+    conn.run_pending_migrations(MIGRATIONS)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}

@@ -25,7 +25,6 @@ pub mod models;
 pub mod multi_setpoint_hysteresis;
 pub mod processors;
 pub mod pt1;
-pub mod schema;
 pub mod seasonal;
 pub mod session_manager;
 pub mod settings;
