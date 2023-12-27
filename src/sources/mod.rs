@@ -18,9 +18,8 @@
 use crate::models::{InfluxObject, InfluxResult, Model};
 use crate::settings::{Settings, SourceType};
 use crate::task_group::{
-    TaskGroup, TaskGroupBuilder, TaskResult, TaskState, TaskTiming,
+    task_loop, TaskGroup, TaskGroupBuilder, TaskResult, TaskState, TaskTiming,
 };
-use crate::task_loop;
 use slog::{debug, error, trace, Logger};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};

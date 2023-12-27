@@ -46,7 +46,6 @@ pub enum TaskState {
     Canceled,
 }
 
-#[macro_export]
 macro_rules! task_loop {
     ($source:expr) => {
         tokio::task::spawn(async move {
@@ -60,6 +59,8 @@ macro_rules! task_loop {
         })
     };
 }
+
+pub(crate) use task_loop;
 
 pub struct TaskGroupBuilder {
     name: String,
