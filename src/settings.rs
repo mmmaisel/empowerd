@@ -48,7 +48,7 @@ impl Debug for Database {
 impl Default for Database {
     fn default() -> Self {
         Self {
-            url: "127.0.0.1:8086".into(),
+            url: "127.0.0.1".into(),
             name: "empowerd".into(),
             user: "empowerd".into(),
             password: "password".into(),
@@ -252,6 +252,8 @@ pub enum SourceType {
 pub struct Source {
     /// Name of the data source.
     pub name: String,
+    /// Database ID of the timeseries
+    pub series_id: i32,
     /// The individual data source parameters.
     #[serde(flatten)]
     pub variant: SourceType,
@@ -478,6 +480,7 @@ pub struct Settings {
     /// Path to logfile directory.
     pub logfile: String,
     pub log_level: sloggers::types::Severity,
+    pub influx: Option<Database>,
     pub database: Database,
     pub graphql: GraphQL,
     pub location: Option<Location>,
@@ -499,6 +502,7 @@ impl Default for Settings {
             wrk_dir: "/".into(),
             logfile: "/var/log/empowerd.log".into(),
             log_level: sloggers::types::Severity::Info,
+            influx: None,
             database: Database::default(),
             graphql: GraphQL::default(),
             location: None,
