@@ -604,9 +604,14 @@ dependencies = [
 name = "empowerd-migrations"
 version = "0.9.0"
 dependencies = [
+ "chrono",
  "clap",
+ "diesel",
+ "diesel-async",
+ "diesel_migrations",
  "empowerd",
  "influxdb",
+ "serde",
  "tokio",
 ]
 

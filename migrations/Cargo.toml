@@ -8,6 +8,11 @@ edition = "2018"
 [dependencies]
 empowerd = { version = "*", path = "../" }
 
+chrono = ">=0.4.19"
 clap = { version = ">=4.4.12", features = ["derive"] }
+diesel = { version = ">=2.1.0", features = ["chrono", "postgres"] }
+diesel-async = { version=">=0.4.1", features = ["deadpool", "postgres"] }
+diesel_migrations = { version = ">=2.1.0" }
 influxdb = { version = ">=0.6.0", features = ["derive", "reqwest-client", "use-serde"], default-features = false }
+serde = { version = ">=1.0", features = ["derive"] }
 tokio = { version=">=1.0", features=["full"] }
