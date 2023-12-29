@@ -1,6 +1,6 @@
 [package]
 name = "empowerd-migrations"
-version = "0.3.2"
+version = "0.9.0"
 license = "AGPL-3.0-or-later"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
 edition = "2018"
@@ -8,6 +8,6 @@ edition = "2018"
 [dependencies]
 empowerd = { version = "*", path = "../" }
 
-clap = ">=3.1.5"
+clap = { version = ">=4.4.12", features = ["derive"] }
 influxdb = { version = ">=0.6.0", features = ["derive", "reqwest-client", "use-serde"], default-features = false }
 tokio = { version=">=1.0", features=["full"] }
