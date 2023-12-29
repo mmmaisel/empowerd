@@ -86,13 +86,22 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
         ))
     }
 
-    fn query_where(measurement: &str, query: &str) -> ReadQuery {
-        ReadQuery::new(format!(
+    fn query_where(
+        measurement: &str,
+        query: &str,
+        limit: Option<u32>,
+    ) -> ReadQuery {
+        let query = format!(
             "SELECT time, {} FROM {} WHERE {} ORDER BY ASC",
             Self::FIELDS,
             measurement,
             query,
-        ))
+        );
+
+        match limit {
+            Some(lim) => ReadQuery::new(format!("{} LIMIT {}", query, lim)),
+            None => ReadQuery::new(query),
+        }
     }
 
     fn save_query(self, measurement: &str) -> WriteQuery
