@@ -15,29 +15,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use super::units;
 use influxdb::{
     integrations::serde_integration::{DatabaseQueryResult, Series},
     Error, InfluxDbWriteable, ReadQuery, WriteQuery,
 };
-
-pub mod units {
-    pub use uom::fmt::DisplayStyle::Abbreviation;
-    pub use uom::si::{
-        angle::degree,
-        energy::{joule, kilowatt_hour, watt_hour},
-        f64::{
-            Angle, Energy, Length, Power, Pressure, Ratio,
-            ThermodynamicTemperature as Temperature, Time, Velocity,
-        },
-        length::millimeter,
-        power::watt,
-        pressure::hectopascal,
-        ratio::{percent, ratio},
-        thermodynamic_temperature::degree_celsius as celsius,
-        time::{millisecond, second},
-        velocity::meter_per_second,
-    };
-}
 
 pub mod battery;
 pub mod bidirectional_meter;

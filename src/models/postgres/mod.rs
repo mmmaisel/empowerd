@@ -15,24 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-pub mod units {
-    pub use uom::fmt::DisplayStyle::Abbreviation;
-    pub use uom::si::{
-        angle::degree,
-        energy::{joule, kilowatt_hour, watt_hour},
-        f64::{
-            Angle, Energy, Length, Power, Pressure, Ratio,
-            ThermodynamicTemperature as Temperature, Time, Velocity,
-        },
-        length::{micrometer, millimeter},
-        power::watt,
-        pressure::{hectopascal, pascal},
-        ratio::{percent, ratio},
-        thermodynamic_temperature::degree_celsius as celsius,
-        time::{millisecond, second},
-        velocity::{meter_per_second, millimeter_per_second},
-    };
-}
+use super::units;
 
 pub mod battery;
 pub mod bidir_meter;

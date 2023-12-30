@@ -19,6 +19,25 @@ pub mod available_power;
 pub mod influx;
 pub mod postgres;
 
+pub mod units {
+    pub use uom::fmt::DisplayStyle::Abbreviation;
+    pub use uom::si::{
+        angle::degree,
+        energy::{joule, kilowatt_hour, watt_hour},
+        f64::{
+            Angle, Energy, Length, Power, Pressure, Ratio,
+            ThermodynamicTemperature as Temperature, Time, Velocity,
+        },
+        length::{micrometer, millimeter},
+        power::watt,
+        pressure::{hectopascal, pascal},
+        ratio::{percent, ratio},
+        thermodynamic_temperature::degree_celsius as celsius,
+        time::{millisecond, second},
+        velocity::{meter_per_second, millimeter_per_second},
+    };
+}
+
 pub use available_power::AvailablePower;
 pub use influx::*;
 
