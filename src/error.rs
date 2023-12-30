@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2023 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,44 +15,32 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-#![forbid(unsafe_code)]
-#![allow(clippy::needless_return)]
-#![allow(clippy::redundant_field_names)]
+use diesel::result::Error as DieselError;
 
-pub mod error;
-pub mod graphql;
-pub mod misc;
-pub mod models;
-pub mod multi_setpoint_hysteresis;
-pub mod processors;
-pub mod pt1;
-pub mod seasonal;
-pub mod session_manager;
-pub mod settings;
-pub mod sinks;
-pub mod sources;
-pub mod task_group;
-pub mod tri_state;
-
-use error::Error;
-use processors::ProcessorCommands;
-use session_manager::SessionManager;
-use sinks::GpioSwitch;
-use slog::Logger;
-use std::sync::Arc;
-
-#[derive(Debug)]
-pub struct Globals {
-    pub logger: Logger,
-    pub username: String,
-    pub hashed_pw: String,
-    pub session_manager: SessionManager,
-    pub gpio_switch: Arc<GpioSwitch>,
-    pub processor_cmds: ProcessorCommands,
+#[derive(Clone, Debug)]
+pub enum Error {
+    NotFound,
+    DatabaseError(String),
+    InvalidInput(String),
 }
 
-#[derive(Debug)]
-pub struct Context {
-    pub globals: Arc<Globals>,
-    pub token: String,
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl From<Error> for String {
+    fn from(input: Error) -> Self {
+        input.to_string()
+    }
+}
+
+impl From<DieselError> for Error {
+    fn from(input: DieselError) -> Self {
+        match input {
+            DieselError::NotFound => Self::NotFound,
+            _ => Self::DatabaseError(input.to_string()),
+        }
+    }
 }

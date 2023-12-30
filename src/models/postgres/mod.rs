@@ -58,20 +58,20 @@ macro_rules! impl_timeseries {
             pub async fn last(
                 conn: &mut diesel_async::AsyncPgConnection,
                 series_id: i32,
-            ) -> Result<$ty, String> {
+            ) -> Result<$ty, crate::Error> {
                 use diesel_async::RunQueryDsl;
                 $raw_ty::query_last(series_id)
                     .first::<$raw_ty>(conn)
                     .await
                     .map(|x| x.into())
-                    .map_err(|e| e.to_string())
+                    .map_err(|e| e.into())
             }
 
             pub async fn insert(
                 &self,
                 conn: &mut diesel_async::AsyncPgConnection,
                 series_id: i32,
-            ) -> Result<(), String> {
+            ) -> Result<(), crate::Error> {
                 use diesel_async::RunQueryDsl;
                 let mut raw = $raw_ty::try_from(self)?;
                 raw.series_id = series_id;
@@ -79,8 +79,7 @@ macro_rules! impl_timeseries {
                 diesel::insert_into(schema::$schema::table)
                     .values(&raw)
                     .execute(conn)
-                    .await
-                    .map_err(|e| e.to_string())?;
+                    .await?;
 
                 Ok(())
             }

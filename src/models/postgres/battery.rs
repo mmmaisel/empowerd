@@ -19,6 +19,7 @@ use super::{
     impl_timeseries, schema,
     units::{second, watt, watt_hour, Abbreviation, Energy, Power, Time},
 };
+use crate::Error;
 use chrono::NaiveDateTime;
 use diesel::prelude::{
     AsChangeset, ExpressionMethods, Identifiable, Insertable, Queryable,
@@ -75,7 +76,7 @@ impl From<RawBattery> for Battery {
 }
 
 impl TryFrom<&Battery> for RawBattery {
-    type Error = String;
+    type Error = Error;
     fn try_from(input: &Battery) -> Result<Self, Self::Error> {
         Ok(Self {
             series_id: 0,
@@ -84,10 +85,10 @@ impl TryFrom<&Battery> for RawBattery {
                 0,
             )
             .ok_or_else(|| {
-                format!(
+                Error::InvalidInput(format!(
                     "Invalid timestamp: {:?}",
                     input.time.into_format_args(second, Abbreviation),
-                )
+                ))
             })?,
             charge_wh: input.charge.get::<watt_hour>().round() as i32,
             energy_in_wh: input.energy_in.get::<watt_hour>().round() as i64,

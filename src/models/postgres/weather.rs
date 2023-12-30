@@ -23,6 +23,7 @@ use super::{
         Angle, Length, Pressure, Ratio, Temperature, Time, Velocity,
     },
 };
+use crate::Error;
 use bresser6in1_usb::Data as BresserData;
 use chrono::NaiveDateTime;
 use diesel::prelude::{
@@ -177,7 +178,7 @@ impl From<RawWeather> for Weather {
 }
 
 impl TryFrom<&Weather> for RawWeather {
-    type Error = String;
+    type Error = Error;
     fn try_from(input: &Weather) -> Result<Self, Self::Error> {
         Ok(Self {
             series_id: 0,
@@ -186,10 +187,10 @@ impl TryFrom<&Weather> for RawWeather {
                 0,
             )
             .ok_or_else(|| {
-                format!(
+                Error::InvalidInput(format!(
                     "Invalid timestamp: {:?}",
                     input.time.into_format_args(second, Abbreviation),
-                )
+                ))
             })?,
             temp_in_degc_e1: (input.temp_in.get::<celsius>() * 1e1).round()
                 as i16,
