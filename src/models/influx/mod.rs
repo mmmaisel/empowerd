@@ -65,6 +65,20 @@ pub enum InfluxSeriesResult<T> {
     Err(String),
 }
 
+pub enum InfluxOrder {
+    Asc,
+    Desc,
+}
+
+impl std::fmt::Display for InfluxOrder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Asc => write!(f, "ASC"),
+            Self::Desc => write!(f, "DESC"),
+        }
+    }
+}
+
 pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
     InfluxDbWriteable
 {
@@ -90,12 +104,14 @@ pub trait InfluxObject<T: 'static + Send + for<'de> serde::Deserialize<'de>>:
         measurement: &str,
         query: &str,
         limit: Option<u32>,
+        order: InfluxOrder,
     ) -> ReadQuery {
         let query = format!(
-            "SELECT time, {} FROM {} WHERE {} ORDER BY ASC",
+            "SELECT time, {} FROM {} WHERE {} ORDER BY {}",
             Self::FIELDS,
             measurement,
             query,
+            order,
         );
 
         match limit {

@@ -19,7 +19,10 @@
 
 use clap::{Arg, Command};
 use libempowerd::{
-    models::{units::watt_hour, Battery, InfluxObject, InfluxSeriesResult},
+    models::{
+        units::watt_hour, Battery, InfluxObject, InfluxOrder,
+        InfluxSeriesResult,
+    },
     settings::Settings,
 };
 
@@ -41,6 +44,7 @@ async fn migrate_batch(
                     now * 1_000_000_000
                 ),
                 None,
+                InfluxOrder::Asc,
             ))
             .await,
     ) {
