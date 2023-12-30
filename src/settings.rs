@@ -549,12 +549,26 @@ impl Settings {
         Ok(())
     }
 
+    /// Validates series IDs
+    fn validate_id(ids: &mut BTreeSet<i32>, id: i32) -> Result<(), String> {
+        if ids.contains(&id) {
+            return Err(format!(
+                "Duplicate series_id in config file: '{}'",
+                id
+            ));
+        }
+        ids.insert(id);
+        Ok(())
+    }
+
     /// Validates complete settings.
     fn validate(&self) -> Result<(), String> {
         let mut names = BTreeSet::new();
+        let mut ids = BTreeSet::new();
 
         for source in &self.sources {
             Self::validate_name(&mut names, &source.name)?;
+            Self::validate_id(&mut ids, source.series_id)?;
         }
 
         for processor in &self.processors {
