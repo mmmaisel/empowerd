@@ -51,6 +51,9 @@ members = [
 name = "libempowerd"
 path = "src/lib.rs"
 
+[profile.release]
+lto = "thin"
+
 [dependencies]
 bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
 dachs-client = { version = "*", path = "lib/dachs-client/" }
