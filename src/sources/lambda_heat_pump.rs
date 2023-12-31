@@ -16,15 +16,18 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::misc::parse_socketaddr_with_default;
-use crate::models::{
-    units::{
-        celsius, joule, ratio, second, watt, watt_hour, Energy, Power, Ratio,
-        Temperature, Time,
+use crate::{
+    misc::parse_socketaddr_with_default,
+    models::{
+        units::{
+            celsius, joule, ratio, second, watt, watt_hour, Energy, Power,
+            Ratio, Temperature, Time,
+        },
+        Heatpump,
     },
-    Heatpump, InfluxResult,
+    task_group::TaskResult,
+    Error,
 };
-use crate::task_group::TaskResult;
 use lambda_client::LambdaClient;
 use slog::{error, trace};
 use std::collections::VecDeque;
@@ -56,6 +59,17 @@ impl LambdaHeatPumpSource {
         let (now, oversample) = match self.base.sleep_aligned().await {
             Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
+        };
+
+        let mut conn = match self.base.database.get().await {
+            Ok(x) => x,
+            Err(e) => {
+                error!(
+                    self.base.logger,
+                    "Getting database connection from pool failed: {}", e
+                );
+                return TaskResult::Running;
+            }
         };
 
         let power = match tokio::time::timeout(
@@ -129,35 +143,37 @@ impl LambdaHeatPumpSource {
             }
 
             // Get accumulated energy from database.
-            let last_record = match self.base.query_last::<Heatpump>().await {
-                InfluxResult::Some(last_record) => {
-                    trace!(
-                        self.base.logger,
-                        "Read {:?} from database",
+            let last_record =
+                match Heatpump::last(&mut conn, self.base.series_id).await {
+                    Ok(last_record) => {
+                        trace!(
+                            self.base.logger,
+                            "Read {:?} from database",
+                            last_record
+                        );
                         last_record
-                    );
-                    last_record
-                }
-                InfluxResult::None => Heatpump::new(
-                    now - Time::new::<second>(
-                        self.base.interval.as_secs() as f64
-                    ),
-                    Energy::new::<watt_hour>(0.0),
-                    Power::new::<watt>(0.0),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-                InfluxResult::Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Query {} database failed: {}", &self.base.name, e
-                    );
-                    return TaskResult::Running;
-                }
-            };
+                    }
+                    Err(Error::NotFound) => Heatpump {
+                        time: now
+                            - Time::new::<second>(
+                                self.base.interval.as_secs() as f64
+                            ),
+                        energy: Energy::new::<watt_hour>(0.0),
+                        power: Power::new::<watt>(0.0),
+                        heat: None,
+                        cop: None,
+                        boiler_top: None,
+                        boiler_mid: None,
+                        boiler_bot: None,
+                    },
+                    Err(e) => {
+                        error!(
+                            self.base.logger,
+                            "Query {} database failed: {}", &self.base.name, e
+                        );
+                        return TaskResult::Running;
+                    }
+                };
 
             // Update accumulated energy.
             let energy_total = self.energy_interval + last_record.energy;
@@ -189,23 +205,37 @@ impl LambdaHeatPumpSource {
             };
 
             // Commit new sample to database.
-            let mut record = Heatpump::new(
-                now,
-                energy_total,
-                Power::new::<watt>(0.0),
-                Some(
-                    last_record.total_heat.unwrap_or(Energy::new::<joule>(0.0))
+            let mut record = Heatpump {
+                time: now,
+                energy: energy_total,
+                power: Power::new::<watt>(0.0),
+                heat: Some(
+                    last_record.heat.unwrap_or(Energy::new::<joule>(0.0))
                         + (energy_total - last_record.energy) * cop,
                 ),
-                Some(cop),
-                Some(Temperature::new::<celsius>(boiler.0 as f64 / 10.0)),
-                Some(Temperature::new::<celsius>(boiler.1 as f64 / 10.0)),
-                Some(Temperature::new::<celsius>(boiler.2 as f64 / 10.0)),
-            );
+                cop: Some(cop),
+                boiler_top: Some(Temperature::new::<celsius>(
+                    boiler.0 as f64 / 10.0,
+                )),
+                boiler_mid: Some(Temperature::new::<celsius>(
+                    boiler.1 as f64 / 10.0,
+                )),
+                boiler_bot: Some(Temperature::new::<celsius>(
+                    boiler.2 as f64 / 10.0,
+                )),
+            };
             record.power = record.calc_power(&last_record);
 
             self.base.notify_processors(&record);
-            let _: Result<(), ()> = self.base.save_record(record).await;
+            if let Err(e) = record.insert(&mut conn, self.base.series_id).await
+            {
+                error!(
+                    self.base.logger,
+                    "Inserting {} record into database failed: {}",
+                    &self.base.name,
+                    e
+                );
+            }
 
             self.reset_sample();
         }

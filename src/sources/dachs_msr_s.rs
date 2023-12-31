@@ -16,11 +16,14 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{
-    units::{kilowatt_hour, second, watt, Energy, Power, Time},
-    Generator, InfluxResult,
+use crate::{
+    models::{
+        units::{kilowatt_hour, second, watt, Energy, Power, Time},
+        Generator,
+    },
+    task_group::TaskResult,
+    Error,
 };
-use crate::task_group::TaskResult;
 use dachs_client::DachsClient;
 use slog::{error, trace};
 
@@ -42,6 +45,17 @@ impl DachsMsrSSource {
         let (now, _oversample) = match self.base.sleep_aligned().await {
             Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
+        };
+
+        let mut conn = match self.base.database.get().await {
+            Ok(x) => x,
+            Err(e) => {
+                error!(
+                    self.base.logger,
+                    "Getting database connection from pool failed: {}", e
+                );
+                return TaskResult::Running;
+            }
         };
 
         let (dachs_runtime, dachs_energy) = match tokio::time::timeout(
@@ -85,8 +99,9 @@ impl DachsMsrSSource {
             }
         };
 
-        let power = match self.base.query_last::<Generator>().await {
-            InfluxResult::Some(last_record) => {
+        let power = match Generator::last(&mut conn, self.base.series_id).await
+        {
+            Ok(last_record) => {
                 // TODO: derive nonlinear power from delta timestamp and delta runtime
                 if (dachs_runtime.get::<second>() as i64)
                     != (last_record.runtime.get::<second>() as i64)
@@ -96,8 +111,8 @@ impl DachsMsrSSource {
                     Power::new::<watt>(0.0)
                 }
             }
-            InfluxResult::None => Power::new::<watt>(0.0),
-            InfluxResult::Err(e) => {
+            Err(Error::NotFound) => Power::new::<watt>(0.0),
+            Err(e) => {
                 error!(
                     self.base.logger,
                     "Query {} database failed: {}", &self.base.name, e
@@ -106,10 +121,23 @@ impl DachsMsrSSource {
             }
         };
 
-        let record = Generator::new(now, dachs_energy, power, dachs_runtime);
+        let record = Generator {
+            time: now,
+            energy: dachs_energy,
+            power,
+            runtime: dachs_runtime,
+        };
 
         self.base.notify_processors(&record);
-        let _: Result<(), ()> = self.base.save_record(record).await;
+        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
+            error!(
+                self.base.logger,
+                "Inserting {} record into database failed: {}",
+                &self.base.name,
+                e
+            );
+        }
+
         TaskResult::Running
     }
 }

@@ -39,14 +39,17 @@ pub mod units {
 }
 
 pub use available_power::AvailablePower;
-pub use influx::*;
+pub use postgres::{
+    run_migrations, Battery, BidirMeter, Generator, Heatpump, SimpleMeter,
+    Weather,
+};
 
 #[derive(Clone, Debug)]
 pub enum Model {
     None,
     AvailablePower(AvailablePower),
     Battery(Battery),
-    BidirectionalMeter(BidirectionalMeter),
+    BidirMeter(BidirMeter),
     Generator(Generator),
     Heatpump(Heatpump),
     SimpleMeter(SimpleMeter),
@@ -67,9 +70,9 @@ impl From<Battery> for Model {
     }
 }
 
-impl From<BidirectionalMeter> for Model {
-    fn from(record: BidirectionalMeter) -> Self {
-        Model::BidirectionalMeter(record)
+impl From<BidirMeter> for Model {
+    fn from(record: BidirMeter) -> Self {
+        Model::BidirMeter(record)
     }
 }
 
@@ -100,6 +103,10 @@ impl From<Weather> for Model {
 
 impl From<&Heatpump> for SimpleMeter {
     fn from(record: &Heatpump) -> Self {
-        SimpleMeter::new(record.time, record.energy, record.power)
+        SimpleMeter {
+            time: record.time,
+            energy: record.energy,
+            power: record.power,
+        }
     }
 }

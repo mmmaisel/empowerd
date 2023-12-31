@@ -16,12 +16,15 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::misc::parse_socketaddr_with_default;
-use crate::models::{
-    units::{second, watt, watt_hour, Energy, Power, Time},
-    Battery, InfluxResult,
+use crate::{
+    misc::parse_socketaddr_with_default,
+    models::{
+        units::{second, watt, watt_hour, Energy, Power, Time},
+        Battery,
+    },
+    task_group::TaskResult,
+    Error,
 };
-use crate::task_group::TaskResult;
 use slog::error;
 use sunny_storage_client::{
     SunnyBoyStorageClient, SunnyIslandClient, SunnyStorageClient,
@@ -69,7 +72,18 @@ impl SunnyStorageSource {
             Err(e) => return e,
         };
 
-        let (wh_in, wh_out, charge) =
+        let mut conn = match self.base.database.get().await {
+            Ok(x) => x,
+            Err(e) => {
+                error!(
+                    self.base.logger,
+                    "Getting database connection from pool failed: {}", e
+                );
+                return TaskResult::Running;
+            }
+        };
+
+        let (energy_in, energy_out, charge) =
             match self.battery_client.get_in_out_charge().await {
                 Ok((x, y, z)) => (
                     Energy::new::<watt_hour>(x as f64),
@@ -82,12 +96,18 @@ impl SunnyStorageSource {
                 }
             };
 
-        let mut record =
-            Battery::new(now, charge, wh_in, wh_out, Power::new::<watt>(0.0));
-        record.power = match self.base.query_last::<Battery>().await {
-            InfluxResult::Some(last_record) => record.calc_power(&last_record),
-            InfluxResult::None => Power::new::<watt>(0.0),
-            InfluxResult::Err(e) => {
+        let mut record = Battery {
+            time: now,
+            charge,
+            energy_in,
+            energy_out,
+            power: Power::new::<watt>(0.0),
+        };
+        record.power = match Battery::last(&mut conn, self.base.series_id).await
+        {
+            Ok(last_record) => record.calc_power(&last_record),
+            Err(Error::NotFound) => Power::new::<watt>(0.0),
+            Err(e) => {
                 error!(
                     self.base.logger,
                     "Query {} database failed: {}", &self.base.name, e
@@ -97,7 +117,15 @@ impl SunnyStorageSource {
         };
 
         self.base.notify_processors(&record);
-        let _: Result<(), ()> = self.base.save_record(record).await;
+        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
+            error!(
+                self.base.logger,
+                "Inserting {} record into database failed: {}",
+                &self.base.name,
+                e
+            );
+        }
+
         TaskResult::Running
     }
 }

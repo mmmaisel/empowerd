@@ -37,6 +37,17 @@ impl Bresser6in1Source {
             Err(e) => return e,
         };
 
+        let mut conn = match self.base.database.get().await {
+            Ok(x) => x,
+            Err(e) => {
+                error!(
+                    self.base.logger,
+                    "Getting database connection from pool failed: {}", e
+                );
+                return TaskResult::Running;
+            }
+        };
+
         let logger2 = self.base.logger.clone();
         let mut weather_data = match tokio::task::block_in_place(move || {
             // TODO: move bresser client (allocated buffers, ...) back to Miner struct
@@ -88,7 +99,15 @@ impl Bresser6in1Source {
 
         let record = Weather::new(weather_data);
         self.base.notify_processors(&record);
-        let _: Result<(), ()> = self.base.save_record(record).await;
+        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
+            error!(
+                self.base.logger,
+                "Inserting {} record into database failed: {}",
+                &self.base.name,
+                e
+            );
+        }
+
         TaskResult::Running
     }
 }

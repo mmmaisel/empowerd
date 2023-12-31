@@ -16,11 +16,14 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{
-    units::{second, watt, watt_hour, Abbreviation, Energy, Power, Time},
-    InfluxResult, SimpleMeter,
+use crate::{
+    models::{
+        units::{second, watt, watt_hour, Abbreviation, Energy, Power, Time},
+        SimpleMeter,
+    },
+    task_group::TaskResult,
+    Error,
 };
-use crate::task_group::TaskResult;
 use slog::{debug, error, trace};
 use sma_client::{SmaClient, TimestampedInt};
 use std::net::SocketAddr;
@@ -62,22 +65,33 @@ impl SunnyBoySpeedwireSource {
             Err(e) => return e,
         };
 
-        let mut last_record = match self.base.query_last::<SimpleMeter>().await
-        {
-            InfluxResult::Some(x) => x,
-            InfluxResult::None => SimpleMeter::new(
-                Time::new::<second>(0.0),
-                Energy::new::<watt_hour>(0.0),
-                Power::new::<watt>(0.0),
-            ),
-            InfluxResult::Err(e) => {
+        let mut conn = match self.base.database.get().await {
+            Ok(x) => x,
+            Err(e) => {
                 error!(
                     self.base.logger,
-                    "Query {} database failed: {}", &self.base.name, e
+                    "Getting database connection from pool failed: {}", e
                 );
                 return TaskResult::Running;
             }
         };
+
+        let mut last_record =
+            match SimpleMeter::last(&mut conn, self.base.series_id).await {
+                Ok(x) => x,
+                Err(Error::NotFound) => SimpleMeter {
+                    time: Time::new::<second>(0.0),
+                    energy: Energy::new::<watt_hour>(0.0),
+                    power: Power::new::<watt>(0.0),
+                },
+                Err(e) => {
+                    error!(
+                        self.base.logger,
+                        "Query {} database failed: {}", &self.base.name, e
+                    );
+                    return TaskResult::Running;
+                }
+            };
         let session = match self.sma_client.open(self.sma_addr, None) {
             Ok(x) => x,
             Err(e) => {
@@ -185,13 +199,23 @@ impl SunnyBoySpeedwireSource {
         for point in points {
             let time = Time::new::<second>(point.timestamp as f64);
             let energy = Energy::new::<watt_hour>(point.value as f64);
-            let mut record =
-                SimpleMeter::new(time, energy, Power::new::<watt>(0.0));
+            let mut record = SimpleMeter {
+                time,
+                energy,
+                power: Power::new::<watt>(0.0),
+            };
             record.power = record.calc_power(&last_record);
             last_record = record.clone();
 
             self.base.notify_processors(&record);
-            if self.base.save_record(record).await.is_err() {
+            if let Err(e) = record.insert(&mut conn, self.base.series_id).await
+            {
+                error!(
+                    self.base.logger,
+                    "Inserting {} record into database failed: {}",
+                    &self.base.name,
+                    e
+                );
                 return TaskResult::Running;
             }
         }

@@ -16,12 +16,15 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::misc::parse_socketaddr_with_default;
-use crate::models::{
-    units::{second, watt, watt_hour, Energy, Power, Time},
-    InfluxResult, SimpleMeter,
+use crate::{
+    misc::parse_socketaddr_with_default,
+    models::{
+        units::{second, watt, watt_hour, Energy, Power, Time},
+        SimpleMeter,
+    },
+    task_group::TaskResult,
+    Error,
 };
-use crate::task_group::TaskResult;
 use kecontact_client::KeContactClient;
 use slog::{error, trace};
 
@@ -42,6 +45,17 @@ impl KeContactSource {
         let (now, _oversample) = match self.base.sleep_aligned().await {
             Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
+        };
+
+        let mut conn = match self.base.database.get().await {
+            Ok(x) => x,
+            Err(e) => {
+                error!(
+                    self.base.logger,
+                    "Getting database connection from pool failed: {}", e
+                );
+                return TaskResult::Running;
+            }
         };
 
         let report = match tokio::time::timeout(
@@ -76,28 +90,41 @@ impl KeContactSource {
 
         let energy = Energy::new::<watt_hour>((report.e_total as f64) / 10.0);
 
-        let mut record = SimpleMeter::new(now, energy, Power::new::<watt>(0.0));
-        record.power = match self.base.query_last::<SimpleMeter>().await {
-            InfluxResult::Some(last_record) => {
-                trace!(
-                    self.base.logger,
-                    "Read {:?} from database",
-                    last_record
-                );
-                record.calc_power(&last_record)
-            }
-            InfluxResult::None => Power::new::<watt>(0.0),
-            InfluxResult::Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Query {} database failed: {}", &self.base.name, e
-                );
-                return TaskResult::Running;
-            }
+        let mut record = SimpleMeter {
+            time: now,
+            energy,
+            power: Power::new::<watt>(0.0),
         };
+        record.power =
+            match SimpleMeter::last(&mut conn, self.base.series_id).await {
+                Ok(last_record) => {
+                    trace!(
+                        self.base.logger,
+                        "Read {:?} from database",
+                        last_record
+                    );
+                    record.calc_power(&last_record)
+                }
+                Err(Error::NotFound) => Power::new::<watt>(0.0),
+                Err(e) => {
+                    error!(
+                        self.base.logger,
+                        "Query {} database failed: {}", &self.base.name, e
+                    );
+                    return TaskResult::Running;
+                }
+            };
 
         self.base.notify_processors(&record);
-        let _: Result<(), ()> = self.base.save_record(record).await;
+        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
+            error!(
+                self.base.logger,
+                "Inserting {} record into database failed: {}",
+                &self.base.name,
+                e
+            );
+        }
+
         TaskResult::Running
     }
 }

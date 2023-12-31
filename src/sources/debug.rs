@@ -16,11 +16,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{
-    units::{joule, second, watt, Energy, Power, Time},
-    SimpleMeter,
+use crate::{
+    models::{
+        units::{joule, second, watt, Energy, Power, Time},
+        SimpleMeter,
+    },
+    task_group::TaskResult,
 };
-use crate::task_group::TaskResult;
 use slog::debug;
 
 pub struct DebugSource {
@@ -47,7 +49,11 @@ impl DebugSource {
         let power = Power::new::<watt>(self.phase.sin().abs());
         let energy_inc =
             power * Time::new::<second>(self.base.interval.as_secs() as f64);
-        let record = SimpleMeter::new(now, self.energy + energy_inc, power);
+        let record = SimpleMeter {
+            time: now,
+            energy: self.energy + energy_inc,
+            power,
+        };
         self.energy += energy_inc;
         self.phase += 0.1;
 

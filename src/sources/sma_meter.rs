@@ -16,11 +16,14 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::{
-    units::{joule, second, watt, Energy, Power, Time},
-    BidirectionalMeter, InfluxResult,
+use crate::{
+    models::{
+        units::{joule, second, watt, Energy, Power, Time},
+        BidirMeter,
+    },
+    task_group::TaskResult,
+    Error,
 };
-use crate::task_group::TaskResult;
 use slog::{error, trace};
 use sma_client::SmaClient;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -58,6 +61,17 @@ impl SmaMeterSource {
         let (now, _oversample) = match self.base.sleep_aligned().await {
             Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
             Err(e) => return e,
+        };
+
+        let mut conn = match self.base.database.get().await {
+            Ok(x) => x,
+            Err(e) => {
+                error!(
+                    self.base.logger,
+                    "Getting database connection from pool failed: {}", e
+                );
+                return TaskResult::Running;
+            }
         };
 
         let session =
@@ -103,34 +117,42 @@ impl SmaMeterSource {
             }
         };
 
-        let mut record = BidirectionalMeter::new(
-            now,
-            consumed,
-            produced,
-            Power::new::<watt>(0.0),
-        );
-        record.power = match self.base.query_last::<BidirectionalMeter>().await
-        {
-            InfluxResult::Some(last_record) => {
-                trace!(
-                    self.base.logger,
-                    "Read {:?} from database",
-                    last_record
-                );
-                record.calc_power(&last_record)
-            }
-            InfluxResult::None => Power::new::<watt>(0.0),
-            InfluxResult::Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Query {} database failed: {}", &self.base.name, e
-                );
-                return TaskResult::Running;
-            }
+        let mut record = BidirMeter {
+            time: now,
+            energy_in: consumed,
+            energy_out: produced,
+            power: Power::new::<watt>(0.0),
         };
+        record.power =
+            match BidirMeter::last(&mut conn, self.base.series_id).await {
+                Ok(last_record) => {
+                    trace!(
+                        self.base.logger,
+                        "Read {:?} from database",
+                        last_record
+                    );
+                    record.calc_power(&last_record)
+                }
+                Err(Error::NotFound) => Power::new::<watt>(0.0),
+                Err(e) => {
+                    error!(
+                        self.base.logger,
+                        "Query {} database failed: {}", &self.base.name, e
+                    );
+                    return TaskResult::Running;
+                }
+            };
 
         self.base.notify_processors(&record);
-        let _: Result<(), ()> = self.base.save_record(record).await;
+        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
+            error!(
+                self.base.logger,
+                "Inserting {} record into database failed: {}",
+                &self.base.name,
+                e
+            );
+        }
+
         TaskResult::Running
     }
 }
