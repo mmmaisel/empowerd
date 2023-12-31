@@ -80,6 +80,12 @@ impl SeasonalBuilder {
     }
 }
 
+impl Default for SeasonalBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct Seasonal {
     latitude: f64,
     longitude: f64,

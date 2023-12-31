@@ -255,11 +255,7 @@ impl LoadControlProcessor {
         charge: Energy,
     ) -> (Power, Energy) {
         let seasonal_correction = match seasonal {
-            Some(ref x) => {
-                let correction =
-                    Energy::new::<watt_hour>(x.current_correction());
-                correction
-            }
+            Some(ref x) => Energy::new::<watt_hour>(x.current_correction()),
             None => Energy::new::<watt_hour>(0.0),
         };
 
