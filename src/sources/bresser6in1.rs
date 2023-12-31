@@ -16,8 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::models::Weather;
-use crate::task_group::TaskResult;
+use crate::{models::Weather, task_group::TaskResult};
 use bresser6in1_usb::{Client as BresserClient, PID, VID};
 use slog::{debug, error, warn};
 use std::time::Duration;
@@ -39,7 +38,7 @@ impl Bresser6in1Source {
         };
 
         let logger2 = self.base.logger.clone();
-        let weather_data = match tokio::task::spawn_blocking(move || {
+        let mut weather_data = match tokio::task::block_in_place(move || {
             // TODO: move bresser client (allocated buffers, ...) back to Miner struct
             let mut bresser_client = BresserClient::new(Some(logger2.clone()));
             let mut weather_data = bresser_client.read_data();
@@ -75,19 +74,7 @@ impl Bresser6in1Source {
                 }
             }
             return weather_data;
-        })
-        .await
-        {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Joining blocking Bresser USB task failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
-        let mut weather_data = match weather_data {
+        }) {
             Ok(x) => x,
             Err(e) => {
                 error!(
