@@ -20,8 +20,8 @@
 use clap::{Arg, Command};
 use libempowerd::{
     models::{
-        units::watt_hour, Battery, InfluxObject, InfluxOrder,
-        InfluxSeriesResult,
+        influx::{Battery, InfluxObject, InfluxOrder, InfluxSeriesResult},
+        units::watt_hour,
     },
     settings::Settings,
 };

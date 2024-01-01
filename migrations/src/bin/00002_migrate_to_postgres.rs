@@ -188,7 +188,7 @@ async fn migrate_battery(
                 if continue_on_err {
                     eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
                 } else {
-                    return Err(e);
+                    return Err(e.to_string());
                 }
             }
         }
@@ -224,7 +224,7 @@ async fn migrate_simple_meter(
                 if continue_on_err {
                     eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
                 } else {
-                    return Err(e);
+                    return Err(e.to_string());
                 }
             }
         }
@@ -260,7 +260,7 @@ async fn migrate_generator(
                 if continue_on_err {
                     eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
                 } else {
-                    return Err(e);
+                    return Err(e.to_string());
                 }
             }
         }
@@ -300,7 +300,7 @@ async fn migrate_heatpump(
                 if continue_on_err {
                     eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
                 } else {
-                    return Err(e);
+                    return Err(e.to_string());
                 }
             }
         }
@@ -336,7 +336,7 @@ async fn migrate_bidir_meter(
                 if continue_on_err {
                     eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
                 } else {
-                    return Err(e);
+                    return Err(e.to_string());
                 }
             }
         }
@@ -388,7 +388,7 @@ async fn migrate_weather(
                 if continue_on_err {
                     eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
                 } else {
-                    return Err(e);
+                    return Err(e.to_string());
                 }
             }
         }
