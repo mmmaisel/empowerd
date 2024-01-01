@@ -63,11 +63,7 @@ impl SunnyBoySpeedwireSource {
     // XXX: this function is much too long
     pub async fn run(&mut self) -> TaskResult {
         let timing = self.base.sleep_aligned().await?;
-        let mut conn = self.base.database.get().await.map_err(|e| {
-            Error::Temporary(format!(
-                "Getting database connection from pool failed: {e}",
-            ))
-        })?;
+        let mut conn = self.base.get_database().await?;
 
         let mut last_record =
             match SimpleMeter::last(&mut conn, self.base.series_id).await {
@@ -193,15 +189,7 @@ impl SunnyBoySpeedwireSource {
             last_record = record.clone();
 
             self.base.notify_processors(&record);
-            record
-                .insert(&mut conn, self.base.series_id)
-                .await
-                .map_err(|e| {
-                    Error::Temporary(format!(
-                        "Inserting {} record into database failed: {}",
-                        &self.base.name, e,
-                    ))
-                })?;
+            record.insert(&mut conn, self.base.series_id).await?;
         }
 
         trace!(

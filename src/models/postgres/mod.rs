@@ -79,7 +79,12 @@ macro_rules! impl_timeseries {
                 diesel::insert_into(schema::$schema::table)
                     .values(&raw)
                     .execute(conn)
-                    .await?;
+                    .await
+                    .map_err(|e| {
+                        Error::Temporary(format!(
+                            "Inserting record into series {series_id} failed: {e}",
+                        ))
+                    })?;
 
                 Ok(())
             }

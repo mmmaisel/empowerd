@@ -61,11 +61,7 @@ impl LambdaHeatPumpSource {
 
     pub async fn run(&mut self) -> TaskResult {
         let timing = self.base.sleep_aligned().await?;
-        let mut conn = self.base.database.get().await.map_err(|e| {
-            Error::Temporary(format!(
-                "Getting database connection from pool failed: {e}",
-            ))
-        })?;
+        let mut conn = self.base.get_database().await?;
 
         let power = match tokio::time::timeout(
             std::time::Duration::from_secs(3),
@@ -195,15 +191,7 @@ impl LambdaHeatPumpSource {
             record.power = record.calc_power(&last_record);
 
             self.base.notify_processors(&record);
-            record
-                .insert(&mut conn, self.base.series_id)
-                .await
-                .map_err(|e| {
-                    Error::Temporary(format!(
-                        "Inserting {} record into database failed: {}",
-                        &self.base.name, e,
-                    ))
-                })?;
+            record.insert(&mut conn, self.base.series_id).await?;
 
             self.reset_sample();
         }

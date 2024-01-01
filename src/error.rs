@@ -24,7 +24,6 @@ pub enum Error {
     Bug(String),
     Temporary(String),
     System(String),
-    DatabaseError(String),
     InvalidInput(String),
 }
 
@@ -44,7 +43,7 @@ impl From<DieselError> for Error {
     fn from(input: DieselError) -> Self {
         match input {
             DieselError::NotFound => Self::NotFound,
-            _ => Self::DatabaseError(input.to_string()),
+            _ => Self::Temporary(input.to_string()),
         }
     }
 }

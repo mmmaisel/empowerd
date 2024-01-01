@@ -24,7 +24,10 @@ use crate::{
     Error,
 };
 use diesel_async::{
-    pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
+    pooled_connection::{
+        deadpool::{Object, Pool},
+        AsyncDieselConnectionManager,
+    },
     AsyncPgConnection,
 };
 use slog::{debug, trace, Logger};
@@ -167,6 +170,16 @@ impl SourceBase {
         if let Some(processors) = &self.processors {
             processors.send_replace(record.clone().into());
         }
+    }
+
+    pub async fn get_database(
+        &self,
+    ) -> Result<Object<AsyncPgConnection>, Error> {
+        self.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })
     }
 }
 

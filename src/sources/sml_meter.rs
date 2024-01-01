@@ -61,11 +61,7 @@ impl SmlMeterSource {
 
     pub async fn run(&mut self) -> TaskResult {
         let timing = self.base.sleep_aligned().await?;
-        let mut conn = self.base.database.get().await.map_err(|e| {
-            Error::Temporary(format!(
-                "Getting database connection from pool failed: {e}",
-            ))
-        })?;
+        let mut conn = self.base.get_database().await?;
 
         let mut meter_data = self.sml_client.get_consumed_produced().await;
         for i in 1..4u8 {
@@ -135,15 +131,7 @@ impl SmlMeterSource {
             };
 
         self.base.notify_processors(&record);
-        record
-            .insert(&mut conn, self.base.series_id)
-            .await
-            .map_err(|e| {
-                Error::Temporary(format!(
-                    "Inserting {} record into database failed: {}",
-                    &self.base.name, e,
-                ))
-            })?;
+        record.insert(&mut conn, self.base.series_id).await?;
 
         Ok(())
     }

@@ -41,11 +41,7 @@ impl Bresser6in1Source {
 
     pub async fn run(&mut self) -> TaskResult {
         let timing = self.base.sleep_aligned().await?;
-        let mut conn = self.base.database.get().await.map_err(|e| {
-            Error::Temporary(format!(
-                "Getting database connection from pool failed: {e}",
-            ))
-        })?;
+        let mut conn = self.base.get_database().await?;
 
         let mut weather_data = tokio::task::block_in_place(|| {
             let mut weather_data = self.bresser_client.read_data();
@@ -88,15 +84,7 @@ impl Bresser6in1Source {
 
         let record = Weather::new(weather_data);
         self.base.notify_processors(&record);
-        record
-            .insert(&mut conn, self.base.series_id)
-            .await
-            .map_err(|e| {
-                Error::Temporary(format!(
-                    "Inserting {} record into database failed: {}",
-                    &self.base.name, e,
-                ))
-            })?;
+        record.insert(&mut conn, self.base.series_id).await?;
 
         Ok(())
     }
