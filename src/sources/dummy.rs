@@ -17,6 +17,7 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::task_group::TaskResult;
+use slog::Logger;
 
 pub struct DummySource {
     base: SourceBase,
@@ -27,11 +28,13 @@ impl DummySource {
         Self { base }
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
-        match self.base.sleep_aligned().await {
-            Ok(_) => (),
-            Err(e) => return e,
-        };
-        TaskResult::Running
+        self.base.sleep_aligned().await?;
+
+        Ok(())
     }
 }

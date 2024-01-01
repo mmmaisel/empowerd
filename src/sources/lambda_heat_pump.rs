@@ -29,7 +29,7 @@ use crate::{
     Error,
 };
 use lambda_client::LambdaClient;
-use slog::{error, trace};
+use slog::{trace, Logger};
 use std::collections::VecDeque;
 
 pub struct LambdaHeatPumpSource {
@@ -55,36 +55,26 @@ impl LambdaHeatPumpSource {
         })
     }
 
-    pub async fn run(&mut self) -> TaskResult {
-        let (now, oversample) = match self.base.sleep_aligned().await {
-            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
-            Err(e) => return e,
-        };
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
 
-        let mut conn = match self.base.database.get().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Getting database connection from pool failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
+    pub async fn run(&mut self) -> TaskResult {
+        let timing = self.base.sleep_aligned().await?;
+        let mut conn = self.base.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })?;
 
         let power = match tokio::time::timeout(
             std::time::Duration::from_secs(3),
             async {
-                let mut context = match self.client.open().await {
-                    Ok(x) => x,
-                    Err(e) => {
-                        error!(
-                            self.base.logger,
-                            "Could not connect to Lambda Heat Pump: {}", e
-                        );
-                        return Err(());
-                    }
-                };
+                let mut context = self.client.open().await.map_err(|e| {
+                    Error::Temporary(format!(
+                        "Could not connect to Lambda Heat Pump: {e}",
+                    ))
+                })?;
 
                 match context.get_cop().await {
                     Ok(x) => {
@@ -92,38 +82,27 @@ impl LambdaHeatPumpSource {
                         self.cops.push_back(x);
                     }
                     Err(e) => {
-                        error!(
-                            self.base.logger,
-                            "Query Lambda Heat Pump data failed: {}", e
-                        );
-                        return Err(());
+                        return Err(Error::Temporary(format!(
+                            "Query Lambda Heat Pump data failed: {e}",
+                        )))
                     }
                 }
 
-                match context.get_current_power().await {
-                    Ok(x) => Ok(x),
-                    Err(e) => {
-                        error!(
-                            self.base.logger,
-                            "Query Lambda Heat Pump data failed: {}", e
-                        );
-                        Err(())
-                    }
-                }
+                context.get_current_power().await.map_err(|e| {
+                    Error::Temporary(format!(
+                        "Query Lambda Heat Pump data failed: {e}",
+                    ))
+                })
             },
         )
         .await
         {
-            Ok(result) => match result {
-                Ok(x) => Power::new::<watt>(x as f64),
-                Err(_) => return TaskResult::Running,
-            },
+            Ok(Ok(x)) => Power::new::<watt>(x as f64),
+            Ok(Err(e)) => return Err(e),
             Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Query Lambda Heat Pump data timed out: {}", e
-                );
-                return TaskResult::Running;
+                return Err(Error::Temporary(format!(
+                    "Query Lambda Heat Pump data timed out: {e}",
+                )))
             }
         };
 
@@ -135,11 +114,11 @@ impl LambdaHeatPumpSource {
             ));
         self.count += 1;
 
-        if !oversample {
+        if !timing.oversample {
             // Discard incomplete samples.
             if self.count != self.base.oversample_factor {
                 self.reset_sample();
-                return TaskResult::Running;
+                return Ok(());
             }
 
             // Get accumulated energy from database.
@@ -154,7 +133,7 @@ impl LambdaHeatPumpSource {
                         last_record
                     }
                     Err(Error::NotFound) => Heatpump {
-                        time: now
+                        time: Time::new::<second>(timing.now as f64)
                             - Time::new::<second>(
                                 self.base.interval.as_secs() as f64
                             ),
@@ -167,11 +146,10 @@ impl LambdaHeatPumpSource {
                         boiler_bot: None,
                     },
                     Err(e) => {
-                        error!(
-                            self.base.logger,
-                            "Query {} database failed: {}", &self.base.name, e
-                        );
-                        return TaskResult::Running;
+                        return Err(Error::Temporary(format!(
+                            "Query {} database failed: {}",
+                            &self.base.name, e,
+                        )))
                     }
                 };
 
@@ -183,30 +161,20 @@ impl LambdaHeatPumpSource {
                     / 100.0,
             );
 
-            let mut context = match self.client.open().await {
-                Ok(x) => x,
-                Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Could not connect to Lambda Heat Pump: {}", e
-                    );
-                    return TaskResult::Running;
-                }
-            };
-            let boiler = match context.get_boiler_temps().await {
-                Ok(x) => x,
-                Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Query Lambda Heat Pump data failed: {}", e
-                    );
-                    return TaskResult::Running;
-                }
-            };
+            let mut context = self.client.open().await.map_err(|e| {
+                Error::Temporary(format!(
+                    "Could not connect to Lambda Heat Pump: {e}",
+                ))
+            })?;
+            let boiler = context.get_boiler_temps().await.map_err(|e| {
+                Error::Temporary(format!(
+                    "Query Lambda Heat Pump data failed: {e}",
+                ))
+            })?;
 
             // Commit new sample to database.
             let mut record = Heatpump {
-                time: now,
+                time: Time::new::<second>(timing.now as f64),
                 energy: energy_total,
                 power: Power::new::<watt>(0.0),
                 heat: Some(
@@ -227,19 +195,20 @@ impl LambdaHeatPumpSource {
             record.power = record.calc_power(&last_record);
 
             self.base.notify_processors(&record);
-            if let Err(e) = record.insert(&mut conn, self.base.series_id).await
-            {
-                error!(
-                    self.base.logger,
-                    "Inserting {} record into database failed: {}",
-                    &self.base.name,
-                    e
-                );
-            }
+            record
+                .insert(&mut conn, self.base.series_id)
+                .await
+                .map_err(|e| {
+                    Error::Temporary(format!(
+                        "Inserting {} record into database failed: {}",
+                        &self.base.name, e,
+                    ))
+                })?;
 
             self.reset_sample();
         }
-        TaskResult::Running
+
+        Ok(())
     }
 
     fn reset_sample(&mut self) {

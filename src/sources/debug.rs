@@ -23,7 +23,7 @@ use crate::{
     },
     task_group::TaskResult,
 };
-use slog::debug;
+use slog::{debug, Logger};
 
 pub struct DebugSource {
     base: SourceBase,
@@ -40,17 +40,18 @@ impl DebugSource {
         }
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
-        let (now, _oversample) = match self.base.sleep_aligned().await {
-            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
-            Err(e) => return e,
-        };
+        let timing = self.base.sleep_aligned().await?;
 
         let power = Power::new::<watt>(self.phase.sin().abs());
         let energy_inc =
             power * Time::new::<second>(self.base.interval.as_secs() as f64);
         let record = SimpleMeter {
-            time: now,
+            time: Time::new::<second>(timing.now as f64),
             energy: self.energy + energy_inc,
             power,
         };
@@ -59,6 +60,7 @@ impl DebugSource {
 
         debug!(self.base.logger, "Emitting {:?}", &record);
         self.base.notify_processors(&record);
-        TaskResult::Running
+
+        Ok(())
     }
 }

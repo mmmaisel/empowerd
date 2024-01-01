@@ -16,15 +16,18 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::models::{
-    units::{second, watt, Abbreviation, Power},
-    Model,
+use crate::{
+    models::{
+        units::{second, watt, Abbreviation, Power},
+        Model,
+    },
+    seasonal::Seasonal,
+    sinks::ArcSink,
+    task_group::TaskResult,
+    tri_state::TriState,
+    Error,
 };
-use crate::seasonal::Seasonal;
-use crate::sinks::ArcSink;
-use crate::task_group::TaskResult;
-use crate::tri_state::TriState;
-use slog::{debug, error, warn};
+use slog::{debug, warn, Logger};
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio::time;
@@ -90,6 +93,10 @@ impl ApplianceProcessor {
         }
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub fn validate_appliance(appliance: &ArcSink) -> bool {
         matches!(
             appliance,
@@ -100,65 +107,58 @@ impl ApplianceProcessor {
     pub async fn run(&mut self) -> TaskResult {
         tokio::select! {
             _ = self.base.canceled.changed() => {
-                return TaskResult::Canceled(self.base.name.clone());
+                return Err(Error::Canceled(self.base.name.clone()));
             }
             x = self.command_input.recv() => {
                 if let Some(command) = x {
                     if let Err(e) = self.handle_command(command) {
-                        return TaskResult::Err(e);
+                        return Err(Error::Bug(e));
                     }
                 }
             }
             x = self.power_input.changed() => {
                 if let Err(e) = x {
-                    return TaskResult::Err(
-                        format!("Reading available power failed: {}", e)
-                    );
+                    return Err(Error::Bug(
+                        format!("Reading available power failed: {e}")
+                    ));
                 }
             }
             x = self.appliance_input.changed() => {
                 if let Err(e) = x {
-                    return TaskResult::Err(
-                        format!("Reading current appliance power failed: {}", e)
-                    );
+                    return Err(Error::Bug(
+                        format!("Reading current appliance power failed: {e}")
+                    ));
                 }
             }
             _ = time::sleep(self.retransmit_interval) => {
-                if let Err(e) = Self::set_output(
+                return Self::set_output(
                     &self.appliance_output,
                     self.last_target_power,
                     self.last_appliance_power
-                ).await {
-                    error!(self.base.logger, "{}", e);
-                };
-                return TaskResult::Running;
+                ).await.map(|_| ());
             }
         };
 
         let mut available_power = match *self.power_input.borrow() {
             Model::AvailablePower(ref x) => x.clone(),
-            Model::None => return TaskResult::Running,
+            Model::None => return Ok(()),
             _ => {
-                error!(
-                    self.base.logger,
+                return Err(Error::Temporary(format!(
                     "Received invalid model from power input: {:?}",
                     *self.power_input.borrow()
-                );
-                return TaskResult::Running;
+                )))
             }
         };
 
         let appliance = match *self.appliance_input.borrow() {
             Model::Heatpump(ref x) => x.into(),
             Model::SimpleMeter(ref x) => x.clone(),
-            Model::None => return TaskResult::Running,
+            Model::None => return Ok(()),
             _ => {
-                error!(
-                    self.base.logger,
+                return Err(Error::Temporary(format!(
                     "Received invalid model from appliance input: {:?}",
                     *self.appliance_input.borrow()
-                );
-                return TaskResult::Running;
+                )))
             }
         };
 
@@ -174,7 +174,7 @@ impl ApplianceProcessor {
                     "Skipping appliance processor due to missing events"
                 );
             }
-            return TaskResult::Running;
+            return Ok(());
         }
         self.skipped_events = 0;
 
@@ -199,16 +199,8 @@ impl ApplianceProcessor {
             seasonal_correction,
         );
 
-        if let Err(e) = Self::set_output(
-            &self.appliance_output,
-            target_power,
-            appliance.power,
-        )
-        .await
-        {
-            error!(self.base.logger, "{}", e);
-            return TaskResult::Running;
-        };
+        Self::set_output(&self.appliance_output, target_power, appliance.power)
+            .await?;
 
         debug!(
             self.base.logger,
@@ -234,7 +226,7 @@ impl ApplianceProcessor {
         available_power.power = output_power;
         self.power_output.send_replace(available_power.into());
 
-        TaskResult::Running
+        Ok(())
     }
 
     fn calc_power(
@@ -298,17 +290,17 @@ impl ApplianceProcessor {
         output: &ArcSink,
         target_power: Power,
         current_power: Power,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, Error> {
         match output {
-            ArcSink::KeContact(wallbox) => {
-                wallbox
-                    .set_available_power(target_power, current_power)
-                    .await
-            }
-            ArcSink::LambdaHeatPump(lambda) => {
-                lambda.set_available_power(target_power).await
-            }
-            _ => Err("Unsupported appliance type".into()),
+            ArcSink::KeContact(wallbox) => wallbox
+                .set_available_power(target_power, current_power)
+                .await
+                .map_err(Error::Temporary),
+            ArcSink::LambdaHeatPump(lambda) => lambda
+                .set_available_power(target_power)
+                .await
+                .map_err(Error::Temporary),
+            _ => Err(Error::Bug("Unsupported appliance type".into())),
         }
     }
 

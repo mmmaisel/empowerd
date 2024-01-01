@@ -25,7 +25,7 @@ use crate::{
     Error,
 };
 use dachs_client::DachsClient;
-use slog::{error, trace};
+use slog::{trace, Logger};
 
 pub struct DachsMsrSSource {
     base: SourceBase,
@@ -41,22 +41,17 @@ impl DachsMsrSSource {
         }
     }
 
-    pub async fn run(&mut self) -> TaskResult {
-        let (now, _oversample) = match self.base.sleep_aligned().await {
-            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
-            Err(e) => return e,
-        };
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
 
-        let mut conn = match self.base.database.get().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Getting database connection from pool failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
+    pub async fn run(&mut self) -> TaskResult {
+        let timing = self.base.sleep_aligned().await?;
+        let mut conn = self.base.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })?;
 
         let (dachs_runtime, dachs_energy) = match tokio::time::timeout(
             std::time::Duration::from_secs(15),
@@ -66,36 +61,29 @@ impl DachsMsrSSource {
                         trace!(self.base.logger, "Runtime: {} s", runtime);
                         runtime
                     }
-                    Err(err) => {
-                        error!(self.base.logger, "{}", err);
-                        return Err(());
-                    }
+                    Err(e) => return Err(Error::Temporary(e)),
                 };
                 let energy = match self.dachs_client.get_total_energy().await {
                     Ok(energy) => {
                         trace!(self.base.logger, "Energy: {} kWh", energy);
                         energy
                     }
-                    Err(err) => {
-                        error!(self.base.logger, "{}", err);
-                        return Err(());
-                    }
+                    Err(e) => return Err(Error::Temporary(e)),
                 };
                 Ok((runtime, energy))
             },
         )
         .await
         {
-            Ok(result) => match result {
-                Ok((runtime, energy)) => (
-                    Time::new::<second>(runtime as f64),
-                    Energy::new::<kilowatt_hour>(energy as f64),
-                ),
-                Err(_) => return TaskResult::Running,
-            },
-            Err(err) => {
-                error!(self.base.logger, "Query Dachs data timed out: {}", err);
-                return TaskResult::Running;
+            Ok(Ok((runtime, energy))) => (
+                Time::new::<second>(runtime as f64),
+                Energy::new::<kilowatt_hour>(energy as f64),
+            ),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => {
+                return Err(Error::Temporary(format!(
+                    "Query Dachs data timed out: {e}",
+                )))
             }
         };
 
@@ -113,31 +101,31 @@ impl DachsMsrSSource {
             }
             Err(Error::NotFound) => Power::new::<watt>(0.0),
             Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Query {} database failed: {}", &self.base.name, e
-                );
-                return TaskResult::Running;
+                return Err(Error::Temporary(format!(
+                    "Query {} database failed: {}",
+                    &self.base.name, e,
+                )))
             }
         };
 
         let record = Generator {
-            time: now,
+            time: Time::new::<second>(timing.now as f64),
             energy: dachs_energy,
             power,
             runtime: dachs_runtime,
         };
 
         self.base.notify_processors(&record);
-        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
-            error!(
-                self.base.logger,
-                "Inserting {} record into database failed: {}",
-                &self.base.name,
-                e
-            );
-        }
+        record
+            .insert(&mut conn, self.base.series_id)
+            .await
+            .map_err(|e| {
+                Error::Temporary(format!(
+                    "Inserting {} record into database failed: {}",
+                    &self.base.name, e,
+                ))
+            })?;
 
-        TaskResult::Running
+        Ok(())
     }
 }

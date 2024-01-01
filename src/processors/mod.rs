@@ -15,15 +15,17 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::models::{
-    units::{joule, watt, watt_hour, Energy, Power},
-    Model,
+use crate::{
+    models::{
+        units::{joule, watt, watt_hour, Energy, Power},
+        Model,
+    },
+    multi_setpoint_hysteresis::LinspaceBuilder,
+    seasonal::SeasonalBuilder,
+    settings::{ProcessorType, Settings},
+    sinks::{ArcSink, GpioProcCreateInfo},
+    task_group::{task_loop, TaskGroup, TaskGroupBuilder, TaskState},
 };
-use crate::multi_setpoint_hysteresis::LinspaceBuilder;
-use crate::seasonal::SeasonalBuilder;
-use crate::settings::{ProcessorType, Settings};
-use crate::sinks::{ArcSink, GpioProcCreateInfo};
-use crate::task_group::{task_loop, TaskGroup, TaskGroupBuilder, TaskState};
 use slog::{debug, error, Logger};
 use std::collections::BTreeMap;
 use std::time::Duration;
@@ -337,7 +339,7 @@ pub fn processor_tasks(
                 .hysteresis(Energy::new::<watt_hour>(setting.hysteresis_cap))
                 .build()
                 .map_err(|e| {
-                    format!("Creating multi setpoint controller failed: {}", e)
+                    format!("Creating multi setpoint controller failed: {e}")
                 })?;
 
                 let seasonal = match setting.seasonal {

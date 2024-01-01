@@ -16,16 +16,20 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::models::{
-    units::{
-        millisecond, second, watt, watt_hour, Abbreviation, Energy, Power, Time,
+use crate::{
+    models::{
+        units::{
+            millisecond, second, watt, watt_hour, Abbreviation, Energy, Power,
+            Time,
+        },
+        AvailablePower, Model,
     },
-    AvailablePower, Model,
+    pt1::PT1,
+    task_group::TaskResult,
+    Error,
 };
-use crate::pt1::PT1;
-use crate::task_group::TaskResult;
 use chrono::Utc;
-use slog::{debug, error, warn};
+use slog::{debug, warn, Logger};
 use tokio::sync::{mpsc, oneshot, watch};
 
 #[derive(Debug)]
@@ -81,30 +85,34 @@ impl AvailablePowerProcessor {
         }
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
         tokio::select! {
             _ = self.base.canceled.changed() => {
-                return TaskResult::Canceled(self.base.name.clone());
+                return Err(Error::Canceled(self.base.name.clone()));
             }
             x = self.command_input.recv() => {
                 if let Some(command) = x {
                     if let Err(e) = self.handle_command(command) {
-                        return TaskResult::Err(e);
+                        return Err(Error::Bug(e));
                     }
                 }
             }
             x = self.meter_input.changed() => {
                 if let Err(e) = x {
-                    return TaskResult::Err(
-                        format!("Reading meter input failed: {}", e)
-                    );
+                    return Err(Error::Bug(
+                        format!("Reading meter input failed: {e}")
+                    ));
                 }
             }
             x = self.battery_input.changed() => {
                 if let Err(e) = x {
-                    return TaskResult::Err(
-                        format!("Reading battery input failed: {}", e)
-                    );
+                    return Err(Error::Bug(
+                        format!("Reading battery input failed: {e}")
+                    ));
                 }
             }
         };
@@ -112,27 +120,23 @@ impl AvailablePowerProcessor {
         let (meter_time, meter_power) = match *self.meter_input.borrow() {
             Model::BidirMeter(ref x) => (x.time, x.power),
             Model::SimpleMeter(ref x) => (x.time, x.power),
-            Model::None => return TaskResult::Running,
+            Model::None => return Ok(()),
             _ => {
-                error!(
-                    self.base.logger,
+                return Err(Error::Bug(format!(
                     "Received invalid model from meter input: {:?}",
                     *self.meter_input.borrow()
-                );
-                return TaskResult::Running;
+                )))
             }
         };
 
         let battery = match *self.battery_input.borrow() {
             Model::Battery(ref x) => x.clone(),
-            Model::None => return TaskResult::Running,
+            Model::None => return Ok(()),
             _ => {
-                error!(
-                    self.base.logger,
+                return Err(Error::Bug(format!(
                     "Received invalid model from battery input: {:?}",
                     *self.battery_input.borrow()
-                );
-                return TaskResult::Running;
+                )))
             }
         };
 
@@ -144,7 +148,7 @@ impl AvailablePowerProcessor {
                     "Skipping available power processor due to missing events"
                 );
             }
-            return TaskResult::Running;
+            return Ok(());
         }
         self.skipped_events = 0;
 
@@ -166,7 +170,7 @@ impl AvailablePowerProcessor {
         };
         self.power_output.send_replace(available_power.into());
 
-        TaskResult::Running
+        Ok(())
     }
 
     fn handle_command(&mut self, command: Command) -> Result<(), String> {
@@ -193,8 +197,7 @@ impl AvailablePowerProcessor {
                     Model::None => Power::new::<watt>(0.0),
                     _ => {
                         return Err(format!(
-                            "power_output has invalid type: {:?}",
-                            output
+                            "power_output has invalid type: {output:?}",
                         ))
                     }
                 };

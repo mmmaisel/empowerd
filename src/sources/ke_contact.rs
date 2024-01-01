@@ -26,7 +26,7 @@ use crate::{
     Error,
 };
 use kecontact_client::KeContactClient;
-use slog::{error, trace};
+use slog::{trace, Logger};
 
 pub struct KeContactSource {
     base: SourceBase,
@@ -41,57 +41,37 @@ impl KeContactSource {
         Ok(Self { base, client })
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
-        let (now, _oversample) = match self.base.sleep_aligned().await {
-            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
-            Err(e) => return e,
-        };
+        let timing = self.base.sleep_aligned().await?;
+        let mut conn = self.base.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })?;
 
-        let mut conn = match self.base.database.get().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Getting database connection from pool failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
-
-        let report = match tokio::time::timeout(
-            std::time::Duration::from_secs(15),
-            async {
-                match self.client.power_report().await {
-                    Ok(x) => Ok(x),
-                    Err(e) => {
-                        error!(
-                            self.base.logger,
-                            "Query KeContact data failed: {}", e
-                        );
-                        Err(())
-                    }
-                }
-            },
-        )
-        .await
-        {
-            Ok(result) => match result {
-                Ok(x) => x,
-                Err(_) => return TaskResult::Running,
-            },
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Query KeContact data timed out: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
+        let report =
+            tokio::time::timeout(std::time::Duration::from_secs(15), async {
+                self.client.power_report().await.map_err(|e| {
+                    Error::Temporary(format!(
+                        "Query KeContact data failed: {e}",
+                    ))
+                })
+            })
+            .await
+            .map_err(|e| {
+                Error::Temporary(
+                    format!("Query KeContact data timed out: {e}",),
+                )
+            })??;
 
         let energy = Energy::new::<watt_hour>((report.e_total as f64) / 10.0);
 
         let mut record = SimpleMeter {
-            time: now,
+            time: Time::new::<second>(timing.now as f64),
             energy,
             power: Power::new::<watt>(0.0),
         };
@@ -107,24 +87,24 @@ impl KeContactSource {
                 }
                 Err(Error::NotFound) => Power::new::<watt>(0.0),
                 Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Query {} database failed: {}", &self.base.name, e
-                    );
-                    return TaskResult::Running;
+                    return Err(Error::Temporary(format!(
+                        "Query {} database failed: {}",
+                        &self.base.name, e,
+                    )))
                 }
             };
 
         self.base.notify_processors(&record);
-        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
-            error!(
-                self.base.logger,
-                "Inserting {} record into database failed: {}",
-                &self.base.name,
-                e
-            );
-        }
+        record
+            .insert(&mut conn, self.base.series_id)
+            .await
+            .map_err(|e| {
+                Error::Temporary(format!(
+                    "Inserting {} record into database failed: {}",
+                    &self.base.name, e,
+                ))
+            })?;
 
-        TaskResult::Running
+        Ok(())
     }
 }

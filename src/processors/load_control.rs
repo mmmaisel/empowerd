@@ -16,14 +16,17 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::models::{
-    units::{watt, watt_hour, Abbreviation, Energy, Power},
-    Model,
+use crate::{
+    models::{
+        units::{watt, watt_hour, Abbreviation, Energy, Power},
+        Model,
+    },
+    multi_setpoint_hysteresis::MultiSetpointHysteresis,
+    seasonal::Seasonal,
+    task_group::TaskResult,
+    Error,
 };
-use crate::multi_setpoint_hysteresis::MultiSetpointHysteresis;
-use crate::seasonal::Seasonal;
-use crate::task_group::TaskResult;
-use slog::{debug, error, warn};
+use slog::{debug, Logger};
 use sma_client::SmaClient;
 use std::collections::BTreeMap;
 use std::net::Ipv4Addr;
@@ -92,12 +95,12 @@ impl LoadControlProcessor {
         let meter_addr = SmaClient::sma_sock_addr(meter_addr)?;
         let mut sma_client = SmaClient::new(None);
         let bind_addr = bind_addr.parse::<Ipv4Addr>().map_err(|e| {
-            format!("'{}' is not a valid IPv4 address: {}", bind_addr, e)
+            format!("'{bind_addr}' is not a valid IPv4 address: {e}")
         })?;
 
         let session = sma_client
             .open(meter_addr, Some(bind_addr))
-            .map_err(|e| format!("Could not open SMA Client session: {}", e))?;
+            .map_err(|e| format!("Could not open SMA Client session: {e}"))?;
 
         Ok(Self {
             base,
@@ -115,6 +118,10 @@ impl LoadControlProcessor {
         })
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
         #[cfg(debug_assertions)]
         let now = Instant::now();
@@ -122,70 +129,49 @@ impl LoadControlProcessor {
         match self.base.canceled.has_changed() {
             Ok(changed) => {
                 if changed {
-                    return TaskResult::Canceled(self.base.name.clone());
+                    return Err(Error::Canceled(self.base.name.clone()));
                 }
             }
             Err(e) => {
-                return TaskResult::Err(format!(
-                    "Reading cancel event failed: {}",
-                    e
-                ));
+                return Err(Error::Bug(format!(
+                    "Reading cancel event failed: {e}",
+                )))
             }
         }
 
         let (em_header, em_data) =
-            match self.sma_client.fetch_em_data(&self.session).await {
-                Ok((x, y)) => (x, y),
-                Err(e) => {
-                    error!(self.base.logger, "Reading EM data failed: {}", e);
-                    return TaskResult::Running;
-                }
-            };
+            self.sma_client.fetch_em_data(&self.session).await.map_err(
+                |e| Error::Temporary(format!("Reading EM data failed: {e}")),
+            )?;
 
         if em_header.serial != self.meter_serial {
-            warn!(
-                self.base.logger,
+            return Err(Error::Temporary(format!(
                 "Received EM message from incorrect serial number {}",
                 em_header.serial
-            );
-            return TaskResult::Running;
+            )));
         }
 
-        let mut payload: EmIndependentPayload = match em_data.try_into() {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Extracting independent energymeter values from response failed: {}",
-                    e
-                );
-                return TaskResult::Running;
-            }
-        };
+        let mut payload: EmIndependentPayload = em_data.try_into().map_err(|e|
+            Error::Temporary(format!(
+                "Extracting independent energymeter values from response failed: {e}",
+            ))
+        )?;
 
         let command_received = match self.command_input.try_recv() {
             Ok(command) => {
-                if let Err(e) = self.handle_command(command) {
-                    return TaskResult::Err(e);
-                }
+                self.handle_command(command)?;
                 true
             }
             Err(mpsc::error::TryRecvError::Empty) => false,
             Err(mpsc::error::TryRecvError::Disconnected) => {
-                error!(self.base.logger, "Command input closed");
-                false
+                return Err(Error::Bug("Command input closed".to_string()))
             }
         };
 
-        let battery_changed = match self.battery_input.has_changed() {
-            Ok(changed) => changed,
-            Err(e) => {
-                return TaskResult::Err(format!(
-                    "Reading battery input failed: {}",
-                    e
-                ));
-            }
-        };
+        let battery_changed =
+            self.battery_input.has_changed().map_err(|e| {
+                Error::Bug(format!("Reading battery input failed: {e}"))
+            })?;
 
         if command_received || battery_changed {
             match *self.battery_input.borrow() {
@@ -213,12 +199,10 @@ impl LoadControlProcessor {
                     self.grid_power = new_grid_power;
                 }
                 _ => {
-                    error!(
-                        self.base.logger,
+                    return Err(Error::Temporary(format!(
                         "Received invalid model from battery input: {:?}",
                         *self.battery_input.borrow()
-                    );
-                    return TaskResult::Running;
+                    )))
                 }
             }
         }
@@ -235,7 +219,9 @@ impl LoadControlProcessor {
             )
             .await
         {
-            error!(self.base.logger, "Broadcasting EM message failed: {}", e);
+            return Err(Error::Temporary(format!(
+                "Broadcasting EM message failed: {e}",
+            )));
         }
 
         #[cfg(debug_assertions)]
@@ -245,7 +231,7 @@ impl LoadControlProcessor {
             now.elapsed().as_micros()
         );
 
-        TaskResult::Running
+        Ok(())
     }
 
     fn calc_grid_power(
@@ -263,7 +249,7 @@ impl LoadControlProcessor {
         (new_grid_power + charge_power, seasonal_correction)
     }
 
-    fn handle_command(&mut self, command: Command) -> Result<(), String> {
+    fn handle_command(&mut self, command: Command) -> Result<(), Error> {
         match command {
             Command::SetChargeMode { enabled, resp } => {
                 if enabled {
@@ -273,13 +259,17 @@ impl LoadControlProcessor {
                 }
 
                 if resp.send(()).is_err() {
-                    return Err("Sending SetChargeMode response failed!".into());
+                    return Err(Error::Bug(
+                        "Sending SetChargeMode response failed!".into(),
+                    ));
                 }
             }
             Command::GetChargeMode { resp } => {
                 let enabled = self.charge_power > Power::new::<watt>(0.1);
                 if resp.send(enabled).is_err() {
-                    return Err("Sending GetChargeMode response failed!".into());
+                    return Err(Error::Bug(
+                        "Sending GetChargeMode response failed!".into(),
+                    ));
                 }
             }
         }
@@ -312,9 +302,9 @@ impl EmIndependentPayload {
         data: &BTreeMap<u32, u64>,
         obis: u32,
     ) -> Result<f64, String> {
-        data.get(&obis).map(|x| *x as f64).ok_or_else(|| {
-            format!("Missing OBIS record 0x{:X} in dataset", obis)
-        })
+        data.get(&obis)
+            .map(|x| *x as f64)
+            .ok_or_else(|| format!("Missing OBIS record 0x{obis:X} in dataset"))
     }
 }
 

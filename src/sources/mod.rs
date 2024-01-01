@@ -19,9 +19,9 @@ use crate::{
     models::{run_migrations, Model},
     settings::{Settings, SourceType},
     task_group::{
-        task_loop, TaskGroup, TaskGroupBuilder, TaskResult, TaskState,
-        TaskTiming,
+        task_loop, TaskGroup, TaskGroupBuilder, TaskState, TaskTiming,
     },
+    Error,
 };
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
@@ -145,7 +145,7 @@ pub struct SourceBase {
 }
 
 impl SourceBase {
-    pub async fn sleep_aligned(&mut self) -> Result<TaskTiming, TaskResult> {
+    pub async fn sleep_aligned(&mut self) -> Result<TaskTiming, Error> {
         match sleep_aligned(
             self.interval,
             self.oversample_factor,
@@ -153,20 +153,10 @@ impl SourceBase {
             &self.logger,
             &self.name,
         )
-        .await
+        .await?
         {
-            Err(e) => Err(TaskResult::Err(format!(
-                "sleep_aligned failed in {}:{}: {}",
-                std::any::type_name::<Self>(),
-                &self.name,
-                e
-            ))),
-            Ok(state) => match state {
-                TaskState::Canceled => {
-                    Err(TaskResult::Canceled(self.name.clone()))
-                }
-                TaskState::Running(x) => Ok(x),
-            },
+            TaskState::Canceled => Err(Error::Canceled(self.name.clone())),
+            TaskState::Running(x) => Ok(x),
         }
     }
 
@@ -382,39 +372,38 @@ fn sleep_duration(
     (next_duration, next_duration != main_duration)
 }
 
-pub async fn sleep_aligned(
+async fn sleep_aligned(
     interval: Duration,
     oversample_factor: u64,
     canceled: &mut watch::Receiver<TaskState>,
     logger: &Logger,
-    ty: &str,
-) -> Result<TaskState, String> {
+    name: &str,
+) -> Result<TaskState, Error> {
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .map_err(|e| {
-            format!("System time is {:?} seconds before UNIX epoch", e)
+            Error::System(format!(
+                "System time is {e} seconds before UNIX epoch",
+            ))
         })?;
 
     let interval_s = interval.as_secs();
     let (sleep_time, oversample) =
         sleep_duration(interval_s, oversample_factor, now.as_secs());
-    debug!(logger, "{}: sleep until {:?}", ty, sleep_time);
+    debug!(logger, "{}: sleep until {:?}", name, sleep_time);
     tokio::select! {
         _ = canceled.changed() => {
             trace!(logger, "sleep was canceled");
-            return Ok(TaskState::Canceled);
+            return Err(Error::Canceled(name.to_string()));
         }
         _ = tokio::time::sleep(sleep_time) => {
             trace!(logger, "wokeup");
             let now = SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
-                .map_err(|e| {
-                    format!("System time is {:?} seconds before UNIX epoch", e)
-                })?.as_secs();
+                .map_err(|e| Error::System(format!(
+                    "System time is {e} seconds before UNIX epoch",
+                )))?.as_secs();
             return Ok(TaskState::Running(TaskTiming::new(now, oversample)));
-        }
-        else => {
-            return Err("sleep_aligned returned".into());
         }
     }
 }

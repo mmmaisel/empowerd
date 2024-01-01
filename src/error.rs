@@ -20,6 +20,10 @@ use diesel::result::Error as DieselError;
 #[derive(Clone, Debug)]
 pub enum Error {
     NotFound,
+    Canceled(String),
+    Bug(String),
+    Temporary(String),
+    System(String),
     DatabaseError(String),
     InvalidInput(String),
 }

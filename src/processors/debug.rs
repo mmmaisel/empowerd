@@ -16,10 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::models::Model;
-use crate::sinks::debug::DebugSink;
-use crate::task_group::TaskResult;
-use slog::debug;
+use crate::{
+    models::Model, sinks::debug::DebugSink, task_group::TaskResult, Error,
+};
+use slog::{debug, Logger};
 use std::sync::Arc;
 use tokio::sync::watch;
 
@@ -42,16 +42,20 @@ impl DebugProcessor {
         }
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
         tokio::select! {
             _ = self.base.canceled.changed() => {
-                return TaskResult::Canceled(self.base.name.clone());
+                return Err(Error::Canceled(self.base.name.clone()));
             }
             x = self.input.changed() => {
                 if let Err(e) = x {
-                    return TaskResult::Err(
-                        format!("Reading input failed: {}", e)
-                    );
+                    return Err(Error::Bug(
+                        format!("Reading input failed: {e}")
+                    ));
                 }
                 let y = self.input.borrow().clone();
                 debug!(
@@ -63,6 +67,7 @@ impl DebugProcessor {
                 self.output.log_value(y).await;
             }
         };
-        TaskResult::Running
+
+        Ok(())
     }
 }

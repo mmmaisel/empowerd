@@ -24,7 +24,7 @@ use crate::{
     task_group::TaskResult,
     Error,
 };
-use slog::{debug, error, trace, warn};
+use slog::{debug, error, trace, warn, Logger};
 use sml_client::SmlClient;
 use std::time::Duration;
 
@@ -55,22 +55,17 @@ impl SmlMeterSource {
         })
     }
 
-    pub async fn run(&mut self) -> TaskResult {
-        let (now, _oversample) = match self.base.sleep_aligned().await {
-            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
-            Err(e) => return e,
-        };
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
 
-        let mut conn = match self.base.database.get().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Getting database connection from pool failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
+    pub async fn run(&mut self) -> TaskResult {
+        let timing = self.base.sleep_aligned().await?;
+        let mut conn = self.base.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })?;
 
         let mut meter_data = self.sml_client.get_consumed_produced().await;
         for i in 1..4u8 {
@@ -108,16 +103,14 @@ impl SmlMeterSource {
                 (Energy::new::<watt_hour>(x), Energy::new::<watt_hour>(y))
             }
             Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Get electric meter data failed, {}, giving up!", e
-                );
-                return TaskResult::Running;
+                return Err(Error::Temporary(format!(
+                    "Get electric meter data failed, {e}, giving up!",
+                )))
             }
         };
 
         let mut record = BidirMeter {
-            time: now,
+            time: Time::new::<second>(timing.now as f64),
             energy_in: consumed,
             energy_out: produced,
             power: Power::new::<watt>(0.0),
@@ -134,24 +127,24 @@ impl SmlMeterSource {
                 }
                 Err(Error::NotFound) => Power::new::<watt>(0.0),
                 Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Query {} database failed: {}", &self.base.name, e
-                    );
-                    return TaskResult::Running;
+                    return Err(Error::Temporary(format!(
+                        "Query {} database failed: {}",
+                        &self.base.name, e,
+                    )))
                 }
             };
 
         self.base.notify_processors(&record);
-        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
-            error!(
-                self.base.logger,
-                "Inserting {} record into database failed: {}",
-                &self.base.name,
-                e
-            );
-        }
+        record
+            .insert(&mut conn, self.base.series_id)
+            .await
+            .map_err(|e| {
+                Error::Temporary(format!(
+                    "Inserting {} record into database failed: {}",
+                    &self.base.name, e,
+                ))
+            })?;
 
-        TaskResult::Running
+        Ok(())
     }
 }

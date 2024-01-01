@@ -16,7 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::task_group::TaskResult;
+use crate::{task_group::TaskResult, Error};
+use slog::Logger;
 use std::time::Duration;
 
 pub struct DummyProcessor {
@@ -28,14 +29,17 @@ impl DummyProcessor {
         Self { base }
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
         tokio::select! {
-            _ = self.base.canceled.changed() => {
-                return TaskResult::Canceled(self.base.name.clone());
-            }
-            _ = tokio::time::sleep(Duration::from_secs(86400)) => {
-            }
+            _ = self.base.canceled.changed() =>
+                return Err(Error::Canceled(self.base.name.clone())),
+            _ = tokio::time::sleep(Duration::from_secs(86400)) => (),
         }
-        TaskResult::Running
+
+        Ok(())
     }
 }

@@ -15,6 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use crate::Error;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use slog::{debug, error, info, Logger};
@@ -33,12 +34,7 @@ impl TaskTiming {
     }
 }
 
-#[derive(Debug)]
-pub enum TaskResult {
-    Running,
-    Canceled(String),
-    Err(String),
-}
+pub type TaskResult = Result<(), Error>;
 
 #[derive(Debug)]
 pub enum TaskState {
@@ -50,11 +46,13 @@ macro_rules! task_loop {
     ($source:expr) => {
         tokio::task::spawn(async move {
             loop {
-                let result = $source.run().await;
-                if let $crate::task_group::TaskResult::Running = result {
-                    continue;
+                match $source.run().await {
+                    Ok(()) => (),
+                    Err(crate::Error::Temporary(e)) => {
+                        slog::error!($source.logger(), "{}", e)
+                    }
+                    Err(e) => return e,
                 }
-                return result;
             }
         })
     };
@@ -65,7 +63,7 @@ pub(crate) use task_loop;
 pub struct TaskGroupBuilder {
     name: String,
     logger: Logger,
-    tasks: FuturesUnordered<JoinHandle<TaskResult>>,
+    tasks: FuturesUnordered<JoinHandle<Error>>,
     cancel_tx: watch::Sender<TaskState>,
     cancel_rx: watch::Receiver<TaskState>,
 }
@@ -83,7 +81,7 @@ impl TaskGroupBuilder {
         }
     }
 
-    pub fn add_task(&self, task: JoinHandle<TaskResult>) {
+    pub fn add_task(&self, task: JoinHandle<Error>) {
         self.tasks.push(task);
     }
 
@@ -103,7 +101,7 @@ impl TaskGroupBuilder {
 pub struct TaskGroup {
     name: String,
     logger: Logger,
-    tasks: FuturesUnordered<JoinHandle<TaskResult>>,
+    tasks: FuturesUnordered<JoinHandle<Error>>,
     cancel: watch::Sender<TaskState>,
 }
 
@@ -111,7 +109,7 @@ impl TaskGroup {
     pub fn new(
         name: String,
         logger: Logger,
-        tasks: FuturesUnordered<JoinHandle<TaskResult>>,
+        tasks: FuturesUnordered<JoinHandle<Error>>,
         cancel: watch::Sender<TaskState>,
     ) -> Self {
         Self {
@@ -136,30 +134,28 @@ impl TaskGroup {
                 }
             };
 
-            match result {
-                TaskResult::Running => {}
-                TaskResult::Canceled(name) => {
-                    debug!(self.logger, "Task '{}' was canceled", name);
-                }
-                TaskResult::Err(e) => {
-                    error!(self.logger, "Task failed: {:?}", e);
-                    return Err(());
-                }
+            if let Error::Canceled(name) = result {
+                debug!(self.logger, "Task '{}' was canceled", name);
+            } else {
+                error!(self.logger, "Task failed: {:?}", result);
+                return Err(());
             }
         }
-        return Ok(());
+
+        Ok(())
     }
 
     pub fn cancel(&mut self) -> Result<(), String> {
         if self.cancel.is_closed() {
             return Ok(());
         }
-        return match self.cancel.send(TaskState::Canceled) {
+
+        match self.cancel.send(TaskState::Canceled) {
             Ok(_) => {
                 info!(self.logger, "Task group '{}' canceled", self.name);
                 Ok(())
             }
             Err(e) => Err(e.to_string()),
-        };
+        }
     }
 }

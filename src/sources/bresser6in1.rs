@@ -16,9 +16,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::SourceBase;
-use crate::{models::Weather, task_group::TaskResult};
+use crate::{models::Weather, task_group::TaskResult, Error};
 use bresser6in1_usb::{Client as BresserClient, PID, VID};
-use slog::{debug, error, warn};
+use slog::{debug, error, warn, Logger};
 use std::time::Duration;
 
 pub struct Bresser6in1Source {
@@ -31,25 +31,20 @@ impl Bresser6in1Source {
         Self { base }
     }
 
-    pub async fn run(&mut self) -> TaskResult {
-        let timing = match self.base.sleep_aligned().await {
-            Ok(x) => x,
-            Err(e) => return e,
-        };
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
 
-        let mut conn = match self.base.database.get().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Getting database connection from pool failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
+    pub async fn run(&mut self) -> TaskResult {
+        let timing = self.base.sleep_aligned().await?;
+        let mut conn = self.base.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })?;
 
         let logger2 = self.base.logger.clone();
-        let mut weather_data = match tokio::task::block_in_place(move || {
+        let mut weather_data = tokio::task::block_in_place(move || {
             // TODO: move bresser client (allocated buffers, ...) back to Miner struct
             let mut bresser_client = BresserClient::new(Some(logger2.clone()));
             let mut weather_data = bresser_client.read_data();
@@ -85,29 +80,26 @@ impl Bresser6in1Source {
                 }
             }
             return weather_data;
-        }) {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Get weather data failed, {}, giving up!", e
-                );
-                return TaskResult::Running;
-            }
-        };
+        })
+        .map_err(|e| {
+            Error::Temporary(format!(
+                "Get weather data failed, {e}, giving up!",
+            ))
+        })?;
         weather_data.timestamp = timing.now as u32;
 
         let record = Weather::new(weather_data);
         self.base.notify_processors(&record);
-        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
-            error!(
-                self.base.logger,
-                "Inserting {} record into database failed: {}",
-                &self.base.name,
-                e
-            );
-        }
+        record
+            .insert(&mut conn, self.base.series_id)
+            .await
+            .map_err(|e| {
+                Error::Temporary(format!(
+                    "Inserting {} record into database failed: {}",
+                    &self.base.name, e,
+                ))
+            })?;
 
-        TaskResult::Running
+        Ok(())
     }
 }

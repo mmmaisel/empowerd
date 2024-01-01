@@ -25,7 +25,7 @@ use crate::{
     task_group::TaskResult,
     Error,
 };
-use slog::{error, trace};
+use slog::{trace, Logger};
 use sunspec_client::SunspecClient;
 
 pub struct SunspecSolarSource {
@@ -45,49 +45,36 @@ impl SunspecSolarSource {
         Ok(Self { base, client })
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
-        let (now, _oversample) = match self.base.sleep_aligned().await {
-            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
-            Err(e) => return e,
-        };
+        let timing = self.base.sleep_aligned().await?;
+        let mut conn = self.base.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })?;
 
-        let mut conn = match self.base.database.get().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Getting database connection from pool failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
-
-        let mut context = match self.client.open().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Could not open sunspec connection: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
+        let mut context = self.client.open().await.map_err(|e| {
+            Error::Temporary(format!("Could not open sunspec connection: {e}",))
+        })?;
 
         if self.client.models().is_empty() {
-            if let Err(e) = self.client.introspect(&mut context).await {
-                error!(
-                    self.base.logger,
-                    "Could not introspect sunspec device: {}", e
-                );
-                return TaskResult::Running;
-            }
+            self.client.introspect(&mut context).await.map_err(|e| {
+                Error::Temporary(format!(
+                    "Could not introspect sunspec device: {e}",
+                ))
+            })?;
         }
 
         let energy = match self.client.get_total_yield(&mut context).await {
             Ok(x) => Energy::new::<watt_hour>(x),
             Err(e) => {
-                error!(self.base.logger, "Could not read energy yield: {}", e);
-                return TaskResult::Running;
+                return Err(Error::Temporary(format!(
+                    "Could not read energy yield: {e}",
+                )))
             }
         };
         trace!(
@@ -97,7 +84,7 @@ impl SunspecSolarSource {
         );
 
         let mut record = SimpleMeter {
-            time: now,
+            time: Time::new::<second>(timing.now as f64),
             energy,
             power: Power::new::<watt>(0.0),
         };
@@ -113,24 +100,24 @@ impl SunspecSolarSource {
                 }
                 Err(Error::NotFound) => Power::new::<watt>(0.0),
                 Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Query {} database failed: {}", &self.base.name, e
-                    );
-                    return TaskResult::Running;
+                    return Err(Error::Temporary(format!(
+                        "Query {} database failed: {}",
+                        &self.base.name, e,
+                    )))
                 }
             };
 
         self.base.notify_processors(&record);
-        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
-            error!(
-                self.base.logger,
-                "Inserting {} record into database failed: {}",
-                &self.base.name,
-                e
-            );
-        }
+        record
+            .insert(&mut conn, self.base.series_id)
+            .await
+            .map_err(|e| {
+                Error::Temporary(format!(
+                    "Inserting {} record into database failed: {}",
+                    &self.base.name, e,
+                ))
+            })?;
 
-        TaskResult::Running
+        Ok(())
     }
 }

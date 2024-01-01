@@ -24,7 +24,7 @@ use crate::{
     task_group::TaskResult,
     Error,
 };
-use slog::{error, trace};
+use slog::{trace, Logger};
 use sma_client::SmaClient;
 use std::net::{Ipv4Addr, SocketAddr};
 
@@ -42,11 +42,11 @@ impl SmaMeterSource {
         bind_addr: String,
     ) -> Result<Self, String> {
         let sma_socket_addr: SocketAddr = SmaClient::sma_sock_addr(sma_addr)
-            .map_err(|e| format!("Could not parse sma_addr: {}", e))?;
+            .map_err(|e| format!("Could not parse sma_addr: {e}"))?;
 
         let bind_addr = bind_addr
             .parse::<Ipv4Addr>()
-            .map_err(|e| format!("Could not parse bind_addr: {}", e))?;
+            .map_err(|e| format!("Could not parse bind_addr: {e}"))?;
 
         let logger = base.logger.clone();
         Ok(Self {
@@ -57,68 +57,54 @@ impl SmaMeterSource {
         })
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
-        let (now, _oversample) = match self.base.sleep_aligned().await {
-            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
-            Err(e) => return e,
-        };
+        let timing = self.base.sleep_aligned().await?;
+        let mut conn = self.base.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })?;
 
-        let mut conn = match self.base.database.get().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Getting database connection from pool failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
-
-        let session =
-            match self.sma_client.open(self.sma_addr, Some(self.bind_addr)) {
-                Ok(x) => x,
-                Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Could not open SMA Client multicast session: {}", e
-                    );
-                    return TaskResult::Running;
-                }
-            };
+        let session = self
+            .sma_client
+            .open(self.sma_addr, Some(self.bind_addr))
+            .map_err(|e| {
+                Error::Temporary(format!(
+                    "Could not open SMA Client multicast session: {e}",
+                ))
+            })?;
 
         let (_header, data) =
-            match self.sma_client.fetch_em_data(&session).await {
-                Ok((x, y)) => (x, y),
-                Err(e) => {
-                    error!(self.base.logger, "Fetching EM data failed: {}", e,);
-                    return TaskResult::Running;
-                }
-            };
+            self.sma_client.fetch_em_data(&session).await.map_err(|e| {
+                Error::Temporary(format!("Fetching EM data failed: {e}"))
+            })?;
 
         let consumed = match data.get(&0x00010800) {
             Some(x) => Energy::new::<joule>(*x as f64),
             None => {
-                error!(
-                    self.base.logger,
-                    "Received data did not include consumed energy record.",
-                );
-                return TaskResult::Running;
+                return Err(Error::Temporary(
+                    "Received data did not include consumed energy record."
+                        .into(),
+                ))
             }
         };
 
         let produced = match data.get(&0x00020800) {
             Some(x) => Energy::new::<joule>(*x as f64),
             None => {
-                error!(
-                    self.base.logger,
-                    "Received data did not include produced energy record.",
-                );
-                return TaskResult::Running;
+                return Err(Error::Temporary(
+                    "Received data did not include produced energy record."
+                        .into(),
+                ))
             }
         };
 
         let mut record = BidirMeter {
-            time: now,
+            time: Time::new::<second>(timing.now as f64),
             energy_in: consumed,
             energy_out: produced,
             power: Power::new::<watt>(0.0),
@@ -135,24 +121,24 @@ impl SmaMeterSource {
                 }
                 Err(Error::NotFound) => Power::new::<watt>(0.0),
                 Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Query {} database failed: {}", &self.base.name, e
-                    );
-                    return TaskResult::Running;
+                    return Err(Error::Temporary(format!(
+                        "Query {} database failed: {}",
+                        &self.base.name, e,
+                    )))
                 }
             };
 
         self.base.notify_processors(&record);
-        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
-            error!(
-                self.base.logger,
-                "Inserting {} record into database failed: {}",
-                &self.base.name,
-                e
-            );
-        }
+        record
+            .insert(&mut conn, self.base.series_id)
+            .await
+            .map_err(|e| {
+                Error::Temporary(format!(
+                    "Inserting {} record into database failed: {}",
+                    &self.base.name, e,
+                ))
+            })?;
 
-        TaskResult::Running
+        Ok(())
     }
 }

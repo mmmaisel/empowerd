@@ -16,9 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::sinks::GpioSwitch;
-use crate::task_group::TaskResult;
-use slog::{debug, error};
+use crate::{sinks::GpioSwitch, task_group::TaskResult, Error};
+use slog::{debug, Logger};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, watch};
@@ -64,36 +63,33 @@ impl PoweroffTimerProcessor {
         }
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     pub async fn run(&mut self) -> TaskResult {
         tokio::select! {
             _ = self.base.canceled.changed() => {
-                return TaskResult::Canceled(self.base.name.clone());
+                return Err(Error::Canceled(self.base.name.clone()));
             }
             x = self.command_input.recv() => {
                 if let Some(command) = x {
-                    if let Err(e) = self.handle_command(command) {
-                        return TaskResult::Err(e);
-                    }
+                    self.handle_command(command)?;
                 }
             }
             _ = tokio::time::sleep(self.sleep_time) => {
-                if let Err(e) = self.update_output(false) {
-                    return e;
-                }
+                self.update_output(false)?;
                 debug!(self.base.logger, "Poweroff GPIO '{}'", self.gpio_id);
             }
             x = self.gpio_input.changed() => {
                 if let Err(e) = x {
-                    return TaskResult::Err(format!(
-                        "Reading gpio input failed: {}",
-                        e
-                    ));
+                    return Err(Error::Bug(format!(
+                        "Reading gpio input failed: {e}",
+                    )));
                 }
 
                 let value = self.gpio_input.borrow().to_owned();
-                if let Err(e) = self.update_output(value) {
-                    return e;
-                }
+                self.update_output(value)?;
                 debug!(
                     self.base.logger,
                     "Set GPIO '{}' to '{}' for '{}' seconds",
@@ -104,21 +100,17 @@ impl PoweroffTimerProcessor {
             }
         };
 
-        TaskResult::Running
+        Ok(())
     }
 
-    fn update_output(&mut self, value: bool) -> Result<(), TaskResult> {
-        let channel = match self.gpio_output.get_channel(self.gpio_id) {
-            Ok(x) => x,
-            Err(e) => {
-                error!(self.base.logger, "{}", e);
-                return Err(TaskResult::Running);
-            }
-        };
-        if let Err(e) = self.gpio_output.set_open_raw(channel, value) {
-            error!(self.base.logger, "{}", e);
-            return Err(TaskResult::Running);
-        }
+    fn update_output(&mut self, value: bool) -> Result<(), Error> {
+        let channel = self
+            .gpio_output
+            .get_channel(self.gpio_id)
+            .map_err(Error::Temporary)?;
+        self.gpio_output
+            .set_open_raw(channel, value)
+            .map_err(Error::Temporary)?;
         self.sleep_time = self.calc_sleep_time(value);
 
         Ok(())
@@ -132,17 +124,21 @@ impl PoweroffTimerProcessor {
         }
     }
 
-    fn handle_command(&mut self, command: Command) -> Result<(), String> {
+    fn handle_command(&mut self, command: Command) -> Result<(), Error> {
         match command {
             Command::SetOnTime { on_time, resp } => {
                 self.on_time = on_time;
                 if resp.send(()).is_err() {
-                    return Err("Sending SetOnTime response failed!".into());
+                    return Err(Error::Bug(
+                        "Sending SetOnTime response failed!".into(),
+                    ));
                 }
             }
             Command::GetOnTime { resp } => {
                 if resp.send(self.on_time).is_err() {
-                    return Err("Sending GetOnTime response failed!".into());
+                    return Err(Error::Bug(
+                        "Sending GetOnTime response failed!".into(),
+                    ));
                 }
             }
         }

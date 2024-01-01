@@ -25,7 +25,7 @@ use crate::{
     task_group::TaskResult,
     Error,
 };
-use slog::error;
+use slog::Logger;
 use sunny_storage_client::{
     SunnyBoyStorageClient, SunnyIslandClient, SunnyStorageClient,
 };
@@ -66,22 +66,17 @@ impl SunnyStorageSource {
         })
     }
 
-    pub async fn run(&mut self) -> TaskResult {
-        let (now, _oversample) = match self.base.sleep_aligned().await {
-            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
-            Err(e) => return e,
-        };
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
 
-        let mut conn = match self.base.database.get().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Getting database connection from pool failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
+    pub async fn run(&mut self) -> TaskResult {
+        let timing = self.base.sleep_aligned().await?;
+        let mut conn = self.base.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })?;
 
         let (energy_in, energy_out, charge) =
             match self.battery_client.get_in_out_charge().await {
@@ -91,13 +86,14 @@ impl SunnyStorageSource {
                     Energy::new::<watt_hour>(z),
                 ),
                 Err(e) => {
-                    error!(self.base.logger, "Get battery data failed: {}", e);
-                    return TaskResult::Running;
+                    return Err(Error::Temporary(format!(
+                        "Get battery data failed: {e}",
+                    )))
                 }
             };
 
         let mut record = Battery {
-            time: now,
+            time: Time::new::<second>(timing.now as f64),
             charge,
             energy_in,
             energy_out,
@@ -108,24 +104,24 @@ impl SunnyStorageSource {
             Ok(last_record) => record.calc_power(&last_record),
             Err(Error::NotFound) => Power::new::<watt>(0.0),
             Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Query {} database failed: {}", &self.base.name, e
-                );
-                return TaskResult::Running;
+                return Err(Error::Temporary(format!(
+                    "Query {} database failed: {}",
+                    &self.base.name, e,
+                )))
             }
         };
 
         self.base.notify_processors(&record);
-        if let Err(e) = record.insert(&mut conn, self.base.series_id).await {
-            error!(
-                self.base.logger,
-                "Inserting {} record into database failed: {}",
-                &self.base.name,
-                e
-            );
-        }
+        record
+            .insert(&mut conn, self.base.series_id)
+            .await
+            .map_err(|e| {
+                Error::Temporary(format!(
+                    "Inserting {} record into database failed: {}",
+                    &self.base.name, e,
+                ))
+            })?;
 
-        TaskResult::Running
+        Ok(())
     }
 }

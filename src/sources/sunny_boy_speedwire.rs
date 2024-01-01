@@ -24,7 +24,7 @@ use crate::{
     task_group::TaskResult,
     Error,
 };
-use slog::{debug, error, trace};
+use slog::{debug, trace, Logger};
 use sma_client::{SmaClient, TimestampedInt};
 use std::net::SocketAddr;
 
@@ -44,9 +44,7 @@ impl SunnyBoySpeedwireSource {
         let sma_socket_addr: SocketAddr =
             match SmaClient::sma_sock_addr(sma_addr) {
                 Ok(x) => x,
-                Err(e) => {
-                    return Err(format!("Could not parse sma_addr: {}", e))
-                }
+                Err(e) => return Err(format!("Could not parse sma_addr: {e}")),
             };
 
         let logger = base.logger.clone();
@@ -58,23 +56,18 @@ impl SunnyBoySpeedwireSource {
         })
     }
 
+    pub fn logger(&self) -> &Logger {
+        &self.base.logger
+    }
+
     // XXX: this function is much too long
     pub async fn run(&mut self) -> TaskResult {
-        let (now, _oversample) = match self.base.sleep_aligned().await {
-            Ok(x) => (Time::new::<second>(x.now as f64), x.oversample),
-            Err(e) => return e,
-        };
-
-        let mut conn = match self.base.database.get().await {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Getting database connection from pool failed: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
+        let timing = self.base.sleep_aligned().await?;
+        let mut conn = self.base.database.get().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Getting database connection from pool failed: {e}",
+            ))
+        })?;
 
         let mut last_record =
             match SimpleMeter::last(&mut conn, self.base.series_id).await {
@@ -85,33 +78,22 @@ impl SunnyBoySpeedwireSource {
                     power: Power::new::<watt>(0.0),
                 },
                 Err(e) => {
-                    error!(
-                        self.base.logger,
-                        "Query {} database failed: {}", &self.base.name, e
-                    );
-                    return TaskResult::Running;
+                    return Err(Error::Temporary(format!(
+                        "Query {} database failed: {}",
+                        &self.base.name, e,
+                    )))
                 }
             };
-        let session = match self.sma_client.open(self.sma_addr, None) {
-            Ok(x) => x,
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Could not open SMA Client session: {}", e
-                );
-                return TaskResult::Running;
-            }
-        };
-        let identity = match self.sma_client.identify(&session).await {
-            Err(e) => {
-                error!(
-                    self.base.logger,
-                    "Could not identify SMA device, {}", e
-                );
-                return TaskResult::Running;
-            }
-            Ok(x) => x,
-        };
+        let session =
+            self.sma_client.open(self.sma_addr, None).map_err(|e| {
+                Error::Temporary(format!(
+                    "Could not open SMA Client session: {e}",
+                ))
+            })?;
+        let identity =
+            self.sma_client.identify(&session).await.map_err(|e| {
+                Error::Temporary(format!("Could not identify SMA device, {e}",))
+            })?;
 
         trace!(
             self.base.logger,
@@ -123,20 +105,21 @@ impl SunnyBoySpeedwireSource {
 
         self.sma_client.set_dst(identity.susy_id, identity.serial);
 
-        if let Err(e) = self.sma_client.logout(&session).await {
-            error!(self.base.logger, "Logout failed: {}", e);
-            return TaskResult::Running;
-        }
-        if let Err(e) = self.sma_client.login(&session, &self.sma_pw).await {
-            error!(self.base.logger, "Login failed: {}", e);
-            return TaskResult::Running;
-        }
+        self.sma_client
+            .logout(&session)
+            .await
+            .map_err(|e| Error::Temporary(format!("Logout failed: {e}")))?;
+        self.sma_client
+            .login(&session, &self.sma_pw)
+            .await
+            .map_err(|e| Error::Temporary(format!("Login failed: {e}")))?;
 
         trace!(
             self.base.logger,
             "GetDayData from {} to {}",
             last_record.time.into_format_args(second, Abbreviation),
-            now.into_format_args(second, Abbreviation),
+            Time::new::<second>(timing.now as f64)
+                .into_format_args(second, Abbreviation),
         );
 
         let mut last_energy = last_record.energy;
@@ -148,13 +131,14 @@ impl SunnyBoySpeedwireSource {
             .get_day_data(
                 &session,
                 last_record.time.get::<second>() as u32,
-                now.get::<second>() as u32,
+                timing.now as u32,
             )
             .await
         {
             Err(e) => {
-                error!(self.base.logger, "Get Day Data failed: {}", e);
-                return TaskResult::Running;
+                return Err(Error::Temporary(format!(
+                    "Get Day Data failed: {e}",
+                )))
             }
             Ok(points) => {
                 trace!(self.base.logger, "Get Day data returned {:?}", points);
@@ -191,9 +175,10 @@ impl SunnyBoySpeedwireSource {
         // TODO: handle NaN (0xFFFFFFFF, 0xFFFF) values(in SMA client validators)
         // TODO: always UTC, handle DST transition
 
-        if let Err(e) = self.sma_client.logout(&session).await {
-            error!(self.base.logger, "Logout failed: {}", e);
-        }
+        self.sma_client
+            .logout(&session)
+            .await
+            .map_err(|e| Error::Temporary(format!("Logout failed: {e}")))?;
 
         let num_points = points.len();
         for point in points {
@@ -208,16 +193,15 @@ impl SunnyBoySpeedwireSource {
             last_record = record.clone();
 
             self.base.notify_processors(&record);
-            if let Err(e) = record.insert(&mut conn, self.base.series_id).await
-            {
-                error!(
-                    self.base.logger,
-                    "Inserting {} record into database failed: {}",
-                    &self.base.name,
-                    e
-                );
-                return TaskResult::Running;
-            }
+            record
+                .insert(&mut conn, self.base.series_id)
+                .await
+                .map_err(|e| {
+                    Error::Temporary(format!(
+                        "Inserting {} record into database failed: {}",
+                        &self.base.name, e,
+                    ))
+                })?;
         }
 
         trace!(
@@ -225,6 +209,6 @@ impl SunnyBoySpeedwireSource {
             "Wrote {} simple meter records to database",
             num_points
         );
-        TaskResult::Running
+        Ok(())
     }
 }
