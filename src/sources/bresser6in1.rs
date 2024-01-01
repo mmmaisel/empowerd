@@ -23,12 +23,16 @@ use std::time::Duration;
 
 pub struct Bresser6in1Source {
     base: SourceBase,
-    //bresser_client: BresserClient,
+    bresser_client: BresserClient,
 }
 
 impl Bresser6in1Source {
     pub fn new(base: SourceBase) -> Self {
-        Self { base }
+        let logger = base.logger.clone();
+        Self {
+            base,
+            bresser_client: BresserClient::new(Some(logger)),
+        }
     }
 
     pub fn logger(&self) -> &Logger {
@@ -43,38 +47,32 @@ impl Bresser6in1Source {
             ))
         })?;
 
-        let logger2 = self.base.logger.clone();
-        let mut weather_data = tokio::task::block_in_place(move || {
-            // TODO: move bresser client (allocated buffers, ...) back to Miner struct
-            let mut bresser_client = BresserClient::new(Some(logger2.clone()));
-            let mut weather_data = bresser_client.read_data();
+        let mut weather_data = tokio::task::block_in_place(|| {
+            let mut weather_data = self.bresser_client.read_data();
             for i in 1..4u8 {
                 if let Err(e) = weather_data {
                     if i == 2 {
                         match usb_reset::reset_vid_pid(VID, PID) {
                             Ok(()) => {
                                 warn!(
-                                    logger2,
-                                    "Reset device {:X}:{:X}", VID, PID
+                                    self.base.logger,
+                                    "Reset device {VID:X}:{PID:X}",
                                 );
                                 std::thread::sleep(Duration::from_secs(5));
                             }
                             Err(e) => {
                                 error!(
-                                    logger2,
-                                    "Reset device {:X}:{:X} failed: {}",
-                                    VID,
-                                    PID,
-                                    e
+                                    self.base.logger,
+                                    "Reset device {VID:X}:{PID:X} failed: {e}",
                                 );
                             }
                         }
                     }
                     debug!(
-                        logger2,
-                        "Get weather data failed, {}, retrying...", e
+                        self.base.logger,
+                        "Get weather data failed, {e}, retrying...",
                     );
-                    weather_data = bresser_client.read_data();
+                    weather_data = self.bresser_client.read_data();
                 } else {
                     break;
                 }
