@@ -16,7 +16,37 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use chrono::{DateTime, Duration, Local, Utc};
-use spa::{calc_sunrise_and_set, SunriseAndSet};
+use spa::{sunrise_and_set, FloatOps, SunriseAndSet};
+
+pub struct StdFloatOps;
+
+/// FloatOps for the std environment, mapping directly onto f64 operations
+impl FloatOps for StdFloatOps {
+    fn sin(x: f64) -> f64 {
+        x.sin()
+    }
+    fn cos(x: f64) -> f64 {
+        x.cos()
+    }
+    fn tan(x: f64) -> f64 {
+        x.tan()
+    }
+    fn asin(x: f64) -> f64 {
+        x.asin()
+    }
+    fn acos(x: f64) -> f64 {
+        x.acos()
+    }
+    fn atan(x: f64) -> f64 {
+        x.atan()
+    }
+    fn atan2(y: f64, x: f64) -> f64 {
+        y.atan2(x)
+    }
+    fn trunc(x: f64) -> f64 {
+        x.trunc()
+    }
+}
 
 pub struct SeasonalBuilder {
     latitude: f64,
@@ -98,16 +128,19 @@ impl Seasonal {
     pub fn calc_correction(&self, time: DateTime<Utc>) -> f64 {
         let time = time + Duration::seconds(self.phase as i64);
 
-        let daytime =
-            match calc_sunrise_and_set(time, self.latitude, self.longitude)
-                .unwrap()
-            {
-                SunriseAndSet::Daylight(sunrise, sunset) => {
-                    (sunset - sunrise).num_seconds()
-                }
-                SunriseAndSet::PolarDay => 24 * 3600,
-                SunriseAndSet::PolarNight => 0,
-            };
+        let daytime = match sunrise_and_set::<StdFloatOps>(
+            time,
+            self.latitude,
+            self.longitude,
+        )
+        .unwrap()
+        {
+            SunriseAndSet::Daylight(sunrise, sunset) => {
+                (sunset - sunrise).num_seconds()
+            }
+            SunriseAndSet::PolarDay => 24 * 3600,
+            SunriseAndSet::PolarNight => 0,
+        };
         let deviation = daytime - 12 * 3600;
         (deviation as f64 + self.offset) * self.gain
     }
