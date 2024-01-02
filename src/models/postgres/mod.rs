@@ -88,6 +88,31 @@ macro_rules! impl_timeseries {
 
                 Ok(())
             }
+
+            pub async fn insert_bulk(
+                data: Vec<Self>,
+                conn: &mut diesel_async::AsyncPgConnection,
+                series_id: i32,
+            ) -> Result<(), crate::Error> {
+                use diesel_async::RunQueryDsl;
+                let raw = data.iter().map(|x| {
+                    let mut y = $raw_ty::try_from(x)?;
+                    y.series_id = series_id;
+                    Ok(y)
+                }).collect::<Result<Vec<$raw_ty>, crate::Error>>()?;
+
+                diesel::insert_into(schema::$schema::table)
+                    .values(&raw)
+                    .execute(conn)
+                    .await
+                    .map_err(|e| {
+                        Error::Temporary(format!(
+                            "Inserting record into series {series_id} failed: {e}",
+                        ))
+                    })?;
+
+                Ok(())
+            }
         }
     };
 }

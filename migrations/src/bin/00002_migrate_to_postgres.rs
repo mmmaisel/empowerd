@@ -175,21 +175,28 @@ async fn migrate_battery(
         query_influx_batch::<InfluxBattery>(influx, measurement, now, 1000)
             .await
     {
-        for record in series.values.into_iter() {
-            let battery = PgBattery {
-                time: record.time,
-                charge: record.charge,
-                energy_in: record.energy_in,
-                energy_out: record.energy_out,
-                power: record.power,
-            };
-            now = record.time.get::<second>() as u64;
-            if let Err(e) = battery.insert(&mut postgres, series_id).await {
-                if continue_on_err {
-                    eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-                } else {
-                    return Err(e.to_string());
+        let records = series
+            .values
+            .iter()
+            .map(|record| {
+                now = record.time.get::<second>() as u64;
+                PgBattery {
+                    time: record.time,
+                    charge: record.charge,
+                    energy_in: record.energy_in,
+                    energy_out: record.energy_out,
+                    power: record.power,
                 }
+            })
+            .collect::<Vec<PgBattery>>();
+
+        if let Err(e) =
+            PgBattery::insert_bulk(records, &mut postgres, series_id).await
+        {
+            if continue_on_err {
+                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
+            } else {
+                return Err(e.to_string());
             }
         }
     }
@@ -212,20 +219,26 @@ async fn migrate_simple_meter(
         query_influx_batch::<InfluxSimpleMeter>(influx, measurement, now, 1000)
             .await
     {
-        for record in series.values.into_iter() {
-            let simple_meter = PgSimpleMeter {
-                time: record.time,
-                energy: record.energy,
-                power: record.power,
-            };
-            now = record.time.get::<second>() as u64;
-            if let Err(e) = simple_meter.insert(&mut postgres, series_id).await
-            {
-                if continue_on_err {
-                    eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-                } else {
-                    return Err(e.to_string());
+        let records = series
+            .values
+            .iter()
+            .map(|record| {
+                now = record.time.get::<second>() as u64;
+                PgSimpleMeter {
+                    time: record.time,
+                    energy: record.energy,
+                    power: record.power,
                 }
+            })
+            .collect::<Vec<PgSimpleMeter>>();
+
+        if let Err(e) =
+            PgSimpleMeter::insert_bulk(records, &mut postgres, series_id).await
+        {
+            if continue_on_err {
+                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
+            } else {
+                return Err(e.to_string());
             }
         }
     }
@@ -248,20 +261,27 @@ async fn migrate_generator(
         query_influx_batch::<InfluxGenerator>(influx, measurement, now, 1000)
             .await
     {
-        for record in series.values.into_iter() {
-            let generator = PgGenerator {
-                time: record.time,
-                energy: record.energy,
-                power: record.power,
-                runtime: record.runtime,
-            };
-            now = record.time.get::<second>() as u64;
-            if let Err(e) = generator.insert(&mut postgres, series_id).await {
-                if continue_on_err {
-                    eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-                } else {
-                    return Err(e.to_string());
+        let records = series
+            .values
+            .iter()
+            .map(|record| {
+                now = record.time.get::<second>() as u64;
+                PgGenerator {
+                    time: record.time,
+                    energy: record.energy,
+                    power: record.power,
+                    runtime: record.runtime,
                 }
+            })
+            .collect::<Vec<PgGenerator>>();
+
+        if let Err(e) =
+            PgGenerator::insert_bulk(records, &mut postgres, series_id).await
+        {
+            if continue_on_err {
+                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
+            } else {
+                return Err(e.to_string());
             }
         }
     }
@@ -284,24 +304,31 @@ async fn migrate_heatpump(
         query_influx_batch::<InfluxHeatpump>(influx, measurement, now, 1000)
             .await
     {
-        for record in series.values.into_iter() {
-            let heatpump = PgHeatpump {
-                time: record.time,
-                energy: record.energy,
-                power: record.power,
-                heat: record.total_heat,
-                cop: record.cop,
-                boiler_top: record.boiler_top,
-                boiler_mid: record.boiler_mid,
-                boiler_bot: record.boiler_bot,
-            };
-            now = record.time.get::<second>() as u64;
-            if let Err(e) = heatpump.insert(&mut postgres, series_id).await {
-                if continue_on_err {
-                    eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-                } else {
-                    return Err(e.to_string());
+        let records = series
+            .values
+            .iter()
+            .map(|record| {
+                now = record.time.get::<second>() as u64;
+                PgHeatpump {
+                    time: record.time,
+                    energy: record.energy,
+                    power: record.power,
+                    heat: record.total_heat,
+                    cop: record.cop,
+                    boiler_top: record.boiler_top,
+                    boiler_mid: record.boiler_mid,
+                    boiler_bot: record.boiler_bot,
                 }
+            })
+            .collect::<Vec<PgHeatpump>>();
+
+        if let Err(e) =
+            PgHeatpump::insert_bulk(records, &mut postgres, series_id).await
+        {
+            if continue_on_err {
+                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
+            } else {
+                return Err(e.to_string());
             }
         }
     }
@@ -324,20 +351,27 @@ async fn migrate_bidir_meter(
         query_influx_batch::<InfluxBidirMeter>(influx, measurement, now, 1000)
             .await
     {
-        for record in series.values.into_iter() {
-            let bidir_meter = PgBidirMeter {
-                time: record.time,
-                energy_in: record.energy_consumed,
-                energy_out: record.energy_produced,
-                power: record.power,
-            };
-            now = record.time.get::<second>() as u64;
-            if let Err(e) = bidir_meter.insert(&mut postgres, series_id).await {
-                if continue_on_err {
-                    eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-                } else {
-                    return Err(e.to_string());
+        let records = series
+            .values
+            .iter()
+            .map(|record| {
+                now = record.time.get::<second>() as u64;
+                PgBidirMeter {
+                    time: record.time,
+                    energy_in: record.energy_consumed,
+                    energy_out: record.energy_produced,
+                    power: record.power,
                 }
+            })
+            .collect::<Vec<PgBidirMeter>>();
+
+        if let Err(e) =
+            PgBidirMeter::insert_bulk(records, &mut postgres, series_id).await
+        {
+            if continue_on_err {
+                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
+            } else {
+                return Err(e.to_string());
             }
         }
     }
@@ -360,36 +394,43 @@ async fn migrate_weather(
         query_influx_batch::<InfluxWeather>(influx, measurement, now, 1000)
             .await
     {
-        for record in series.values.into_iter() {
-            let weather = PgWeather {
-                time: record.time,
-                temp_in: record.temperature_in,
-                hum_in: record.humidity_in,
-                temp_out: record.temperature_out,
-                hum_out: record.humidity_out,
-                rain_day: record.rain_day,
-                rain_act: record.rain_actual,
-                wind_act: record.wind_actual,
-                wind_gust: record.wind_gust,
-                wind_dir: record.wind_dir,
-                baro_sea: record.baro_sea,
-                baro_abs: record.baro_absolute,
-                uv_index: record.uv_index,
-                dew_point: record.dew_point,
-                temp_x1: record.temperature_x1,
-                hum_x1: record.humidity_x1,
-                temp_x2: record.temperature_x2,
-                hum_x2: record.humidity_x2,
-                temp_x3: record.temperature_x3,
-                hum_x3: record.humidity_x3,
-            };
-            now = record.time.get::<second>() as u64;
-            if let Err(e) = weather.insert(&mut postgres, series_id).await {
-                if continue_on_err {
-                    eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-                } else {
-                    return Err(e.to_string());
+        let records = series
+            .values
+            .iter()
+            .map(|record| {
+                now = record.time.get::<second>() as u64;
+                PgWeather {
+                    time: record.time,
+                    temp_in: record.temperature_in,
+                    hum_in: record.humidity_in,
+                    temp_out: record.temperature_out,
+                    hum_out: record.humidity_out,
+                    rain_day: record.rain_day,
+                    rain_act: record.rain_actual,
+                    wind_act: record.wind_actual,
+                    wind_gust: record.wind_gust,
+                    wind_dir: record.wind_dir,
+                    baro_sea: record.baro_sea,
+                    baro_abs: record.baro_absolute,
+                    uv_index: record.uv_index,
+                    dew_point: record.dew_point,
+                    temp_x1: record.temperature_x1,
+                    hum_x1: record.humidity_x1,
+                    temp_x2: record.temperature_x2,
+                    hum_x2: record.humidity_x2,
+                    temp_x3: record.temperature_x3,
+                    hum_x3: record.humidity_x3,
                 }
+            })
+            .collect::<Vec<PgWeather>>();
+
+        if let Err(e) =
+            PgWeather::insert_bulk(records, &mut postgres, series_id).await
+        {
+            if continue_on_err {
+                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
+            } else {
+                return Err(e.to_string());
             }
         }
     }
