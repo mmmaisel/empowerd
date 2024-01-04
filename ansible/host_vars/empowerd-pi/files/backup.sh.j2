@@ -1,0 +1,33 @@
+#!/bin/bash
+
+BACKUP_PATH="/root/"
+
+backup_postgresqldb() {
+  local db="$1"
+  local file="$BACKUP_ROOT/${db}.db.gz"
+  local i
+
+  rm -f "$file.$NUM_ROTATE"
+  i=$((NUM_ROTATE-1))
+  while [ "$i" -gt 0 ]; do
+    if [ -f "$file.$i" ]; then
+      mv "$file.$i" "$file.$((i+1))"
+    fi
+    i=$((i-1))
+  done
+  mv "$file" "$file.1"
+
+  pg_dump -U postgres -Fc "$db" | gzip -9c > "$file"
+}
+
+influxd backup -portable "$BACKUP_ROOT/influx.bak" > /dev/null
+
+tar -C "$BACKUP_ROOT/influx.bak" -cvzpf "$BACKUP_ROOT/influx.bak.tgz" . > /dev/null
+rm -rf "$BACKUP_ROOT/influx.bak"
+
+mkdir -p "$BACKUP_ROOT/postgres"
+{% for i in postgresql.users | dict2items %}
+{% if i.value.owner == "self" %}
+backup_postgresqldb {{ i.value.db }}
+{% endif %}
+{% endfor %}

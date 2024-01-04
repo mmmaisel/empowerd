@@ -48,10 +48,24 @@ nginx_sites:
   - name: empowerd_pi
     listen: ["192.168.2.30"]
     server_name: "empowerd-pi.lan"
-
+postgresql:
+  address: localhost
+  port: 5432
+  users:
+    empowerd:
+      db: empowerd
+      host: localhost
+      owner: self
+    grafana:
+      db: empowerd
+      host: localhost
+      privs: SELECT
+      owner: empowerd
 sshd:
   listen: ["192.168.1.30"]
   extra_config: |
     Match user pi
       AuthenticationMethods publickey
     Match all
+timesyncd:
+  ntp_servers: ['192.168.3.30']

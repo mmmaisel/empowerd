@@ -1,0 +1,33 @@
+---
+- block:
+  - name: Install timesyncd (Debian)
+    apt:
+      name: systemd-timesyncd
+      force_apt_get: true
+      state: present
+      install_recommends: false
+    when: "ansible_os_family == 'Debian'"
+
+  - name: Configure timesyncd
+    template:
+      src: "files/timesyncd.conf.j2"
+      dest: "/etc/systemd/timesyncd.conf"
+      owner: root
+      group: root
+      mode: 0644
+    notify: Restart timesyncd
+
+  - name: Set timezone
+    timezone:
+      name: UTC
+      hwclock: UTC
+
+  - name: Start timesyncd
+    service:
+      enabled: true
+      name: systemd-timesyncd
+      masked: false
+      state: started
+      daemon_reload: true
+
+  tags: timesync

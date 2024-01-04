@@ -1,0 +1,10 @@
+---
+_postgres_version: |
+    {%- if ansible_lsb['major_release'] == "11" -%}
+        13
+    {%- elif ansible_lsb['major_release'] == "12" -%}
+        15
+    {%- else -%}
+        0
+    {%- endif -%}
+postgres_version: "{{ _postgres_version | trim }}"

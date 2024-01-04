@@ -7,6 +7,8 @@
     - unattended-upgrades
     - dnsmasq
     - influxdb
+    - postgres-server
+    - timesync
     - grafana
     - nginx
     - ntp

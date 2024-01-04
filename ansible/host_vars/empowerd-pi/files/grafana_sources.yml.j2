@@ -1,12 +1,16 @@
 apiVersion: 1
 
 datasources:
-  - name: empowerd
-    type: influxdb
+  - name: Postgres
+    type: postgres
     access: proxy
-    url: http://localhost:8086
-    database: empowerd
-    user: empowerd
-    password: "{{ influxdb.users.empowerd.password }}"
-    editable: false
+    url: 127.0.0.1:5432
+    user: grafana
+    editable: true
+    secureJsonData:
+        password: "{{ postgresql.users.grafana.password }}"
+    jsonData:
+        database: empowerd
+        sslmode: 'disable'
+        postgresVersion: 1300
     version: 1

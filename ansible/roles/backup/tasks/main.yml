@@ -1,8 +1,8 @@
 ---
 - block:
   - name: Copy backup script
-    copy:
-      src: "host_vars/{{ inventory_hostname }}/files/backup.sh"
+    template:
+      src: "host_vars/{{ inventory_hostname }}/files/backup.sh.j2"
       dest: "/root/backup.sh"
       mode: 0500
       owner: root

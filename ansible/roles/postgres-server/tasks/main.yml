@@ -1,0 +1,117 @@
+---
+- block:
+  - name: Install postgresql
+    apt:
+      name: "{{ item }}"
+      state: present
+      install_recommends: false
+    with_items:
+      - "postgresql-{{ postgres_version }}"
+      - "postgresql-client-{{ postgres_version }}"
+      - python3-psycopg2
+
+  - name: Enable en_US.UTF-8 locale
+    locale_gen:
+      name: "en_US.UTF-8"
+      state: present
+
+  - name: Copy static config files
+    copy:
+      src: "files/{{ item }}"
+      dest: "/etc/postgresql/{{ postgres_version }}/main/{{ item }}"
+      owner: postgres
+      group: root
+      mode: 0644
+    with_items:
+      - environment
+      - pg_ctl.conf
+      - pg_hba.conf
+      - pg_ident.conf
+      - start.conf
+
+  - name: Setup template config files
+    template:
+      src: "templates/{{ item }}.j2"
+      dest: "/etc/postgresql/{{ postgres_version }}/main/{{ item }}"
+      owner: postgres
+      group: root
+      mode: 0644
+    with_items:
+      - postgresql.conf
+
+  - name: Remove unused common config
+    file:
+      dest: "/etc/postgresql-common"
+      state: absent
+
+  - name: Create server directory
+    file:
+      dest: "/srv/postgresql/{{ postgres_version }}/main"
+      owner: postgres
+      group: postgres
+      mode: 0750
+      state: directory
+      recurse: yes
+
+  - name: Check if postgresql is initialized
+    stat:
+      path: "/srv/postgresql/{{ postgres_version }}/main/pg_serial"
+    register: postgres_serial
+
+  - name: Initialize database
+    shell:
+      cmd: >-
+        sudo -u postgres /usr/lib/postgresql/{{ postgres_version }}/bin/initdb
+        -D /srv/postgresql/{{ postgres_version }}/main/
+    when: not postgres_serial.stat.exists
+
+  - name: Restart postgresql
+    systemd:
+      name: postgresql
+      enabled: true
+      masked: false
+      state: restarted
+      daemon_reload: true
+
+  - name: Remove default postgresql directory
+    file:
+      dest: /var/lib/postgresql
+      state: absent
+
+  - name: Setup users
+    community.postgresql.postgresql_user:
+      name: "{{ item.key }}"
+      password: "{{ item.value.password }}"
+      expires: infinity
+      encrypted: yes
+    with_items:
+      "{{ postgresql.users | dict2items }}"
+
+  - name: Setup databases
+    community.postgresql.postgresql_db:
+      name: "{{ item.value.db }}"
+      owner: "{{ item.key }}"
+      encoding: UTF-8
+      lc_collate: en_US.UTF-8
+      lc_ctype: en_US.UTF-8
+      template: template0
+    when: "item.value.owner == 'self'"
+    with_items:
+      "{{ postgresql.users | dict2items }}"
+
+  - name: Setup additional permissions
+    community.postgresql.postgresql_privs:
+      db: "{{ item.value.db }}"
+      privs: "{{ item.value.privs }}"
+      objs: TABLES
+      roles: "{{ item.key }}"
+      target_roles: "{{ item.value.owner }}"
+      type: default_privs
+      state: present
+    when: "item.value.owner != 'self'"
+    with_items:
+      "{{ postgresql.users | dict2items }}"
+    tags: pg-privs
+
+  notify: Restart postgresql
+  tags: postgres-server
