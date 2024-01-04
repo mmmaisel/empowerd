@@ -23,6 +23,7 @@ use diesel_async::{
     AsyncPgConnection,
 };
 use libempowerd::{
+    error::Error,
     models::{
         influx::{
             Battery as InfluxBattery, BidirectionalMeter as InfluxBidirMeter,
@@ -190,15 +191,10 @@ async fn migrate_battery(
             })
             .collect::<Vec<PgBattery>>();
 
-        if let Err(e) =
-            PgBattery::insert_bulk(records, &mut postgres, series_id).await
-        {
-            if continue_on_err {
-                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-            } else {
-                return Err(e.to_string());
-            }
-        }
+        let record_count = records.len();
+        let result =
+            PgBattery::insert_bulk(records, &mut postgres, series_id).await;
+        check_result(result, measurement, now, record_count, continue_on_err)?;
     }
 
     Ok(())
@@ -232,15 +228,10 @@ async fn migrate_simple_meter(
             })
             .collect::<Vec<PgSimpleMeter>>();
 
-        if let Err(e) =
-            PgSimpleMeter::insert_bulk(records, &mut postgres, series_id).await
-        {
-            if continue_on_err {
-                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-            } else {
-                return Err(e.to_string());
-            }
-        }
+        let record_count = records.len();
+        let result =
+            PgSimpleMeter::insert_bulk(records, &mut postgres, series_id).await;
+        check_result(result, measurement, now, record_count, continue_on_err)?;
     }
 
     Ok(())
@@ -275,15 +266,10 @@ async fn migrate_generator(
             })
             .collect::<Vec<PgGenerator>>();
 
-        if let Err(e) =
-            PgGenerator::insert_bulk(records, &mut postgres, series_id).await
-        {
-            if continue_on_err {
-                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-            } else {
-                return Err(e.to_string());
-            }
-        }
+        let record_count = records.len();
+        let result =
+            PgGenerator::insert_bulk(records, &mut postgres, series_id).await;
+        check_result(result, measurement, now, record_count, continue_on_err)?;
     }
 
     Ok(())
@@ -322,15 +308,10 @@ async fn migrate_heatpump(
             })
             .collect::<Vec<PgHeatpump>>();
 
-        if let Err(e) =
-            PgHeatpump::insert_bulk(records, &mut postgres, series_id).await
-        {
-            if continue_on_err {
-                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-            } else {
-                return Err(e.to_string());
-            }
-        }
+        let record_count = records.len();
+        let result =
+            PgHeatpump::insert_bulk(records, &mut postgres, series_id).await;
+        check_result(result, measurement, now, record_count, continue_on_err)?;
     }
 
     Ok(())
@@ -365,15 +346,10 @@ async fn migrate_bidir_meter(
             })
             .collect::<Vec<PgBidirMeter>>();
 
-        if let Err(e) =
-            PgBidirMeter::insert_bulk(records, &mut postgres, series_id).await
-        {
-            if continue_on_err {
-                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-            } else {
-                return Err(e.to_string());
-            }
-        }
+        let record_count = records.len();
+        let result =
+            PgBidirMeter::insert_bulk(records, &mut postgres, series_id).await;
+        check_result(result, measurement, now, record_count, continue_on_err)?;
     }
 
     Ok(())
@@ -424,15 +400,10 @@ async fn migrate_weather(
             })
             .collect::<Vec<PgWeather>>();
 
-        if let Err(e) =
-            PgWeather::insert_bulk(records, &mut postgres, series_id).await
-        {
-            if continue_on_err {
-                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
-            } else {
-                return Err(e.to_string());
-            }
-        }
+        let record_count = records.len();
+        let result =
+            PgWeather::insert_bulk(records, &mut postgres, series_id).await;
+        check_result(result, measurement, now, record_count, continue_on_err)?;
     }
 
     Ok(())
@@ -458,4 +429,35 @@ where
             ))
             .await,
     )
+}
+
+fn check_result(
+    res: Result<usize, Error>,
+    measurement: &str,
+    now: u64,
+    count: usize,
+    continue_on_err: bool,
+) -> Result<(), String> {
+    match res {
+        Ok(insert_count) => {
+            eprintln!("Migrated {insert_count} records");
+            if count != insert_count {
+                let e = "Could not insert all records";
+                if continue_on_err {
+                    eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
+                } else {
+                    return Err(e.to_string());
+                }
+            }
+        }
+        Err(e) => {
+            if continue_on_err {
+                eprintln!("Skipping {} at {}: {e}!", &measurement, &now);
+            } else {
+                return Err(e.to_string());
+            }
+        }
+    }
+
+    Ok(())
 }
