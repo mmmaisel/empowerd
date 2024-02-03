@@ -46,15 +46,20 @@ impl LambdaHeatPumpSink {
         &self,
         power: Power,
     ) -> Result<bool, String> {
-        let power = (power.get::<watt>() as i64)
-            .try_into()
-            .map_err(|e| format!("Could not convert power to u16: {}", e))?;
-        debug!(self.logger, "Setting heatpump power to {} W", power);
+        let power_u16 = if power > Power::new::<watt>(600.0) {
+            (power.get::<watt>() as i64)
+                .try_into()
+                .map_err(|e| format!("Could not convert power to u16: {}", e))?
+        } else {
+            0
+        };
+
+        debug!(self.logger, "Setting heatpump power to {} W", power_u16);
         let mut context = self.client.open().await?;
-        context.set_available_power(power).await.map_err(|e| {
+        context.set_available_power(power_u16).await.map_err(|e| {
             format!("Setting available power for {} failed: {}", self.name, e)
         })?;
 
-        Ok(power == 0)
+        Ok(power_u16 == 0)
     }
 }
