@@ -27,21 +27,43 @@ pub struct LambdaContext(Context);
 
 impl LambdaContext {
     pub async fn get_current_power(&mut self) -> Result<i16, String> {
+        let state = self
+            .0
+            .read_holding_registers(1002, 1)
+            .await
+            .map_err(|e| e.to_string())?;
         let data = self
             .0
             .read_holding_registers(103, 1)
             .await
             .map_err(|e| e.to_string())?;
-        Ok(data[0] as i16)
+
+        // Cooling / Defrosting ?
+        if state[0] == 9 || state[0] == 10 {
+            Ok(-(data[0] as i16))
+        } else {
+            Ok(data[0] as i16)
+        }
     }
 
     pub async fn get_cop(&mut self) -> Result<i16, String> {
+        let state = self
+            .0
+            .read_holding_registers(1002, 1)
+            .await
+            .map_err(|e| e.to_string())?;
         let data = self
             .0
             .read_holding_registers(1013, 1)
             .await
             .map_err(|e| e.to_string())?;
-        Ok(data[0] as i16)
+
+        // Defrosting ?
+        if state[0] == 10 {
+            Ok(0)
+        } else {
+            Ok(data[0] as i16)
+        }
     }
 
     pub async fn get_boiler_temps(
