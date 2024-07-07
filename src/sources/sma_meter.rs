@@ -25,29 +25,30 @@ use crate::{
     Error,
 };
 use slog::{trace, Logger};
-use sma_client::SmaClient;
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use sma_proto::{
+    client::{SmaClient, SmaSession},
+    SmaEndpoint,
+};
+use std::net::Ipv4Addr;
 
 pub struct SmaMeterSource {
     base: SourceBase,
     sma_client: SmaClient,
-    sma_addr: SocketAddr,
+    meter_endpoint: SmaEndpoint,
     bind_addr: Ipv4Addr,
 }
 
 impl SmaMeterSource {
     pub fn new(
         base: SourceBase,
-        sma_addr: Ipv4Addr,
         bind_addr: Ipv4Addr,
+        susy_id: u16,
+        serial: u32,
     ) -> Result<Self, String> {
-        let sma_socket_addr = SocketAddr::V4(SocketAddrV4::new(sma_addr, 9522));
-
-        let logger = base.logger.clone();
         Ok(Self {
             base,
-            sma_client: SmaClient::new(Some(logger)),
-            sma_addr: sma_socket_addr,
+            sma_client: SmaClient::new(SmaEndpoint::dummy()),
+            meter_endpoint: SmaEndpoint { susy_id, serial },
             bind_addr,
         })
     }
@@ -60,39 +61,41 @@ impl SmaMeterSource {
         let timing = self.base.sleep_aligned().await?;
         let mut conn = self.base.get_database().await?;
 
-        let session = self
-            .sma_client
-            .open(self.sma_addr, Some(self.bind_addr))
-            .map_err(|e| {
+        let session =
+            SmaSession::open_multicast(self.bind_addr).map_err(|e| {
                 Error::Temporary(format!(
                     "Could not open SMA Client multicast session: {e}",
                 ))
             })?;
 
-        let (_header, data) =
-            self.sma_client.fetch_em_data(&session).await.map_err(|e| {
+        let (_timestamp_ms, data) = self
+            .sma_client
+            .read_em_message(&session, &self.meter_endpoint)
+            .await
+            .map_err(|e| {
                 Error::Temporary(format!("Fetching EM data failed: {e}"))
             })?;
 
-        let consumed = match data.get(&0x00010800) {
-            Some(x) => Energy::new::<joule>(*x as f64),
-            None => {
-                return Err(Error::Temporary(
-                    "Received data did not include consumed energy record."
-                        .into(),
-                ))
-            }
-        };
+        let mut produced = Energy::new::<joule>(0f64);
+        let mut consumed = Energy::new::<joule>(0f64);
+        let mut found = 0u8;
 
-        let produced = match data.get(&0x00020800) {
-            Some(x) => Energy::new::<joule>(*x as f64),
-            None => {
-                return Err(Error::Temporary(
-                    "Received data did not include produced energy record."
-                        .into(),
-                ))
+        for obis in data {
+            if obis.id == 0x00010800 {
+                found |= 1 << 0;
+                consumed = Energy::new::<joule>(obis.value as f64);
+            } else if obis.id == 0x00020800 {
+                found |= 1 << 1;
+                produced = Energy::new::<joule>(obis.value as f64);
             }
-        };
+        }
+
+        if found != 0x03 {
+            return Err(Error::Temporary(format!(
+                "Received data did not include produced or \
+                    consumed record: bitfield {found}"
+            )));
+        }
 
         let mut record = BidirMeter {
             time: Time::new::<second>(timing.now as f64),

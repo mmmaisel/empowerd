@@ -39,7 +39,6 @@ members = [
     "lib/dachs-client",
     "lib/lambda-client",
     "lib/kecontact-client",
-    "lib/sma-client",
     "lib/sml-client",
     "lib/sunny-storage-client",
     "lib/sunspec-client",
@@ -63,7 +62,7 @@ bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
 dachs-client = { version = "*", path = "lib/dachs-client/" }
 lambda-client = { version = "*", path = "lib/lambda-client/" }
 kecontact-client = { "version" = "*", path = "lib/kecontact-client" }
-sma-client = { version = "*", path = "lib/sma-client/" }
+sma-proto = { version = "1.0.1", features = ["client"] }
 sml-client = { version = "*", path = "lib/sml-client/" }
 sunny-storage-client = { version = "*", path = "lib/sunny-storage-client/" }
 sunspec-client = { version = "*", path = "lib/sunspec-client/" }

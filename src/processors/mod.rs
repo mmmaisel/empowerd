@@ -372,7 +372,7 @@ pub fn processor_tasks(
                         logger.clone(),
                     ),
                     command_rx,
-                    setting.meter_addr.clone(),
+                    setting.meter_susy_id,
                     setting.meter_serial,
                     setting.bind_addr.clone(),
                     setting.ctrl_serial,

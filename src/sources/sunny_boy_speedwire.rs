@@ -25,14 +25,18 @@ use crate::{
     Error,
 };
 use slog::{debug, trace, Logger};
-use sma_client::{SmaClient, TimestampedInt};
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use sma_proto::{
+    client::{SmaClient, SmaSession},
+    inverter::SmaInvMeterValue,
+    SmaEndpoint,
+};
+use std::net::Ipv4Addr;
 
 pub struct SunnyBoySpeedwireSource {
     base: SourceBase,
     sma_client: SmaClient,
     sma_pw: String,
-    sma_addr: SocketAddr,
+    sma_addr: Ipv4Addr,
 }
 
 impl SunnyBoySpeedwireSource {
@@ -41,14 +45,11 @@ impl SunnyBoySpeedwireSource {
         sma_pw: String,
         sma_addr: Ipv4Addr,
     ) -> Result<Self, String> {
-        let sma_socket_addr = SocketAddr::V4(SocketAddrV4::new(sma_addr, 9522));
-
-        let logger = base.logger.clone();
         Ok(Self {
             base,
-            sma_client: SmaClient::new(Some(logger)),
+            sma_client: SmaClient::new(SmaEndpoint::dummy()),
             sma_pw,
-            sma_addr: sma_socket_addr,
+            sma_addr,
         })
     }
 
@@ -76,33 +77,21 @@ impl SunnyBoySpeedwireSource {
                     )))
                 }
             };
-        let session =
-            self.sma_client.open(self.sma_addr, None).map_err(|e| {
-                Error::Temporary(format!(
-                    "Could not open SMA Client session: {e}",
-                ))
-            })?;
-        let identity =
-            self.sma_client.identify(&session).await.map_err(|e| {
-                Error::Temporary(format!("Could not identify SMA device, {e}",))
-            })?;
+        let session = SmaSession::open_unicast(self.sma_addr).map_err(|e| {
+            Error::Temporary(format!("Could not open SMA Client session: {e}",))
+        })?;
+        let dst_id = self.sma_client.identify(&session).await.map_err(|e| {
+            Error::Temporary(format!("Could not identify SMA device, {e}",))
+        })?;
 
-        trace!(
-            self.base.logger,
-            "{} is {:X}, {:X}",
-            self.sma_addr,
-            identity.susy_id,
-            identity.serial
-        );
-
-        self.sma_client.set_dst(identity.susy_id, identity.serial);
+        trace!(self.base.logger, "Device is {dst_id:X?}");
 
         self.sma_client
-            .logout(&session)
+            .logout(&session, &dst_id)
             .await
             .map_err(|e| Error::Temporary(format!("Logout failed: {e}")))?;
         self.sma_client
-            .login(&session, &self.sma_pw)
+            .login(&session, &dst_id, &self.sma_pw)
             .await
             .map_err(|e| Error::Temporary(format!("Login failed: {e}")))?;
 
@@ -118,10 +107,11 @@ impl SunnyBoySpeedwireSource {
 
         // TODO: this command is not accepted by SMA, needs -86400 ?
         //   this data is delayed by about one hour?
-        let points: Vec<TimestampedInt> = match self
+        let points: Vec<SmaInvMeterValue> = match self
             .sma_client
             .get_day_data(
                 &session,
+                &dst_id,
                 last_record.time.get::<second>() as u32,
                 timing.now as u32,
             )
@@ -138,8 +128,11 @@ impl SunnyBoySpeedwireSource {
                     .into_iter()
                     .filter(|point| {
                         let energy =
-                            Energy::new::<watt_hour>(point.value as f64);
-                        if point.timestamp as u64
+                            Energy::new::<watt_hour>(point.energy_wh as f64);
+                        if !point.is_valid() {
+                            debug!(self.base.logger, "Skipping NaN SMA record");
+                            return false;
+                        } else if point.timestamp as u64
                             == last_record.time.get::<second>() as u64
                         {
                             return false;
@@ -147,11 +140,9 @@ impl SunnyBoySpeedwireSource {
                             // Sometimes, the last value from speedwire is just garbage.
                             debug!(
                                 self.base.logger,
-                                "Energy meter run backwards. Ignoring point."
+                                "Energy meter run backwards. Ignoring point {}.",
+                                point.energy_wh
                             );
-                            return false;
-                        } else if point.value == 0xFFFFFFFF {
-                            debug!(self.base.logger, "Skipping NaN SMA record");
                             return false;
                         } else {
                             last_energy = energy;
@@ -164,18 +155,17 @@ impl SunnyBoySpeedwireSource {
 
         // TODO: handle double data (identical timestamps)
         //   (handled in database?) and missing ones (delta_t > 300)
-        // TODO: handle NaN (0xFFFFFFFF, 0xFFFF) values(in SMA client validators)
         // TODO: always UTC, handle DST transition
 
         self.sma_client
-            .logout(&session)
+            .logout(&session, &dst_id)
             .await
             .map_err(|e| Error::Temporary(format!("Logout failed: {e}")))?;
 
         let num_points = points.len();
         for point in points {
             let time = Time::new::<second>(point.timestamp as f64);
-            let energy = Energy::new::<watt_hour>(point.value as f64);
+            let energy = Energy::new::<watt_hour>(point.energy_wh as f64);
             let mut record = SimpleMeter {
                 time,
                 energy,

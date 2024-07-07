@@ -27,10 +27,12 @@ use crate::{
     Error,
 };
 use slog::{debug, Logger};
-use sma_client::SmaClient;
-use std::collections::BTreeMap;
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
-use tokio::net::UdpSocket;
+use sma_proto::{
+    client::{SmaClient, SmaSession},
+    energymeter::ObisValue,
+    SmaEndpoint,
+};
+use std::net::Ipv4Addr;
 use tokio::sync::{mpsc, oneshot, watch};
 
 #[cfg(debug_assertions)]
@@ -65,8 +67,7 @@ pub enum Command {
 pub struct LoadControlProcessor {
     base: ProcessorBase,
     command_input: mpsc::Receiver<Command>,
-    meter_serial: u32,
-    ctrl_serial: u32,
+    meter_endpoint: SmaEndpoint,
     battery_input: watch::Receiver<Model>,
 
     grid_power: Power,
@@ -76,14 +77,14 @@ pub struct LoadControlProcessor {
     charge_power_setpoint: Power,
 
     sma_client: SmaClient,
-    session: UdpSocket,
+    session: SmaSession,
 }
 
 impl LoadControlProcessor {
     pub fn new(
         base: ProcessorBase,
         command_input: mpsc::Receiver<Command>,
-        meter_addr: Ipv4Addr,
+        meter_susy_id: u16,
         meter_serial: u32,
         bind_addr: Ipv4Addr,
         ctrl_serial: u32,
@@ -92,18 +93,21 @@ impl LoadControlProcessor {
         seasonal: Option<Seasonal>,
         charge_power_setpoint: Power,
     ) -> Result<Self, String> {
-        let meter_addr = SocketAddr::V4(SocketAddrV4::new(meter_addr, 9522));
-        let mut sma_client = SmaClient::new(None);
-
-        let session = sma_client
-            .open(meter_addr, Some(bind_addr))
+        let ctrl_endpoint = SmaEndpoint {
+            susy_id: meter_susy_id,
+            serial: ctrl_serial,
+        };
+        let sma_client = SmaClient::new(ctrl_endpoint);
+        let session = SmaSession::open_multicast(bind_addr)
             .map_err(|e| format!("Could not open SMA Client session: {e}"))?;
 
         Ok(Self {
             base,
             command_input,
-            meter_serial,
-            ctrl_serial,
+            meter_endpoint: SmaEndpoint {
+                susy_id: meter_susy_id,
+                serial: meter_serial,
+            },
             battery_input,
             grid_power: Power::new::<watt>(0.0),
             controller,
@@ -136,17 +140,13 @@ impl LoadControlProcessor {
             }
         }
 
-        let (em_header, em_data) =
-            self.sma_client.fetch_em_data(&self.session).await.map_err(
-                |e| Error::Temporary(format!("Reading EM data failed: {e}")),
-            )?;
-
-        if em_header.serial != self.meter_serial {
-            return Err(Error::Temporary(format!(
-                "Received EM message from incorrect serial number {}",
-                em_header.serial
-            )));
-        }
+        let (timestamp_ms, em_data) = self
+            .sma_client
+            .read_em_message(&self.session, &self.meter_endpoint)
+            .await
+            .map_err(|e| {
+                Error::Temporary(format!("Reading EM data failed: {e}"))
+            })?;
 
         let mut payload: EmIndependentPayload = em_data.try_into().map_err(|e|
             Error::Temporary(format!(
@@ -207,11 +207,9 @@ impl LoadControlProcessor {
         payload.apply_power_offset(self.grid_power.get::<watt>());
         if let Err(e) = self
             .sma_client
-            .broadcast_em_data(
+            .write_em_message(
                 &self.session,
-                em_header.susy_id,
-                self.ctrl_serial,
-                em_header.timestamp_ms,
+                timestamp_ms,
                 payload.into_dependent().into(),
             )
             .await
@@ -294,57 +292,88 @@ impl EmIndependentPayload {
     pub fn into_dependent(self) -> EmDependentPayload {
         EmDependentPayload::from_independent(self)
     }
-
-    fn get_obis_data(
-        data: &BTreeMap<u32, u64>,
-        obis: u32,
-    ) -> Result<f64, String> {
-        data.get(&obis)
-            .map(|x| *x as f64)
-            .ok_or_else(|| format!("Missing OBIS record 0x{obis:X} in dataset"))
-    }
 }
 
-impl TryFrom<BTreeMap<u32, u64>> for EmIndependentPayload {
+impl TryFrom<Vec<ObisValue>> for EmIndependentPayload {
     type Error = String;
-    fn try_from(data: BTreeMap<u32, u64>) -> Result<Self, Self::Error> {
-        let active_l1_p =
-            Self::get_obis_data(&data, OBIS_L1_BASE + OBIS_ACTIVE_PWR_P)?;
-        let active_l1_n =
-            Self::get_obis_data(&data, OBIS_L1_BASE + OBIS_ACTIVE_PWR_N)?;
-        let reactive_l1_p =
-            Self::get_obis_data(&data, OBIS_L1_BASE + OBIS_REACTIVE_PWR_P)?;
-        let reactive_l1_n =
-            Self::get_obis_data(&data, OBIS_L1_BASE + OBIS_REACTIVE_PWR_N)?;
-        let voltage_l1 =
-            Self::get_obis_data(&data, OBIS_L1_BASE + OBIS_VOLTAGE)?;
+    fn try_from(data: Vec<ObisValue>) -> Result<Self, Self::Error> {
+        let mut found = 0u16;
 
-        let active_l2_p =
-            Self::get_obis_data(&data, OBIS_L2_BASE + OBIS_ACTIVE_PWR_P)?;
-        let active_l2_n =
-            Self::get_obis_data(&data, OBIS_L2_BASE + OBIS_ACTIVE_PWR_N)?;
-        let reactive_l2_p =
-            Self::get_obis_data(&data, OBIS_L2_BASE + OBIS_REACTIVE_PWR_P)?;
-        let reactive_l2_n =
-            Self::get_obis_data(&data, OBIS_L2_BASE + OBIS_REACTIVE_PWR_N)?;
-        let voltage_l2 =
-            Self::get_obis_data(&data, OBIS_L2_BASE + OBIS_VOLTAGE)?;
+        let mut active_l1_p = 0f64;
+        let mut active_l1_n = 0f64;
+        let mut reactive_l1_p = 0f64;
+        let mut reactive_l1_n = 0f64;
+        let mut voltage_l1 = 0f64;
 
-        let active_l3_p =
-            Self::get_obis_data(&data, OBIS_L3_BASE + OBIS_ACTIVE_PWR_P)?;
-        let active_l3_n =
-            Self::get_obis_data(&data, OBIS_L3_BASE + OBIS_ACTIVE_PWR_N)?;
-        let reactive_l3_p =
-            Self::get_obis_data(&data, OBIS_L3_BASE + OBIS_REACTIVE_PWR_P)?;
-        let reactive_l3_n =
-            Self::get_obis_data(&data, OBIS_L3_BASE + OBIS_REACTIVE_PWR_N)?;
-        let voltage_l3 =
-            Self::get_obis_data(&data, OBIS_L3_BASE + OBIS_VOLTAGE)?;
+        let mut active_l2_p = 0f64;
+        let mut active_l2_n = 0f64;
+        let mut reactive_l2_p = 0f64;
+        let mut reactive_l2_n = 0f64;
+        let mut voltage_l2 = 0f64;
 
-        let version =
-            data.get(&OBIS_VERSION).map(|x| *x as u32).ok_or_else(|| {
-                "Missing OBIS record 0x90000000 in dataset".to_string()
-            })?;
+        let mut active_l3_p = 0f64;
+        let mut active_l3_n = 0f64;
+        let mut reactive_l3_p = 0f64;
+        let mut reactive_l3_n = 0f64;
+        let mut voltage_l3 = 0f64;
+
+        let mut version = 0u32;
+
+        for obis in data {
+            if obis.id == OBIS_L1_BASE + OBIS_ACTIVE_PWR_P {
+                found |= 1 << 0;
+                active_l1_p = obis.value as f64;
+            } else if obis.id == OBIS_L1_BASE + OBIS_ACTIVE_PWR_N {
+                found |= 1 << 1;
+                active_l1_n = obis.value as f64;
+            } else if obis.id == OBIS_L1_BASE + OBIS_REACTIVE_PWR_P {
+                found |= 1 << 2;
+                reactive_l1_p = obis.value as f64;
+            } else if obis.id == OBIS_L1_BASE + OBIS_REACTIVE_PWR_N {
+                found |= 1 << 3;
+                reactive_l1_n = obis.value as f64;
+            } else if obis.id == OBIS_L1_BASE + OBIS_VOLTAGE {
+                found |= 1 << 4;
+                voltage_l1 = obis.value as f64;
+            } else if obis.id == OBIS_L2_BASE + OBIS_ACTIVE_PWR_P {
+                found |= 1 << 5;
+                active_l2_p = obis.value as f64;
+            } else if obis.id == OBIS_L2_BASE + OBIS_ACTIVE_PWR_N {
+                found |= 1 << 6;
+                active_l2_n = obis.value as f64;
+            } else if obis.id == OBIS_L2_BASE + OBIS_REACTIVE_PWR_P {
+                found |= 1 << 7;
+                reactive_l2_p = obis.value as f64;
+            } else if obis.id == OBIS_L2_BASE + OBIS_REACTIVE_PWR_N {
+                found |= 1 << 8;
+                reactive_l2_n = obis.value as f64;
+            } else if obis.id == OBIS_L2_BASE + OBIS_VOLTAGE {
+                found |= 1 << 9;
+                voltage_l2 = obis.value as f64;
+            } else if obis.id == OBIS_L3_BASE + OBIS_ACTIVE_PWR_P {
+                found |= 1 << 10;
+                active_l3_p = obis.value as f64;
+            } else if obis.id == OBIS_L3_BASE + OBIS_ACTIVE_PWR_N {
+                found |= 1 << 11;
+                active_l3_n = obis.value as f64;
+            } else if obis.id == OBIS_L3_BASE + OBIS_REACTIVE_PWR_P {
+                found |= 1 << 12;
+                reactive_l3_p = obis.value as f64;
+            } else if obis.id == OBIS_L3_BASE + OBIS_REACTIVE_PWR_N {
+                found |= 1 << 13;
+                reactive_l3_n = obis.value as f64;
+            } else if obis.id == OBIS_L3_BASE + OBIS_VOLTAGE {
+                found |= 1 << 14;
+                voltage_l3 = obis.value as f64;
+            } else if obis.id == OBIS_VERSION {
+                found |= 1 << 15;
+                version = obis.value as u32;
+            }
+        }
+
+        if found != 0xFFFF {
+            return Err(format!("Missing OBIS records: bitfield {found}"));
+        }
 
         Ok(Self {
             active_pwr: [
@@ -410,7 +439,7 @@ impl EmDependentPayload {
             power_factor_sum: (active_sum / apparent_sum).abs() * 1000.0,
             active_pwr: data.active_pwr,
             reactive_pwr: data.reactive_pwr,
-            apparent_pwr: apparent_pwr,
+            apparent_pwr,
             voltage: data.voltage,
             current,
             power_factor,
@@ -430,21 +459,33 @@ impl EmDependentPayload {
         obis_p: u32,
         obis_n: u32,
         val: f64,
-        data: &mut BTreeMap<u32, u64>,
+        data: &mut Vec<ObisValue>,
     ) {
         if val > 0.0 {
-            data.insert(obis_p, val as u64);
-            data.insert(obis_n, 0);
+            data.push(ObisValue {
+                id: obis_p,
+                value: val as u64,
+            });
+            data.push(ObisValue {
+                id: obis_n,
+                value: 0,
+            });
         } else {
-            data.insert(obis_p, 0);
-            data.insert(obis_n, (-val) as u64);
+            data.push(ObisValue {
+                id: obis_p,
+                value: 0,
+            });
+            data.push(ObisValue {
+                id: obis_n,
+                value: (-val) as u64,
+            });
         }
     }
 }
 
-impl From<EmDependentPayload> for BTreeMap<u32, u64> {
+impl From<EmDependentPayload> for Vec<ObisValue> {
     fn from(data: EmDependentPayload) -> Self {
-        let mut result = BTreeMap::new();
+        let mut result = Vec::with_capacity(36);
 
         EmDependentPayload::signed_to_obis(
             OBIS_SUM_BASE + OBIS_ACTIVE_PWR_P,
@@ -464,10 +505,10 @@ impl From<EmDependentPayload> for BTreeMap<u32, u64> {
             data.apparent_sum,
             &mut result,
         );
-        result.insert(
-            OBIS_SUM_BASE + OBIS_POWER_FACTOR,
-            data.power_factor_sum as u64,
-        );
+        result.push(ObisValue {
+            id: OBIS_SUM_BASE + OBIS_POWER_FACTOR,
+            value: data.power_factor_sum as u64,
+        });
 
         for (obis_base, i) in
             [(OBIS_L1_BASE, 0), (OBIS_L2_BASE, 1), (OBIS_L3_BASE, 2)]
@@ -490,17 +531,40 @@ impl From<EmDependentPayload> for BTreeMap<u32, u64> {
                 data.apparent_pwr[i],
                 &mut result,
             );
-            result.insert(obis_base + OBIS_VOLTAGE, (data.voltage[i]) as u64);
-            result.insert(obis_base + OBIS_CURRENT, data.current[i] as u64);
-            result.insert(
-                obis_base + OBIS_POWER_FACTOR,
-                data.power_factor[i] as u64,
-            );
+            result.push(ObisValue {
+                id: obis_base + OBIS_CURRENT,
+                value: data.current[i] as u64,
+            });
+            result.push(ObisValue {
+                id: obis_base + OBIS_VOLTAGE,
+                value: data.voltage[i] as u64,
+            });
+            result.push(ObisValue {
+                id: obis_base + OBIS_POWER_FACTOR,
+                value: data.power_factor[i] as u64,
+            });
         }
 
-        result.insert(OBIS_VERSION, data.version as u64);
+        result.push(ObisValue {
+            id: OBIS_VERSION,
+            value: data.version as u64,
+        });
+
         result
     }
+}
+
+#[cfg(test)]
+fn tuple_slice_to_obis_vec(slice: &[(u32, u64)]) -> Vec<ObisValue> {
+    let mut result = Vec::with_capacity(slice.len());
+    for (id, value) in slice {
+        result.push(ObisValue {
+            id: *id,
+            value: *value,
+        });
+    }
+
+    result
 }
 
 #[test]
@@ -520,7 +584,7 @@ fn test_obis_serialize() {
         version: 0x02001252,
     };
 
-    let expected = BTreeMap::from([
+    let expected = tuple_slice_to_obis_vec(&[
         (0x00010400, 127),
         (0x00020400, 0),
         (0x00030400, 0),
@@ -558,12 +622,15 @@ fn test_obis_serialize() {
         (0x90000000, 0x02001252),
     ]);
 
-    assert_eq!(expected, data.into());
+    assert_eq!(
+        expected,
+        <EmDependentPayload as Into<Vec<ObisValue>>>::into(data)
+    );
 }
 
 #[test]
 fn test_obis_deserialize() {
-    let data = BTreeMap::from([
+    let data = tuple_slice_to_obis_vec(&[
         (OBIS_SUM_BASE + OBIS_ACTIVE_PWR_P, 127),
         (OBIS_SUM_BASE + OBIS_ACTIVE_PWR_N, 0),
         (OBIS_SUM_BASE + OBIS_REACTIVE_PWR_P, 0),

@@ -183,10 +183,12 @@ pub struct LambdaHeatPump {
 /// SMA energy meter Speedwire data source parameters.
 #[derive(Clone, Debug, Deserialize)]
 pub struct SmaMeter {
-    /// Device IP address without port
-    pub address: Ipv4Addr,
     /// Local IP address which will receive broadcast messages.
     pub bind_address: Ipv4Addr,
+    /// SMA update system ID of the source energy meter.
+    pub susy_id: u16,
+    /// Serial number of the source energy meter.
+    pub serial: u32,
     /// Data acquisition poll interval
     pub poll_interval: u64,
 }
@@ -341,10 +343,10 @@ impl ApplianceProcessor {
 /// charge depletes.
 #[derive(Clone, Debug, Deserialize)]
 pub struct LoadControlProcessor {
-    /// Address of the source energy meter
-    pub meter_addr: Ipv4Addr,
     /// Local IP address which will receive broadcast messages.
     pub bind_addr: Ipv4Addr,
+    /// SMA update system ID of the source energy meter.
+    pub meter_susy_id: u16,
     /// Serial number of the source energy meter.
     pub meter_serial: u32,
     /// Serial number of the created virtual energy meter.
