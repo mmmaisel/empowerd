@@ -15,23 +15,28 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+#[cfg(feature = "npm")]
 use std::process::Command;
 
+#[cfg(feature = "npm")]
 const GUI_DIR: &str = "gui";
 
 fn main() {
-    Command::new("npm")
-        .arg("install")
-        .current_dir(GUI_DIR)
-        .status()
-        .unwrap();
-    Command::new("npm")
-        .arg("run")
-        .arg("build")
-        .current_dir(GUI_DIR)
-        .status()
-        .unwrap();
+    #[cfg(feature = "npm")]
+    {
+        Command::new("npm")
+            .arg("install")
+            .current_dir(GUI_DIR)
+            .status()
+            .unwrap();
+        Command::new("npm")
+            .arg("run")
+            .arg("build")
+            .current_dir(GUI_DIR)
+            .status()
+            .unwrap();
 
-    println!("cargo:rerun-if-changed=gui/public/");
-    println!("cargo:rerun-if-changed=gui/src/");
+        println!("cargo:rerun-if-changed=gui/public/");
+        println!("cargo:rerun-if-changed=gui/src/");
+    }
 }
