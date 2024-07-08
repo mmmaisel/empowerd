@@ -26,7 +26,7 @@ use crate::{
 };
 use slog::{trace, Logger};
 use sma_client::SmaClient;
-use std::net::{Ipv4Addr, SocketAddr};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 pub struct SmaMeterSource {
     base: SourceBase,
@@ -38,15 +38,10 @@ pub struct SmaMeterSource {
 impl SmaMeterSource {
     pub fn new(
         base: SourceBase,
-        sma_addr: String,
-        bind_addr: String,
+        sma_addr: Ipv4Addr,
+        bind_addr: Ipv4Addr,
     ) -> Result<Self, String> {
-        let sma_socket_addr: SocketAddr = SmaClient::sma_sock_addr(sma_addr)
-            .map_err(|e| format!("Could not parse sma_addr: {e}"))?;
-
-        let bind_addr = bind_addr
-            .parse::<Ipv4Addr>()
-            .map_err(|e| format!("Could not parse bind_addr: {e}"))?;
+        let sma_socket_addr = SocketAddr::V4(SocketAddrV4::new(sma_addr, 9522));
 
         let logger = base.logger.clone();
         Ok(Self {

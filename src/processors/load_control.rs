@@ -29,7 +29,7 @@ use crate::{
 use slog::{debug, Logger};
 use sma_client::SmaClient;
 use std::collections::BTreeMap;
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use tokio::net::UdpSocket;
 use tokio::sync::{mpsc, oneshot, watch};
 
@@ -83,20 +83,17 @@ impl LoadControlProcessor {
     pub fn new(
         base: ProcessorBase,
         command_input: mpsc::Receiver<Command>,
-        meter_addr: String,
+        meter_addr: Ipv4Addr,
         meter_serial: u32,
-        bind_addr: String,
+        bind_addr: Ipv4Addr,
         ctrl_serial: u32,
         battery_input: watch::Receiver<Model>,
         controller: MultiSetpointHysteresis<Energy, Power>,
         seasonal: Option<Seasonal>,
         charge_power_setpoint: Power,
     ) -> Result<Self, String> {
-        let meter_addr = SmaClient::sma_sock_addr(meter_addr)?;
+        let meter_addr = SocketAddr::V4(SocketAddrV4::new(meter_addr, 9522));
         let mut sma_client = SmaClient::new(None);
-        let bind_addr = bind_addr.parse::<Ipv4Addr>().map_err(|e| {
-            format!("'{bind_addr}' is not a valid IPv4 address: {e}")
-        })?;
 
         let session = sma_client
             .open(meter_addr, Some(bind_addr))

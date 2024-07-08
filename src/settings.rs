@@ -20,6 +20,7 @@ use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::env;
 use std::fmt::{self, Debug};
+use std::net::Ipv4Addr;
 
 /// Defines the database location and credentials.
 #[derive(Clone, Deserialize)]
@@ -183,9 +184,9 @@ pub struct LambdaHeatPump {
 #[derive(Clone, Debug, Deserialize)]
 pub struct SmaMeter {
     /// Device IP address without port
-    pub address: String,
+    pub address: Ipv4Addr,
     /// Local IP address which will receive broadcast messages.
-    pub bind_address: String,
+    pub bind_address: Ipv4Addr,
     /// Data acquisition poll interval
     pub poll_interval: u64,
 }
@@ -206,7 +207,7 @@ pub struct SmlMeter {
 #[derive(Clone, Deserialize)]
 pub struct SunnyBoySpeedwire {
     /// Device IP address without port
-    pub address: String,
+    pub address: Ipv4Addr,
     /// Speedwire password
     pub password: String,
     /// Data acquisition poll interval
@@ -341,9 +342,9 @@ impl ApplianceProcessor {
 #[derive(Clone, Debug, Deserialize)]
 pub struct LoadControlProcessor {
     /// Address of the source energy meter
-    pub meter_addr: String,
+    pub meter_addr: Ipv4Addr,
     /// Local IP address which will receive broadcast messages.
-    pub bind_addr: String,
+    pub bind_addr: Ipv4Addr,
     /// Serial number of the source energy meter.
     pub meter_serial: u32,
     /// Serial number of the created virtual energy meter.

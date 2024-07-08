@@ -26,7 +26,7 @@ use crate::{
 };
 use slog::{debug, trace, Logger};
 use sma_client::{SmaClient, TimestampedInt};
-use std::net::SocketAddr;
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 pub struct SunnyBoySpeedwireSource {
     base: SourceBase,
@@ -39,19 +39,15 @@ impl SunnyBoySpeedwireSource {
     pub fn new(
         base: SourceBase,
         sma_pw: String,
-        sma_addr: String,
+        sma_addr: Ipv4Addr,
     ) -> Result<Self, String> {
-        let sma_socket_addr: SocketAddr =
-            match SmaClient::sma_sock_addr(sma_addr) {
-                Ok(x) => x,
-                Err(e) => return Err(format!("Could not parse sma_addr: {e}")),
-            };
+        let sma_socket_addr = SocketAddr::V4(SocketAddrV4::new(sma_addr, 9522));
 
         let logger = base.logger.clone();
         Ok(Self {
             base,
             sma_client: SmaClient::new(Some(logger)),
-            sma_pw: sma_pw,
+            sma_pw,
             sma_addr: sma_socket_addr,
         })
     }
