@@ -18,7 +18,7 @@
 use super::SourceBase;
 use crate::{
     models::{
-        units::{second, watt, watt_hour, Abbreviation, Energy, Power, Time},
+        units::{second, watt, watt_hour, Energy, Power, Time},
         SimpleMeter,
     },
     task_group::TaskResult,
@@ -31,6 +31,7 @@ use sma_proto::{
     SmaEndpoint,
 };
 use std::net::Ipv4Addr;
+use tokio::time::{self, Duration};
 
 pub struct SunnyBoySpeedwireSource {
     base: SourceBase,
@@ -77,52 +78,43 @@ impl SunnyBoySpeedwireSource {
                     )))
                 }
             };
+
         let session = SmaSession::open_unicast(self.sma_addr).map_err(|e| {
             Error::Temporary(format!("Could not open SMA Client session: {e}",))
         })?;
-        let dst_id = self.sma_client.identify(&session).await.map_err(|e| {
-            Error::Temporary(format!("Could not identify SMA device, {e}",))
-        })?;
 
+        let dst_id = time::timeout(Duration::from_secs(1), async {
+            self.sma_client.identify(&session).await.map_err(|e| {
+                Error::Temporary(format!("Could not identify SMA device, {e}",))
+            })
+        })
+        .await
+        .map_err(|_e| {
+            Error::Temporary("Identify SMA device timed out".into())
+        })??;
         trace!(self.base.logger, "Device is {dst_id:X?}");
 
-        self.sma_client
-            .logout(&session, &dst_id)
-            .await
-            .map_err(|e| Error::Temporary(format!("Logout failed: {e}")))?;
-        self.sma_client
-            .login(&session, &dst_id, &self.sma_pw)
-            .await
-            .map_err(|e| Error::Temporary(format!("Login failed: {e}")))?;
-
-        trace!(
-            self.base.logger,
-            "GetDayData from {} to {}",
-            last_record.time.into_format_args(second, Abbreviation),
-            Time::new::<second>(timing.now as f64)
-                .into_format_args(second, Abbreviation),
-        );
-
         let mut last_energy = last_record.energy;
-
-        // TODO: this command is not accepted by SMA, needs -86400 ?
-        //   this data is delayed by about one hour?
-        let points: Vec<SmaInvMeterValue> = match self
-            .sma_client
-            .get_day_data(
+        let points_result = time::timeout(
+            time::Duration::from_secs(15),
+            self.fetch_day_data(
                 &session,
                 &dst_id,
                 last_record.time.get::<second>() as u32,
                 timing.now as u32,
-            )
+            ),
+        )
+        .await;
+
+        // Logout has no response so it does not need a timeout.
+        // Logout in case case before checking for errors.
+        self.sma_client
+            .logout(&session, &dst_id)
             .await
-        {
-            Err(e) => {
-                return Err(Error::Temporary(format!(
-                    "Get Day Data failed: {e}",
-                )))
-            }
-            Ok(points) => {
+            .map_err(|e| Error::Temporary(format!("Logout failed: {e}")))?;
+
+        let points: Vec<SmaInvMeterValue> = match points_result {
+            Ok(Ok(points)) => {
                 trace!(self.base.logger, "Get Day data returned {:?}", points);
                 points
                     .into_iter()
@@ -151,18 +143,23 @@ impl SunnyBoySpeedwireSource {
                     })
                     .collect()
             }
+            Ok(Err(e)) => {
+                return Err(Error::Temporary(format!(
+                    "Get Day Data failed: {e}"
+                )));
+            }
+            Err(_e) => {
+                return Err(Error::Temporary(
+                    "Fetching SMA day data timed out.".into(),
+                ));
+            }
         };
 
         // TODO: handle double data (identical timestamps)
         //   (handled in database?) and missing ones (delta_t > 300)
         // TODO: always UTC, handle DST transition
-
-        self.sma_client
-            .logout(&session, &dst_id)
-            .await
-            .map_err(|e| Error::Temporary(format!("Logout failed: {e}")))?;
-
         let num_points = points.len();
+        debug!(self.base.logger, "Read {num_points} from SMA device");
         for point in points {
             let time = Time::new::<second>(point.timestamp as f64);
             let energy = Energy::new::<watt_hour>(point.energy_wh as f64);
@@ -184,5 +181,31 @@ impl SunnyBoySpeedwireSource {
             num_points
         );
         Ok(())
+    }
+
+    async fn fetch_day_data(
+        &mut self,
+        session: &SmaSession,
+        dst_id: &SmaEndpoint,
+        from: u32,
+        to: u32,
+    ) -> Result<Vec<SmaInvMeterValue>, Error> {
+        self.sma_client
+            .logout(session, dst_id)
+            .await
+            .map_err(|e| Error::Temporary(format!("Logout failed: {e}")))?;
+        self.sma_client
+            .login(session, dst_id, &self.sma_pw)
+            .await
+            .map_err(|e| Error::Temporary(format!("Login failed: {e}")))?;
+
+        trace!(self.base.logger, "GetDayData from {from} to {to}");
+
+        // TODO: this command is not accepted by SMA, needs -86400 ?
+        //   this data is delayed by about one hour?
+        self.sma_client
+            .get_day_data(session, dst_id, from, to)
+            .await
+            .map_err(|e| Error::Temporary(format!("Get day data failed: {e}")))
     }
 }

@@ -30,6 +30,7 @@ use sma_proto::{
     SmaEndpoint,
 };
 use std::net::Ipv4Addr;
+use tokio::time::{self, Duration};
 
 pub struct SmaMeterSource {
     base: SourceBase,
@@ -68,10 +69,16 @@ impl SmaMeterSource {
                 ))
             })?;
 
-        let (_timestamp_ms, data) = self
-            .sma_client
-            .read_em_message(&session, &self.meter_endpoint)
+        let (_timestamp_ms, data) =
+            time::timeout(Duration::from_millis(500), async {
+                self.sma_client
+                    .read_em_message(&session, &self.meter_endpoint)
+                    .await
+            })
             .await
+            .map_err(|_e| {
+                Error::Temporary("Fetching EM data timed out".into())
+            })?
             .map_err(|e| {
                 Error::Temporary(format!("Fetching EM data failed: {e}"))
             })?;

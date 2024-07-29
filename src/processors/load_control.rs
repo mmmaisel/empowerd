@@ -33,7 +33,10 @@ use sma_proto::{
     SmaEndpoint,
 };
 use std::net::Ipv4Addr;
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::{
+    sync::{mpsc, oneshot, watch},
+    time::{self, Duration},
+};
 
 #[cfg(debug_assertions)]
 use {slog::trace, std::time::Instant};
@@ -140,10 +143,14 @@ impl LoadControlProcessor {
             }
         }
 
-        let (timestamp_ms, em_data) = self
-            .sma_client
-            .read_em_message(&self.session, &self.meter_endpoint)
+        let (timestamp_ms, em_data) =
+            time::timeout(Duration::from_millis(500), async {
+                self.sma_client
+                    .read_em_message(&self.session, &self.meter_endpoint)
+                    .await
+            })
             .await
+            .map_err(|_e| Error::Temporary("Reading EM data timed out".into()))?
             .map_err(|e| {
                 Error::Temporary(format!("Reading EM data failed: {e}"))
             })?;
