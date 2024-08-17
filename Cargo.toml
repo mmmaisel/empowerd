@@ -74,10 +74,10 @@ sloggers = { version=">=2.0", default-features=false }
 #slog-async = "*"
 tokio = { version=">=1.0", features=["full"] }
 
-chrono = ">=0.4.19"
-diesel = { version = ">=2.1.0", features = ["chrono", "postgres"] }
-diesel-async = { version=">=0.4.1", features = ["deadpool", "postgres"] }
-diesel_migrations = { version = ">=2.1.0" }
+chrono = ">=0.4.38"
+diesel = { version = ">=2.2.2", features = ["chrono", "postgres"] }
+diesel-async = { version=">=0.5.0", features = ["deadpool", "postgres"] }
+diesel_migrations = { version = ">=2.2.0" }
 influxdb = { version = ">=0.6.0", features = ["derive", "reqwest-client", "use-serde"], default-features = false }
 
 daemonize = ">=0.4.1"

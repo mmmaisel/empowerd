@@ -73,8 +73,8 @@ impl Data {
         };
 
         let local_utc_offset = Local::now().offset().local_minus_utc() as i64;
-        let timestamp =
-            NaiveDateTime::new(date, time).timestamp() - local_utc_offset;
+        let timestamp = NaiveDateTime::new(date, time).and_utc().timestamp()
+            - local_utc_offset;
 
         let temperature_in = match tokens.next() {
             Some(x) => match x.parse::<f32>() {

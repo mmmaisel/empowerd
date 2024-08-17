@@ -23,7 +23,7 @@ use super::{
     },
 };
 use crate::Error;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime};
 use diesel::prelude::{
     AsChangeset, ExpressionMethods, Identifiable, Insertable, Queryable,
     Selectable,
@@ -73,7 +73,7 @@ impl Heatpump {
 impl From<RawHeatpump> for Heatpump {
     fn from(input: RawHeatpump) -> Self {
         Self {
-            time: Time::new::<second>(input.time.timestamp() as f64),
+            time: Time::new::<second>(input.time.and_utc().timestamp() as f64),
             energy: Energy::new::<watt_hour>(input.energy_wh as f64),
             power: Power::new::<watt>(input.power_w as f64),
             heat: input.heat_wh.map(|x| Energy::new::<watt_hour>(x as f64)),
@@ -96,7 +96,7 @@ impl TryFrom<&Heatpump> for RawHeatpump {
     fn try_from(input: &Heatpump) -> Result<Self, Self::Error> {
         Ok(Self {
             series_id: 0,
-            time: NaiveDateTime::from_timestamp_opt(
+            time: DateTime::from_timestamp(
                 input.time.get::<second>() as i64,
                 0,
             )
@@ -105,7 +105,8 @@ impl TryFrom<&Heatpump> for RawHeatpump {
                     "Invalid timestamp: {:?}",
                     input.time.into_format_args(second, Abbreviation),
                 ))
-            })?,
+            })?
+            .naive_utc(),
             energy_wh: input.energy.get::<watt_hour>().round() as i64,
             power_w: input.power.get::<watt>().round() as i32,
             heat_wh: input.heat.map(|x| x.get::<watt_hour>().round() as i64),

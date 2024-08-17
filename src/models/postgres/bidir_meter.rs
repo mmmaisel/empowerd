@@ -20,7 +20,7 @@ use super::{
     units::{second, watt, watt_hour, Abbreviation, Energy, Power, Time},
 };
 use crate::Error;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime};
 use diesel::prelude::{
     AsChangeset, ExpressionMethods, Identifiable, Insertable, Queryable,
     Selectable,
@@ -65,7 +65,7 @@ impl BidirMeter {
 impl From<RawBidirMeter> for BidirMeter {
     fn from(input: RawBidirMeter) -> Self {
         Self {
-            time: Time::new::<second>(input.time.timestamp() as f64),
+            time: Time::new::<second>(input.time.and_utc().timestamp() as f64),
             energy_in: Energy::new::<watt_hour>(input.energy_in_wh as f64),
             energy_out: Energy::new::<watt_hour>(input.energy_out_wh as f64),
             power: Power::new::<watt>(input.power_w as f64),
@@ -78,7 +78,7 @@ impl TryFrom<&BidirMeter> for RawBidirMeter {
     fn try_from(input: &BidirMeter) -> Result<Self, Self::Error> {
         Ok(Self {
             series_id: 0,
-            time: NaiveDateTime::from_timestamp_opt(
+            time: DateTime::from_timestamp(
                 input.time.get::<second>() as i64,
                 0,
             )
@@ -87,7 +87,8 @@ impl TryFrom<&BidirMeter> for RawBidirMeter {
                     "Invalid timestamp: {:?}",
                     input.time.into_format_args(second, Abbreviation),
                 ))
-            })?,
+            })?
+            .naive_utc(),
             energy_in_wh: input.energy_in.get::<watt_hour>().round() as i64,
             energy_out_wh: input.energy_out.get::<watt_hour>().round() as i64,
             power_w: input.power.get::<watt>().round() as i32,

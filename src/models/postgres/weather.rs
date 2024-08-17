@@ -25,7 +25,7 @@ use super::{
 };
 use crate::Error;
 use bresser6in1_usb::Data as BresserData;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime};
 use diesel::prelude::{
     AsChangeset, ExpressionMethods, Identifiable, Insertable, Queryable,
     Selectable,
@@ -127,7 +127,7 @@ impl Weather {
 impl From<RawWeather> for Weather {
     fn from(input: RawWeather) -> Self {
         Self {
-            time: Time::new::<second>(input.time.timestamp() as f64),
+            time: Time::new::<second>(input.time.and_utc().timestamp() as f64),
             temp_in: Temperature::new::<celsius>(
                 (input.temp_in_degc_e1 as f64) / 1e1,
             ),
@@ -182,7 +182,7 @@ impl TryFrom<&Weather> for RawWeather {
     fn try_from(input: &Weather) -> Result<Self, Self::Error> {
         Ok(Self {
             series_id: 0,
-            time: NaiveDateTime::from_timestamp_opt(
+            time: DateTime::from_timestamp(
                 input.time.get::<second>() as i64,
                 0,
             )
@@ -191,7 +191,8 @@ impl TryFrom<&Weather> for RawWeather {
                     "Invalid timestamp: {:?}",
                     input.time.into_format_args(second, Abbreviation),
                 ))
-            })?,
+            })?
+            .naive_utc(),
             temp_in_degc_e1: (input.temp_in.get::<celsius>() * 1e1).round()
                 as i16,
             hum_in_e3: (input.hum_in.get::<percent>() * 1e1).round() as i16,
