@@ -29,6 +29,7 @@ conf-files = [
     "etc/logrotate.d/empowerd"
 ]
 changelog = "ChangeLog"
+features = ["npm"]
 maintainer-scripts = "scripts/"
 
 [package.metadata.deb.systemd-units]
