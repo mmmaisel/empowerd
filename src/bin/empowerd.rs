@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2023 Max Maisel
+    Copyright (C) 2019 - 2024 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -29,24 +29,17 @@ use sloggers::{
     Build,
 };
 
-use hyper::{
-    server::Server,
-    service::{make_service_fn, service_fn},
-    Body, Method, Response, StatusCode,
-};
-use juniper::{EmptySubscription, RootNode};
-use std::{convert::Infallible, net, process, sync::Arc};
-use tokio::{runtime::Runtime, signal};
+use std::{net, process, sync::Arc};
+use tokio::{net::TcpListener, runtime::Runtime, signal};
 
 use libempowerd::{
-    graphql::mutation::Mutation,
-    graphql::query::Query,
+    graphql,
     processors::{self, ProcessorInfo},
     session_manager::SessionManager,
     settings::Settings,
     sinks, sources,
     task_group::TaskGroup,
-    Context, Globals,
+    Globals,
 };
 
 fn main() {
@@ -207,54 +200,19 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
             }
         };
 
-    let root_node = Arc::new(RootNode::new(
-        Query {},
-        Mutation {},
-        EmptySubscription::<Context>::new(),
-    ));
-
-    let new_service = make_service_fn(move |_| {
-        let root_node = root_node.clone();
-        let globals = globals.clone();
-        async {
-            Ok::<_, hyper::Error>(service_fn(move |req| {
-                let root_node = root_node.clone();
-                let globals = globals.clone();
-                async {
-                    Ok::<_, Infallible>(
-                        match (req.method(), req.uri().path()) {
-                            (&Method::GET, "/") => {
-                                juniper_hyper::graphiql("/graphql", None).await
-                            }
-                            (&Method::GET, "/graphql")
-                            | (&Method::POST, "/graphql") => {
-                                let token =
-                                    match req.headers().get("Authorization") {
-                                        Some(x) => match x.to_str() {
-                                            Ok(y) => y.replace("Bearer ", ""),
-                                            Err(_) => "".into(),
-                                        },
-                                        None => "".into(),
-                                    };
-                                let context =
-                                    Arc::new(Context { globals, token });
-                                juniper_hyper::graphql(root_node, context, req)
-                                    .await
-                            }
-                            _ => {
-                                let mut response = Response::new(Body::empty());
-                                *response.status_mut() = StatusCode::NOT_FOUND;
-                                response
-                            }
-                        },
-                    )
-                }
-            }))
+    let listener = match TcpListener::bind(address).await {
+        Ok(x) => x,
+        Err(e) => {
+            error!(logger, "Binding graphql socket failed: {e}");
+            return 2;
         }
-    });
-
-    let server = Server::bind(&address).serve(new_service);
+    };
     info!(logger, "Listening on http://{}", address);
+    let server = tokio::task::spawn(graphql::server::run_graphql(
+        listener,
+        globals.clone(),
+        logger.clone(),
+    ));
 
     if settings.test_cfg {
         info!(logger, "Config valid");

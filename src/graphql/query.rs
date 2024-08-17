@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2023 Max Maisel
+    Copyright (C) 2019 - 2024 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,6 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use juniper::LookAheadMethods;
 use slog::trace;
 use tokio::sync::oneshot;
 
@@ -31,17 +30,20 @@ use crate::Context;
 
 pub struct Query;
 
-#[juniper::graphql_object(Context = Context)]
+#[juniper::graphql_object]
+#[graphql(Context = Context)]
+#[graphql(scalar = S: juniper::ScalarValue)]
 impl Query {
     /// Get the currently available power systems.
-    async fn available_powers(
+    async fn available_powers<S: juniper::ScalarValue>(
         ctx: &Context,
+        executor: &juniper::Executor<'_, '_, Context, S>,
     ) -> juniper::FieldResult<Vec<AvailablePower>> {
         if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
             return Err(e.to_string(&ctx.globals.logger).into());
         }
 
-        let lookahead = executor.look_ahead();
+        let lookahead = executor.look_ahead().children();
         let get_power = lookahead.has_child("power");
         let get_threshold = lookahead.has_child("threshold");
 
@@ -77,12 +79,15 @@ impl Query {
     }
 
     /// Get all appliances.
-    async fn appliances(ctx: &Context) -> juniper::FieldResult<Vec<Appliance>> {
+    async fn appliances<S: juniper::ScalarValue>(
+        ctx: &Context,
+        executor: &juniper::Executor<'_, '_, Context, S>,
+    ) -> juniper::FieldResult<Vec<Appliance>> {
         if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
             return Err(e.to_string(&ctx.globals.logger).into());
         }
 
-        let lookahead = executor.look_ahead();
+        let lookahead = executor.look_ahead().children();
         let get_force_on_off = lookahead.has_child("forceOnOff");
 
         let mut result_vec = Vec::<Appliance>::new();
@@ -105,14 +110,15 @@ impl Query {
     }
 
     /// Get grid load control mode.
-    async fn load_control(
+    async fn load_control<S: juniper::ScalarValue>(
         ctx: &Context,
+        executor: &juniper::Executor<'_, '_, Context, S>,
     ) -> juniper::FieldResult<Option<LoadControl>> {
         if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
             return Err(e.to_string(&ctx.globals.logger).into());
         }
 
-        let lookahead = executor.look_ahead();
+        let lookahead = executor.look_ahead().children();
         let get_charge_mode = lookahead.has_child("chargeMode");
 
         let mut result_opt = None;
@@ -133,14 +139,15 @@ impl Query {
     }
 
     /// Get all poweroff timers.
-    async fn poweroff_timers(
+    async fn poweroff_timers<S: juniper::ScalarValue>(
         ctx: &Context,
+        executor: &juniper::Executor<'_, '_, Context, S>,
     ) -> juniper::FieldResult<Vec<PoweroffTimer>> {
         if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
             return Err(e.to_string(&ctx.globals.logger).into());
         }
 
-        let lookahead = executor.look_ahead();
+        let lookahead = executor.look_ahead().children();
         let get_on_time = lookahead.has_child("onTime");
 
         let mut result_vec = Vec::<PoweroffTimer>::new();
@@ -174,12 +181,15 @@ impl Query {
     }
 
     /// Get the current state of the switches.
-    async fn switches(ctx: &Context) -> juniper::FieldResult<Vec<Switch>> {
+    async fn switches<S: juniper::ScalarValue>(
+        ctx: &Context,
+        executor: &juniper::Executor<'_, '_, Context, S>,
+    ) -> juniper::FieldResult<Vec<Switch>> {
         if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
             return Err(e.to_string(&ctx.globals.logger).into());
         }
 
-        let lookahead = executor.look_ahead();
+        let lookahead = executor.look_ahead().children();
         let get_open = lookahead.has_child("open");
         let gpio_switch = &ctx.globals.gpio_switch;
 

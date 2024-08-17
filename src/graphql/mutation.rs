@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2024 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -32,7 +32,8 @@ use crate::Context;
 
 pub struct Mutation;
 
-#[juniper::graphql_object(Context = Context)]
+#[juniper::graphql_object]
+#[graphql(Context = Context)]
 impl Mutation {
     /// Login into API with username and password. Creates a session token.
     /// Session tokens must be send as "Bearer" in the "authorization" header.

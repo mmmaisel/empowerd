@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2024 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -56,3 +56,5 @@ pub struct Context {
     pub globals: Arc<Globals>,
     pub token: String,
 }
+
+impl juniper::Context for Context {}
