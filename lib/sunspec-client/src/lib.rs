@@ -16,8 +16,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 #![forbid(unsafe_code)]
-#![allow(clippy::needless_return)]
-#![allow(clippy::redundant_field_names)]
 
 use slog::{trace, Logger};
 use std::collections::BTreeMap;
@@ -29,6 +27,13 @@ use tokio_modbus::{
     },
     prelude::Reader,
 };
+
+fn read_err_msg<S>(reg: u16, e: S) -> String
+where
+    S: std::fmt::Display,
+{
+    format!("Could not read register {reg}: {e}")
+}
 
 #[derive(Debug)]
 pub struct SunspecClient {
@@ -55,12 +60,12 @@ impl SunspecClient {
         id: Option<u8>,
         logger: Option<Logger>,
     ) -> Self {
-        return Self {
-            addr: addr,
-            id: id,
-            logger: logger,
+        Self {
+            addr,
+            id,
+            logger,
             models: BTreeMap::new(),
-        };
+        }
     }
 
     pub async fn open(&self) -> Result<Context, String> {
@@ -79,31 +84,22 @@ impl SunspecClient {
         context: &mut Context,
     ) -> Result<(), String> {
         let mut reg_addr = Self::SUNSPEC_START_ADDR;
-        let model = match context.read_holding_registers(reg_addr, 2).await {
-            Ok(x) => x,
-            Err(e) => {
-                return Err(format!(
-                    "Could not read register {}: {}",
-                    reg_addr, e
-                ))
-            }
-        };
+        let model = context
+            .read_holding_registers(reg_addr, 2)
+            .await
+            .map_err(|e| read_err_msg(reg_addr, e))?
+            .map_err(|e| read_err_msg(reg_addr, e))?;
         if !(model[0] == 0x5375 && model[1] == 0x6e53) {
             return Err("Device does not support sunspec protocol".into());
         }
 
         reg_addr += 2;
         loop {
-            let header = match context.read_holding_registers(reg_addr, 2).await
-            {
-                Ok(x) => x,
-                Err(e) => {
-                    return Err(format!(
-                        "Could not read register {}: {}",
-                        reg_addr, e
-                    ))
-                }
-            };
+            let header = context
+                .read_holding_registers(reg_addr, 2)
+                .await
+                .map_err(|e| read_err_msg(reg_addr, e))?
+                .map_err(|e| read_err_msg(reg_addr, e))?;
 
             let model_id = header[0];
             let len = header[1];
@@ -117,11 +113,12 @@ impl SunspecClient {
             }
             reg_addr += len + 2;
         }
-        return Ok(());
+
+        Ok(())
     }
 
     pub fn models(&self) -> &BTreeMap<u16, u16> {
-        return &self.models;
+        &self.models
     }
 
     pub async fn get_total_yield(
@@ -158,7 +155,7 @@ impl SunspecClient {
             .await,
         )?;
 
-        return Ok(total_energy as f64 * 10_f64.powf(scale as f64));
+        Ok(total_energy as f64 * 10_f64.powf(scale as f64))
     }
 
     async fn read_register(
@@ -178,10 +175,12 @@ impl SunspecClient {
             }
         };
         let addr = model_base + register;
-        return context
+
+        context
             .read_holding_registers(addr, size)
             .await
-            .map_err(|e| e.to_string());
+            .map_err(|e| read_err_msg(addr, e))?
+            .map_err(|e| read_err_msg(addr, e))
     }
 
     fn validate_result_i16(
@@ -189,7 +188,7 @@ impl SunspecClient {
         res: Result<Vec<u16>, String>,
     ) -> Result<i16, String> {
         match res {
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
             Ok(data) => {
                 if data[0] == 0x8000 {
                     return Err(format!(
@@ -197,9 +196,9 @@ impl SunspecClient {
                         which
                     ));
                 }
-                return Ok(data[0] as i16);
+                Ok(data[0] as i16)
             }
-        };
+        }
     }
 
     fn validate_result_u32(
@@ -207,7 +206,7 @@ impl SunspecClient {
         res: Result<Vec<u16>, String>,
     ) -> Result<u32, String> {
         match res {
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
             Ok(data) => {
                 if data.iter().all(|x| *x == 0xFFFF) {
                     return Err(format!(
@@ -215,9 +214,9 @@ impl SunspecClient {
                         which
                     ));
                 }
-                return Ok((data[0] as u32) * 65536 + (data[1] as u32));
+                Ok((data[0] as u32) * 65536 + (data[1] as u32))
             }
-        };
+        }
     }
 }
 

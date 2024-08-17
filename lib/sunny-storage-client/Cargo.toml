@@ -13,4 +13,4 @@ async-trait = ">=0.1.51"
 clap = ">=3.1.5"
 slog = ">=2.7"
 tokio = { version=">=1.0", features=["full"] }
-tokio-modbus = { version=">=0.5.0", features = ["tcp"], default-features = false }
+tokio-modbus = { version=">=0.14.0", features = ["tcp"], default-features = false }

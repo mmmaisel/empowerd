@@ -23,6 +23,20 @@ use tokio_modbus::{
     prelude::{Reader, Writer},
 };
 
+fn read_err_msg<S>(reg: u16, e: S) -> String
+where
+    S: std::fmt::Display,
+{
+    format!("Could not read register {reg}: {e}")
+}
+
+fn write_err_msg<S>(reg: u16, e: S) -> String
+where
+    S: std::fmt::Display,
+{
+    format!("Could not write register {reg}: {e}")
+}
+
 pub struct LambdaContext(Context);
 
 impl LambdaContext {
@@ -31,12 +45,14 @@ impl LambdaContext {
             .0
             .read_holding_registers(1002, 1)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| read_err_msg(1002, e))?
+            .map_err(|e| read_err_msg(1002, e))?;
         let data = self
             .0
             .read_holding_registers(103, 1)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| read_err_msg(103, e))?
+            .map_err(|e| read_err_msg(103, e))?;
 
         // Cooling / Defrosting ?
         if state[0] == 9 || state[0] == 10 {
@@ -51,12 +67,14 @@ impl LambdaContext {
             .0
             .read_holding_registers(1002, 1)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| read_err_msg(1002, e))?
+            .map_err(|e| read_err_msg(1002, e))?;
         let data = self
             .0
             .read_holding_registers(1013, 1)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| read_err_msg(1013, e))?
+            .map_err(|e| read_err_msg(1013, e))?;
 
         // Defrosting ?
         if state[0] == 10 {
@@ -73,12 +91,14 @@ impl LambdaContext {
             .0
             .read_holding_registers(2002, 1)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| read_err_msg(2002, e))?
+            .map_err(|e| read_err_msg(2002, e))?;
         let buffer_data = self
             .0
             .read_holding_registers(3002, 2)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| read_err_msg(3002, e))?
+            .map_err(|e| read_err_msg(3002, e))?;
         Ok((
             boiler_data[0] as i16,
             buffer_data[0] as i16,
@@ -93,7 +113,8 @@ impl LambdaContext {
         self.0
             .write_multiple_registers(102, &[power as u16])
             .await
-            .map_err(|e| e.to_string())
+            .map_err(|e| write_err_msg(102, e))?
+            .map_err(|e| write_err_msg(102, e))
     }
 }
 

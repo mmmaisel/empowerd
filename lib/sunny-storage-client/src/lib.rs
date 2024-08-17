@@ -16,15 +16,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 #![forbid(unsafe_code)]
-#![allow(clippy::needless_return)]
-#![allow(clippy::redundant_field_names)]
 
 use async_trait::async_trait;
 use slog::{trace, Logger};
-use std::io::Error;
 use std::net::SocketAddr;
-use tokio_modbus::client::tcp::connect_slave;
-use tokio_modbus::prelude::Reader;
+use tokio_modbus::{
+    client::tcp::connect_slave, prelude::Reader, Error, Exception,
+};
 
 macro_rules! impl_client {
     ($name:ident, $registers:expr) => {
@@ -38,7 +36,7 @@ macro_rules! impl_client {
                 addr: SocketAddr,
                 logger: Option<Logger>,
             ) -> Result<Self, String> {
-                return Ok(Self { addr, logger });
+                Ok(Self { addr, logger })
             }
         }
 
@@ -47,8 +45,7 @@ macro_rules! impl_client {
             async fn get_in_out_charge(
                 &self,
             ) -> Result<(u64, u64, f64), String> {
-                return get_in_out_charge(&self.addr, &self.logger, $registers)
-                    .await;
+                get_in_out_charge(&self.addr, &self.logger, $registers).await
             }
         }
     };
@@ -87,12 +84,13 @@ pub trait SunnyStorageClient: Send + Sync {
 
 fn validate_result(
     which: &str,
-    res: Result<Vec<u16>, Error>,
+    res: Result<Result<Vec<u16>, Exception>, Error>,
     logger: &Option<Logger>,
 ) -> Result<u64, String> {
     match res {
-        Err(e) => return Err(e.to_string()),
-        Ok(data) => {
+        Err(e) => Err(e.to_string()),
+        Ok(Err(e)) => Err(e.to_string()),
+        Ok(Ok(data)) => {
             if let Some(l) = &logger {
                 trace!(l, "RAW {}: {:?}", &which, &data);
             }
@@ -100,15 +98,15 @@ fn validate_result(
                 return Err(format!("Received invalid value for {}", which));
             }
             if data.len() == 2 {
-                return Ok((data[0] as u64) * 65536 + (data[1] as u64));
+                Ok((data[0] as u64) * 65536 + (data[1] as u64))
             } else {
-                return Ok((data[0] as u64) * 4294967296
+                Ok((data[0] as u64) * 4294967296
                     + (data[1] as u64) * 16777216
                     + (data[2] as u64) * 65536
-                    + (data[3] as u64));
+                    + (data[3] as u64))
             }
         }
-    };
+    }
 }
 
 async fn get_in_out_charge(
@@ -160,7 +158,7 @@ async fn get_in_out_charge(
         logger,
     )?;
 
-    return Ok((wh_in, wh_out, (charge as f64) * (capacity as f64) / 100.0));
+    Ok((wh_in, wh_out, (charge as f64) * (capacity as f64) / 100.0))
 }
 
 #[tokio::test]
