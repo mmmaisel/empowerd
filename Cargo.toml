@@ -70,7 +70,7 @@ usb-reset = { version = "*", path = "lib/usb-reset/" }
 
 futures = ">=0.3.21"
 slog = { version=">=2.7", features=["max_level_trace", "release_max_level_debug"] }
-sloggers = { version=">=1.0", default-features=false }
+sloggers = { version=">=2.0", default-features=false }
 #slog-async = "*"
 tokio = { version=">=1.0", features=["full"] }
 
