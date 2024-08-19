@@ -16,13 +16,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::settings::Icon;
-use gpio_cdev::{Chip, Line, LineHandle, LineRequestFlags};
+use gpiocdev::{line::Value, request::Config, Request};
 use tokio::sync::watch;
 
 #[derive(Debug)]
 pub struct Channel {
-    pub line: Line,
-    pub pin: LineHandle,
+    pub offset: u32,
+    pub pin: Request,
     pub name: String,
     pub icon: Icon,
     pub processor: Option<watch::Sender<bool>>,
@@ -43,10 +43,11 @@ pub struct GpioSwitch {
 
 impl Drop for GpioSwitch {
     fn drop(&mut self) {
-        let lines: Vec<Line> =
-            self.channels.drain(..).map(|c| c.line).collect();
-        for line in lines {
-            if let Err(e) = line.request(LineRequestFlags::INPUT, 0, "") {
+        let pins: Vec<Request> =
+            self.channels.drain(..).map(|c| c.pin).collect();
+        for pin in pins {
+            let mut config = pin.config();
+            if let Err(e) = pin.reconfigure(config.as_input()) {
                 panic!("Failed to uninitialize pin: {}", e)
             }
         }
@@ -58,23 +59,24 @@ impl GpioSwitch {
         let channels = gpios
             .into_iter()
             .map(|gpio| {
-                let mut chip = Chip::new(&gpio.dev).map_err(|e| {
-                    format!("Could not open {}: {}", &gpio.dev, e)
-                })?;
-                let line = chip.get_line(gpio.num).map_err(|e| {
-                    format!("Could not open gpio {}: {}", &gpio.num, e)
-                })?;
-                let pin = line
-                    .request(LineRequestFlags::OUTPUT, 1, &gpio.name)
+                let mut config = Config::default();
+                config
+                    .with_line(gpio.num)
+                    .as_active_low()
+                    .as_output(Value::Inactive);
+                let pin = Request::from_config(config)
+                    .on_chip(&gpio.dev)
+                    .with_consumer(&gpio.name)
+                    .request()
                     .map_err(|e| {
                         format!(
-                            "Could not get handle for gpio {}: {}",
-                            &gpio.num, e
+                            "Could not open {}:{}: {}",
+                            &gpio.dev, &gpio.num, e
                         )
                     })?;
                 return Ok(Channel {
+                    offset: gpio.num,
                     pin,
-                    line,
                     name: gpio.name,
                     icon: gpio.icon,
                     processor: gpio.processor,
@@ -101,7 +103,7 @@ impl GpioSwitch {
         channel: &Channel,
         open: bool,
     ) -> Result<(), String> {
-        if let Err(e) = channel.pin.set_value(if open { 0 } else { 1 }) {
+        if let Err(e) = channel.pin.set_value(channel.offset, open.into()) {
             return Err(e.to_string());
         }
 
@@ -142,8 +144,8 @@ impl GpioSwitch {
 
     pub fn get_open(&self, id: usize) -> Result<bool, String> {
         let channel = self.get_channel(id)?;
-        match channel.pin.get_value() {
-            Ok(x) => Ok(x == 0),
+        match channel.pin.value(channel.offset) {
+            Ok(x) => Ok(x.into()),
             Err(e) => Err(e.to_string()),
         }
     }

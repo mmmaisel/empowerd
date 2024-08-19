@@ -621,7 +621,7 @@ dependencies = [
  "diesel_migrations",
  "futures",
  "getopts",
- "gpio-cdev",
+ "gpiocdev",
  "hmac",
  "hyper 1.4.1",
  "hyper-util",
@@ -877,14 +877,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40ecd4077b5ae9fd2e9e169b102c6c330d0605168eb0e8bf79952b256dbefffd"
 
 [[package]]
-name = "gpio-cdev"
-version = "0.6.0"
+name = "gpiocdev"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09831ec59b80be69e75d29cf36e16afbbe5fd1af9c1bf4689ad91c77db5aa6a6"
+checksum = "f5119c89eccee09c4f6e9ca2b112aea1cd80bac31cd29169f171a48ae5552d1c"
+dependencies = [
+ "gpiocdev-uapi",
+ "thiserror",
+]
+
+[[package]]
+name = "gpiocdev-uapi"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a02357253f833a6ce4e93f17e8dd3e169c941ea71b83d442ed9c55f784045204"
 dependencies = [
  "bitflags 2.6.0",
+ "ioctl-sys",
  "libc",
- "nix 0.27.1",
+ "thiserror",
 ]
 
 [[package]]
@@ -1270,6 +1281,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ioctl-sys"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8bd11f3a29434026f5ff98c730b668ba74b1033637b8817940b54d040696133c"
+
+[[package]]
 name = "ipnet"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1582,17 +1599,6 @@ dependencies = [
  "libc",
  "memoffset 0.7.1",
  "pin-utils",
-]
-
-[[package]]
-name = "nix"
-version = "0.27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
-dependencies = [
- "bitflags 2.6.0",
- "cfg-if",
- "libc",
 ]
 
 [[package]]
