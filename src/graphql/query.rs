@@ -195,22 +195,20 @@ impl Query {
 
         return if get_open {
             trace!(ctx.globals.logger, "Query Switches: get open");
-            switch_mux
-                .ids()
-                .into_iter()
-                .map(|idx| {
-                    let name = switch_mux.name(idx)?;
-                    let icon = switch_mux.icon(idx)?;
-                    let open = switch_mux.read_val(idx)?;
+            let mut switches = Vec::with_capacity(switch_mux.len());
+            for idx in switch_mux.ids() {
+                let name = switch_mux.name(idx)?;
+                let icon = switch_mux.icon(idx)?;
+                let open = switch_mux.read_val(idx).await?;
 
-                    return Ok(Switch {
-                        id: idx as i32,
-                        open,
-                        name,
-                        icon,
-                    });
-                })
-                .collect()
+                switches.push(Switch {
+                    id: idx as i32,
+                    open,
+                    name,
+                    icon,
+                });
+            }
+            Ok(switches)
         } else {
             trace!(ctx.globals.logger, "Query Switches: get basic");
             switch_mux

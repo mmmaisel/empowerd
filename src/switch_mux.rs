@@ -16,12 +16,14 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::{settings::Icon, sinks::GpioSwitch};
+use async_trait::async_trait;
 use std::{collections::BTreeMap, fmt::Debug, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 
+#[async_trait]
 pub trait SwitchGroup: Debug + Send + Sync {
-    fn read_val(&self, idx: usize) -> Result<bool, String>;
-    fn write_val(&self, idx: usize, val: bool) -> Result<(), String>;
+    async fn read_val(&self, idx: usize) -> Result<bool, String>;
+    async fn write_val(&self, idx: usize, val: bool) -> Result<(), String>;
 }
 
 #[derive(Debug)]
@@ -87,6 +89,10 @@ impl SwitchMux {
             .ok_or(format!("Channel {id} not found"))
     }
 
+    pub fn len(&self) -> usize {
+        self.channels.len()
+    }
+
     pub fn ids(&self) -> Vec<usize> {
         return self
             .channels
@@ -113,27 +119,32 @@ impl SwitchMux {
         Ok(channel.icon.to_string())
     }
 
-    pub fn read_val(&self, id: usize) -> Result<bool, String> {
+    pub async fn read_val(&self, id: usize) -> Result<bool, String> {
         let channel = self.get_channel(id)?;
         channel
             .switch
             .read_val(channel.idx)
+            .await
             .map_err(|e| e.to_string())
     }
 
-    pub fn write_val(&self, id: usize, val: bool) -> Result<(), String> {
+    pub async fn write_val(&self, id: usize, val: bool) -> Result<(), String> {
         let channel = self.get_channel(id)?;
         if let Some(proc) = &channel.proc {
             proc.send_replace(val);
         } else {
-            channel.switch.write_val(channel.idx, val)?;
+            channel.switch.write_val(channel.idx, val).await?;
         }
 
         Ok(())
     }
 
-    pub fn write_val_raw(&self, id: usize, val: bool) -> Result<(), String> {
+    pub async fn write_val_raw(
+        &self,
+        id: usize,
+        val: bool,
+    ) -> Result<(), String> {
         let channel = self.get_channel(id)?;
-        channel.switch.write_val(channel.idx, val)
+        channel.switch.write_val(channel.idx, val).await
     }
 }

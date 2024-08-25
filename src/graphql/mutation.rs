@@ -265,7 +265,9 @@ impl Mutation {
             Err(e) => return Err(e.into()),
         };
 
-        if let Err(e) = ctx.globals.switch_mux.write_val(channel, switch.open) {
+        if let Err(e) =
+            ctx.globals.switch_mux.write_val(channel, switch.open).await
+        {
             return Err(e.into());
         }
 

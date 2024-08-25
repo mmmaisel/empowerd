@@ -143,7 +143,7 @@ impl LambdaClient {
 
 #[tokio::test]
 async fn test_lambda_client() {
-    let mut client = LambdaClient::new("127.0.0.1:1502".parse().unwrap(), None);
+    let mut client = LambdaClient::new("127.0.0.1:1502".parse().unwrap());
     let mut context = client.open().await.unwrap();
 
     assert_eq!(Ok(()), context.set_available_power(1000).await);

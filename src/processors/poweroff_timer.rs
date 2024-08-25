@@ -78,7 +78,7 @@ impl PoweroffTimerProcessor {
                 }
             }
             _ = tokio::time::sleep(self.sleep_time) => {
-                self.update_output(false)?;
+                self.update_output(false).await?;
                 debug!(self.base.logger, "Poweroff Switch '{}'", self.switch_id);
             }
             x = self.switch_input.changed() => {
@@ -89,7 +89,7 @@ impl PoweroffTimerProcessor {
                 }
 
                 let value = self.switch_input.borrow().to_owned();
-                self.update_output(value)?;
+                self.update_output(value).await?;
                 debug!(
                     self.base.logger,
                     "Set Switch '{}' to '{}' for '{}' seconds",
@@ -103,9 +103,10 @@ impl PoweroffTimerProcessor {
         Ok(())
     }
 
-    fn update_output(&mut self, value: bool) -> Result<(), Error> {
+    async fn update_output(&mut self, value: bool) -> Result<(), Error> {
         self.switch_output
             .write_val_raw(self.switch_id, value)
+            .await
             .map_err(Error::Temporary)?;
         self.sleep_time = self.calc_sleep_time(value);
 

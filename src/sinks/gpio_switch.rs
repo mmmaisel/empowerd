@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::SwitchGroup;
+use async_trait::async_trait;
 use gpiocdev::{line::Value, request::Config, Request};
 use std::path::Path;
 
@@ -50,15 +51,16 @@ impl GpioSwitch {
     }
 }
 
+#[async_trait]
 impl SwitchGroup for GpioSwitch {
-    fn read_val(&self, idx: usize) -> Result<bool, String> {
+    async fn read_val(&self, idx: usize) -> Result<bool, String> {
         self.pins
             .value(idx as u32)
             .map(|x| x.into())
             .map_err(|e| e.to_string())
     }
 
-    fn write_val(&self, idx: usize, val: bool) -> Result<(), String> {
+    async fn write_val(&self, idx: usize, val: bool) -> Result<(), String> {
         self.pins
             .set_value(idx as u32, val.into())
             .map_err(|e| e.to_string())
