@@ -15,12 +15,13 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::settings::{Gpio, Settings, SinkType};
-use gpio_switch::GpioCreateInfo;
+use crate::{
+    settings::{Gpio, Settings, SinkType},
+    switch_mux::{SwitchArgs, SwitchType},
+    SwitchMux,
+};
 use slog::Logger;
-use std::collections::BTreeMap;
-use std::fmt;
-use std::sync::Arc;
+use std::{collections::BTreeMap, fmt, sync::Arc};
 use tokio::sync::watch;
 
 pub mod debug;
@@ -36,7 +37,7 @@ pub use lambda_heat_pump::LambdaHeatPumpSink;
 #[derive(Clone)]
 pub enum ArcSink {
     Debug(Arc<DebugSink>),
-    GpioSwitch(Arc<GpioSwitch>),
+    SwitchMux(Arc<SwitchMux>),
     LambdaHeatPump(Arc<LambdaHeatPumpSink>),
     KeContact(Arc<KeContactSink>),
 }
@@ -45,7 +46,7 @@ impl fmt::Display for ArcSink {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match &self {
             ArcSink::Debug(_) => "Debug",
-            ArcSink::GpioSwitch(_) => "GpioSwitch",
+            ArcSink::SwitchMux(_) => "SwitchMux",
             ArcSink::LambdaHeatPump(_) => "LambdaHeatPump",
             ArcSink::KeContact(_) => "KeContact",
         };
@@ -53,7 +54,7 @@ impl fmt::Display for ArcSink {
     }
 }
 
-pub struct GpioProcCreateInfo {
+pub struct SwitchProcCreateInfo {
     pub name: String,
     pub channel: watch::Receiver<bool>,
     pub on_time: u64,
@@ -62,10 +63,10 @@ pub struct GpioProcCreateInfo {
 pub fn make_sinks(
     logger: Logger,
     settings: &Settings,
-) -> Result<(BTreeMap<String, ArcSink>, Vec<GpioProcCreateInfo>), String> {
+) -> Result<(BTreeMap<String, ArcSink>, Vec<SwitchProcCreateInfo>), String> {
     let mut sinks = BTreeMap::new();
-    let mut gpios = Vec::new();
-    let mut gpio_proc_info = Vec::new();
+    let mut switches = BTreeMap::<SwitchType, Vec<SwitchArgs>>::new();
+    let mut switch_proc_info = Vec::new();
 
     for sink in &settings.sinks {
         match &sink.variant {
@@ -74,9 +75,9 @@ pub fn make_sinks(
                 sinks.insert(sink.name.clone(), ArcSink::Debug(Arc::new(obj)));
             }
             SinkType::Gpio(gpio) => {
-                let processor = if gpio.on_time != Gpio::max_on_time() {
+                let proc = if gpio.on_time != Gpio::max_on_time() {
                     let (tx, rx) = watch::channel(false);
-                    gpio_proc_info.push(GpioProcCreateInfo {
+                    switch_proc_info.push(SwitchProcCreateInfo {
                         name: sink.name.clone(),
                         channel: rx,
                         on_time: gpio.on_time,
@@ -86,13 +87,21 @@ pub fn make_sinks(
                     None
                 };
 
-                gpios.push(GpioCreateInfo {
+                let typ = SwitchType::Gpio {
+                    dev: gpio.dev.clone().into(),
+                };
+                let arg = SwitchArgs {
+                    num: gpio.num as usize,
                     name: sink.name.clone(),
                     icon: gpio.icon.clone(),
-                    dev: gpio.dev.clone(),
-                    num: gpio.num,
-                    processor: processor,
-                });
+                    proc,
+                };
+
+                if let Some(args) = switches.get_mut(&typ) {
+                    args.push(arg);
+                } else {
+                    switches.insert(typ, vec![arg]);
+                }
             }
             SinkType::LambdaHeatPump(setting) => {
                 let obj = LambdaHeatPumpSink::new(
@@ -119,11 +128,11 @@ pub fn make_sinks(
         }
     }
 
-    let gpio_switch = GpioSwitch::new(gpios)
-        .map_err(|e| format!("Could not create GPIO switch: {}", e))?;
+    let switch_mux = SwitchMux::new(switches)
+        .map_err(|e| format!("Could not create SwitchMux: {}", e))?;
     sinks.insert(
-        "_GpioSwitch".into(),
-        ArcSink::GpioSwitch(Arc::new(gpio_switch)),
+        "_SwitchMux".into(),
+        ArcSink::SwitchMux(Arc::new(switch_mux)),
     );
-    Ok((sinks, gpio_proc_info))
+    Ok((sinks, switch_proc_info))
 }

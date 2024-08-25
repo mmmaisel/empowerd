@@ -130,7 +130,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
             }
         };
 
-    let (sinks, gpio_proc_info) =
+    let (sinks, switch_proc_info) =
         match sinks::make_sinks(logger.clone(), &settings) {
             Ok(x) => x,
             Err(e) => {
@@ -139,16 +139,16 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
             }
         };
 
-    let gpio_switch = match sinks.get("_GpioSwitch") {
+    let switch_mux = match sinks.get("_SwitchMux") {
         Some(x) => match x {
-            sinks::ArcSink::GpioSwitch(x) => x.clone(),
+            sinks::ArcSink::SwitchMux(x) => x.clone(),
             _ => {
-                error!(logger, "GpioSwitch has invalid type");
+                error!(logger, "SwitchMux has invalid type");
                 return 2;
             }
         },
         None => {
-            error!(logger, "Could not find GpioSwitch sink");
+            error!(logger, "Could not find SwitchMux sink");
             return 2;
         }
     };
@@ -161,7 +161,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         &settings,
         outputs,
         sinks,
-        gpio_proc_info,
+        switch_proc_info,
     ) {
         Ok(x) => x,
         Err(e) => {
@@ -184,7 +184,7 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         username: settings.graphql.username.clone(),
         hashed_pw: settings.graphql.hashed_password.clone(),
         session_manager,
-        gpio_switch,
+        switch_mux,
         processor_cmds,
     });
 

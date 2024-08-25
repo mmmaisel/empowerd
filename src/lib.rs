@@ -31,15 +31,16 @@ pub mod session_manager;
 pub mod settings;
 pub mod sinks;
 pub mod sources;
+pub mod switch_mux;
 pub mod task_group;
 pub mod tri_state;
 
 use error::Error;
 use processors::ProcessorCommands;
 use session_manager::SessionManager;
-use sinks::GpioSwitch;
 use slog::Logger;
 use std::sync::Arc;
+use switch_mux::{SwitchGroup, SwitchMux};
 
 #[derive(Debug)]
 pub struct Globals {
@@ -47,7 +48,7 @@ pub struct Globals {
     pub username: String,
     pub hashed_pw: String,
     pub session_manager: SessionManager,
-    pub gpio_switch: Arc<GpioSwitch>,
+    pub switch_mux: Arc<SwitchMux>,
     pub processor_cmds: ProcessorCommands,
 }
 

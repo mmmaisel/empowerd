@@ -255,17 +255,17 @@ impl Mutation {
             Err(e) => return Err(e.into()),
         };
 
-        let name = match ctx.globals.gpio_switch.get_name(channel) {
+        let name = match ctx.globals.switch_mux.name(channel) {
             Ok(x) => x,
             Err(e) => return Err(e.into()),
         };
 
-        let icon = match ctx.globals.gpio_switch.get_icon(channel) {
+        let icon = match ctx.globals.switch_mux.icon(channel) {
             Ok(x) => x,
             Err(e) => return Err(e.into()),
         };
 
-        if let Err(e) = ctx.globals.gpio_switch.set_open(channel, switch.open) {
+        if let Err(e) = ctx.globals.switch_mux.write_val(channel, switch.open) {
             return Err(e.into());
         }
 

@@ -23,7 +23,7 @@ use crate::{
     multi_setpoint_hysteresis::LinspaceBuilder,
     seasonal::SeasonalBuilder,
     settings::{ProcessorType, Settings},
-    sinks::{ArcSink, GpioProcCreateInfo},
+    sinks::{ArcSink, SwitchProcCreateInfo},
     task_group::{task_loop, TaskGroup, TaskGroupBuilder, TaskState},
 };
 use slog::{debug, error, Logger};
@@ -119,7 +119,7 @@ pub fn processor_tasks(
     settings: &Settings,
     mut inputs: BTreeMap<String, watch::Receiver<Model>>,
     sinks: BTreeMap<String, ArcSink>,
-    gpio_info: Vec<GpioProcCreateInfo>,
+    switch_info: Vec<SwitchProcCreateInfo>,
 ) -> Result<ProcessorInfo, String> {
     let tasks = TaskGroupBuilder::new("processors".into(), logger.clone());
     let mut outputs = BTreeMap::<String, watch::Sender<Model>>::new();
@@ -399,12 +399,13 @@ pub fn processor_tasks(
         }
     }
 
-    if let Some(x) = sinks.get("_GpioSwitch") {
+    if let Some(x) = sinks.get("_SwitchMux") {
         match x {
-            ArcSink::GpioSwitch(gpio_switch) => {
-                for gpio in gpio_info.into_iter() {
-                    let id = gpio_switch.get_id_by_name(&gpio.name)?;
-                    let name = format!("_PoweroffTimerProcessor_{}", gpio.name);
+            ArcSink::SwitchMux(switch_mux) => {
+                for switch in switch_info.into_iter() {
+                    let id = switch_mux.id_by_name(&switch.name)?;
+                    let name =
+                        format!("_PoweroffTimerProcessor_{}", switch.name);
                     let (command_tx, command_rx) = mpsc::channel(1);
 
                     let mut processor = PoweroffTimerProcessor::new(
@@ -414,10 +415,10 @@ pub fn processor_tasks(
                             logger.clone(),
                         ),
                         command_rx,
-                        gpio.channel,
-                        gpio_switch.to_owned(),
+                        switch.channel,
+                        switch_mux.clone(),
                         id,
-                        Duration::from_secs(gpio.on_time),
+                        Duration::from_secs(switch.on_time),
                     );
                     tasks.add_task(task_loop!(processor));
                     commands.poweroff_timer.push(CommandSender {
@@ -427,7 +428,7 @@ pub fn processor_tasks(
                     });
                 }
             }
-            _ => return Err("Unsupported sink type for GpioSwitch".into()),
+            _ => return Err("Unsupported sink type for PoweroffTimer".into()),
         }
     }
 

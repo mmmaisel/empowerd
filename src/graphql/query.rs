@@ -191,17 +191,17 @@ impl Query {
 
         let lookahead = executor.look_ahead().children();
         let get_open = lookahead.has_child("open");
-        let gpio_switch = &ctx.globals.gpio_switch;
+        let switch_mux = &ctx.globals.switch_mux;
 
         return if get_open {
             trace!(ctx.globals.logger, "Query Switches: get open");
-            gpio_switch
-                .get_ids()
+            switch_mux
+                .ids()
                 .into_iter()
                 .map(|idx| {
-                    let name = gpio_switch.get_name(idx)?;
-                    let icon = gpio_switch.get_icon(idx)?;
-                    let open = gpio_switch.get_open(idx)?;
+                    let name = switch_mux.name(idx)?;
+                    let icon = switch_mux.icon(idx)?;
+                    let open = switch_mux.read_val(idx)?;
 
                     return Ok(Switch {
                         id: idx as i32,
@@ -213,12 +213,12 @@ impl Query {
                 .collect()
         } else {
             trace!(ctx.globals.logger, "Query Switches: get basic");
-            gpio_switch
-                .get_ids()
+            switch_mux
+                .ids()
                 .into_iter()
                 .map(|idx| {
-                    let name = gpio_switch.get_name(idx)?;
-                    let icon = gpio_switch.get_icon(idx)?;
+                    let name = switch_mux.name(idx)?;
+                    let icon = switch_mux.icon(idx)?;
 
                     return Ok(Switch {
                         id: idx as i32,

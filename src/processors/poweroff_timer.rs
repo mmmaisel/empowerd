@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use super::ProcessorBase;
-use crate::{sinks::GpioSwitch, task_group::TaskResult, Error};
+use crate::{task_group::TaskResult, Error, SwitchMux};
 use slog::{debug, Logger};
 use std::sync::Arc;
 use std::time::Duration;
@@ -36,9 +36,9 @@ pub enum Command {
 pub struct PoweroffTimerProcessor {
     base: ProcessorBase,
     command_input: mpsc::Receiver<Command>,
-    gpio_input: watch::Receiver<bool>,
-    gpio_output: Arc<GpioSwitch>,
-    gpio_id: usize,
+    switch_input: watch::Receiver<bool>,
+    switch_output: Arc<SwitchMux>,
+    switch_id: usize,
     on_time: Duration,
     sleep_time: Duration,
 }
@@ -47,17 +47,17 @@ impl PoweroffTimerProcessor {
     pub fn new(
         base: ProcessorBase,
         command_input: mpsc::Receiver<Command>,
-        gpio_input: watch::Receiver<bool>,
-        gpio_output: Arc<GpioSwitch>,
-        gpio_id: usize,
+        switch_input: watch::Receiver<bool>,
+        switch_output: Arc<SwitchMux>,
+        switch_id: usize,
         on_time: Duration,
     ) -> Self {
         Self {
             base,
             command_input,
-            gpio_input,
-            gpio_output,
-            gpio_id,
+            switch_input,
+            switch_output,
+            switch_id,
             on_time,
             sleep_time: on_time,
         }
@@ -79,21 +79,21 @@ impl PoweroffTimerProcessor {
             }
             _ = tokio::time::sleep(self.sleep_time) => {
                 self.update_output(false)?;
-                debug!(self.base.logger, "Poweroff GPIO '{}'", self.gpio_id);
+                debug!(self.base.logger, "Poweroff Switch '{}'", self.switch_id);
             }
-            x = self.gpio_input.changed() => {
+            x = self.switch_input.changed() => {
                 if let Err(e) = x {
                     return Err(Error::Bug(format!(
-                        "Reading gpio input failed: {e}",
+                        "Reading switch input failed: {e}",
                     )));
                 }
 
-                let value = self.gpio_input.borrow().to_owned();
+                let value = self.switch_input.borrow().to_owned();
                 self.update_output(value)?;
                 debug!(
                     self.base.logger,
-                    "Set GPIO '{}' to '{}' for '{}' seconds",
-                    self.gpio_id,
+                    "Set Switch '{}' to '{}' for '{}' seconds",
+                    self.switch_id,
                     value,
                     self.sleep_time.as_secs(),
                 );
@@ -104,12 +104,8 @@ impl PoweroffTimerProcessor {
     }
 
     fn update_output(&mut self, value: bool) -> Result<(), Error> {
-        let channel = self
-            .gpio_output
-            .get_channel(self.gpio_id)
-            .map_err(Error::Temporary)?;
-        self.gpio_output
-            .set_open_raw(channel, value)
+        self.switch_output
+            .write_val_raw(self.switch_id, value)
             .map_err(Error::Temporary)?;
         self.sleep_time = self.calc_sleep_time(value);
 
