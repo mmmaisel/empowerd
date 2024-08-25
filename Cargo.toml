@@ -6,7 +6,7 @@ description = "empowers the offline smart home"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
 readme = "README.md"
 edition = "2021"
-rust-version = "1.59.0"
+rust-version = "1.64.0"
 
 [package.metadata.deb]
 assets = [

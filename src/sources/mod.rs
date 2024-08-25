@@ -308,7 +308,7 @@ pub fn polling_tasks(
                         .interval(Duration::from_secs(setting.poll_interval))
                         .add_processor(&source.name, settings, &mut outputs)
                         .build(),
-                    setting.bind_address.clone(),
+                    setting.bind_address,
                     setting.susy_id,
                     setting.serial,
                 )?;
@@ -336,7 +336,7 @@ pub fn polling_tasks(
                         .add_processor(&source.name, settings, &mut outputs)
                         .build(),
                     setting.password.clone(),
-                    setting.address.clone(),
+                    setting.address,
                 )?;
                 tasks.add_task(task_loop!(source));
             }

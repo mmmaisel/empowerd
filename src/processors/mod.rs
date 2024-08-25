@@ -374,7 +374,7 @@ pub fn processor_tasks(
                     command_rx,
                     setting.meter_susy_id,
                     setting.meter_serial,
-                    setting.bind_addr.clone(),
+                    setting.bind_addr,
                     setting.ctrl_serial,
                     battery_source,
                     controller,
