@@ -20,7 +20,7 @@ use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::env;
 use std::fmt::{self, Debug};
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, SocketAddrV4};
 
 /// Defines the database location and credentials.
 #[derive(Clone, Deserialize)]
@@ -436,6 +436,30 @@ impl Gpio {
     }
 }
 
+/// Modbus coil data sink parameters.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ModbusCoil {
+    /// Icon name for the Web-UI.
+    pub icon: Icon,
+    /// Address and port of the controlled device
+    pub addr: SocketAddrV4,
+    /// Modbus device ID
+    pub id: u8,
+    /// Coil number
+    #[serde(rename = "coil_num")]
+    pub num: u32,
+    /// Maximum on time of the pin. After this time, the pin is automatically
+    /// switched off.
+    #[serde(default = "ModbusCoil::max_on_time")]
+    pub on_time: u64,
+}
+
+impl ModbusCoil {
+    pub fn max_on_time() -> u64 {
+        u64::MAX
+    }
+}
+
 /// Lambda heat pump Modbus data sink parameters.
 #[derive(Clone, Debug, Deserialize)]
 pub struct LambdaHeatPumpSink {
@@ -456,6 +480,7 @@ pub struct KeContactSink {
 pub enum SinkType {
     Debug,
     Gpio(Gpio),
+    ModbusCoil(ModbusCoil),
     KeContact(KeContactSink),
     LambdaHeatPump(LambdaHeatPumpSink),
 }

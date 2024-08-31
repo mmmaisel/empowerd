@@ -16,23 +16,25 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
 use crate::{
-    settings::{Gpio, Settings, SinkType},
+    settings::{Gpio, ModbusCoil, Settings, SinkType},
     switch_mux::{SwitchArgs, SwitchType},
     SwitchMux,
 };
 use slog::Logger;
-use std::{collections::BTreeMap, fmt, sync::Arc};
+use std::{collections::BTreeMap, fmt, net::SocketAddr, sync::Arc};
 use tokio::sync::watch;
 
 pub mod debug;
 pub mod gpio_switch;
 pub mod ke_contact;
 pub mod lambda_heat_pump;
+pub mod modbus_switch;
 
 pub use debug::DebugSink;
 pub use gpio_switch::GpioSwitch;
 pub use ke_contact::KeContactSink;
 pub use lambda_heat_pump::LambdaHeatPumpSink;
+pub use modbus_switch::ModbusSwitch;
 
 #[derive(Clone)]
 pub enum ArcSink {
@@ -94,6 +96,37 @@ pub fn make_sinks(
                     num: gpio.num as usize,
                     name: sink.name.clone(),
                     icon: gpio.icon.clone(),
+                    proc,
+                };
+
+                if let Some(args) = switches.get_mut(&typ) {
+                    args.push(arg);
+                } else {
+                    switches.insert(typ, vec![arg]);
+                }
+            }
+            SinkType::ModbusCoil(coil) => {
+                // TODO: dedup this with above
+                let proc = if coil.on_time != ModbusCoil::max_on_time() {
+                    let (tx, rx) = watch::channel(false);
+                    switch_proc_info.push(SwitchProcCreateInfo {
+                        name: sink.name.clone(),
+                        channel: rx,
+                        on_time: coil.on_time,
+                    });
+                    Some(tx)
+                } else {
+                    None
+                };
+
+                let typ = SwitchType::Modbus {
+                    addr: SocketAddr::V4(coil.addr.clone()),
+                    id: coil.id,
+                };
+                let arg = SwitchArgs {
+                    num: coil.num as usize,
+                    name: sink.name.clone(),
+                    icon: coil.icon.clone(),
                     proc,
                 };
 

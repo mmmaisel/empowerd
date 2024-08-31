@@ -15,9 +15,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use crate::{settings::Icon, sinks::GpioSwitch};
+use crate::{
+    settings::Icon,
+    sinks::{GpioSwitch, ModbusSwitch},
+};
 use async_trait::async_trait;
-use std::{collections::BTreeMap, fmt::Debug, path::PathBuf, sync::Arc};
+use std::{
+    collections::BTreeMap, fmt::Debug, net::SocketAddr, path::PathBuf,
+    sync::Arc,
+};
 use tokio::sync::watch;
 
 #[async_trait]
@@ -37,6 +43,7 @@ pub struct SwitchArgs {
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum SwitchType {
     Gpio { dev: PathBuf },
+    Modbus { addr: SocketAddr, id: u8 },
 }
 
 #[derive(Debug)]
@@ -67,6 +74,18 @@ impl SwitchMux {
                         &dev,
                         &args.iter().map(|x| x.num as u32).collect::<Vec<_>>(),
                     )?);
+                    for arg in args {
+                        channels.push(Channel {
+                            name: arg.name,
+                            icon: arg.icon,
+                            idx: arg.num,
+                            proc: arg.proc,
+                            switch: switch.clone(),
+                        });
+                    }
+                }
+                SwitchType::Modbus { addr, id } => {
+                    let switch = Arc::new(ModbusSwitch::new(addr, id));
                     for arg in args {
                         channels.push(Channel {
                             name: arg.name,

@@ -645,6 +645,7 @@ dependencies = [
  "sunny-storage-client",
  "sunspec-client",
  "tokio",
+ "tokio-modbus",
  "toml",
  "uom",
  "usb-reset",

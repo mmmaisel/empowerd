@@ -240,6 +240,14 @@ async fn tokio_main(settings: Settings, logger: Logger) -> i32 {
         shutdown_group(sources, &logger),
         shutdown_group(processors, &logger),
     };
+
+    // Turn off all switches when shutting down.
+    for id in globals.switch_mux.ids() {
+        if let Err(e) = globals.switch_mux.write_val_raw(id, false).await {
+            error!(logger, "Failed to switch of channel {id}: {e}");
+        }
+    }
+
     if source_result.is_err() || processor_result.is_err() {
         return 2;
     }

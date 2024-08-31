@@ -75,6 +75,7 @@ slog = { version=">=2.7", features=["max_level_trace", "release_max_level_debug"
 sloggers = { version=">=2.0", default-features=false }
 #slog-async = "*"
 tokio = { version=">=1.0", features=["full"] }
+tokio-modbus = { version=">=0.14.0", features = ["tcp"], default-features = false }
 
 chrono = ">=0.4.38"
 diesel = { version = ">=2.2.2", features = ["chrono", "postgres"] }
