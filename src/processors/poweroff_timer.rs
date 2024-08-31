@@ -59,7 +59,7 @@ impl PoweroffTimerProcessor {
             switch_output,
             switch_id,
             on_time,
-            sleep_time: on_time,
+            sleep_time: Duration::from_secs(0),
         }
     }
 
