@@ -104,11 +104,11 @@ impl PoweroffTimerProcessor {
     }
 
     async fn update_output(&mut self, value: bool) -> Result<(), Error> {
+        self.sleep_time = self.calc_sleep_time(value);
         self.switch_output
             .write_val_raw(self.switch_id, value)
             .await
             .map_err(Error::Temporary)?;
-        self.sleep_time = self.calc_sleep_time(value);
 
         Ok(())
     }
