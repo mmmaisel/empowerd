@@ -609,10 +609,10 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
 name = "empowerd"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "async-trait",
- "base64 0.22.1",
+ "base64 0.21.7",
  "bresser6in1-usb",
  "chrono",
  "dachs-client",

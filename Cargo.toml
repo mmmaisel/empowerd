@@ -1,6 +1,6 @@
 [package]
 name = "empowerd"
-version = "0.10.0"
+version = "0.10.1"
 license = "AGPL-3.0-or-later"
 description = "empowers the offline smart home"
 authors = ["Max Maisel <max.maisel@posteo.de>"]
