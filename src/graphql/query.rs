@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use slog::trace;
+use slog::{error, trace};
 use tokio::sync::oneshot;
 
 use super::appliance::Appliance;
@@ -199,7 +199,14 @@ impl Query {
             for idx in switch_mux.ids() {
                 let name = switch_mux.name(idx)?;
                 let icon = switch_mux.icon(idx)?;
-                let open = switch_mux.read_val(idx).await?;
+                // XXX: skip switch on error, append error at the end
+                let open = match switch_mux.read_val(idx).await {
+                    Ok(x) => x,
+                    Err(e) => {
+                        error!(ctx.globals.logger, "{}", e);
+                        continue;
+                    }
+                };
 
                 switches.push(Switch {
                     id: idx as i32,
