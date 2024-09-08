@@ -402,12 +402,14 @@ pub struct Processor {
 /// Available icons for the Web-UI.
 #[derive(Clone, Debug, Deserialize)]
 pub enum Icon {
+    Power,
     Valve,
 }
 
 impl std::fmt::Display for Icon {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let name = match self {
+            Icon::Power => "Power",
             Icon::Valve => "Valve",
         };
         write!(f, "{}", name)
@@ -444,7 +446,7 @@ pub struct ModbusCoil {
     /// Address and port of the controlled device
     pub addr: SocketAddrV4,
     /// Modbus device ID
-    pub id: u8,
+    pub unit_id: u8,
     /// Coil number
     #[serde(rename = "coil_num")]
     pub num: u32,

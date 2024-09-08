@@ -121,7 +121,7 @@ pub fn make_sinks(
 
                 let typ = SwitchType::Modbus {
                     addr: SocketAddr::V4(coil.addr.clone()),
-                    id: coil.id,
+                    id: coil.unit_id,
                 };
                 let arg = SwitchArgs {
                     num: coil.num as usize,
