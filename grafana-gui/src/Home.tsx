@@ -12,9 +12,10 @@ import {
     SceneTimeRange,
 } from "@grafana/scenes";
 
+import { ConfigJson } from "./AppConfig";
 import { ROUTES, prefixRoute } from "./Routes";
 
-type HomePageProps = { jsonData: any };
+type HomePageProps = { config: ConfigJson };
 type HomePageState = {};
 
 export class HomePage extends Component<HomePageProps, HomePageState> {
@@ -37,8 +38,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
     mkscene(): EmbeddedScene {
         const queryRunner = new SceneQueryRunner({
             datasource: {
-                // XXX: uid === UUID is enough to get postgres here
-                uid: "ec8ba937-1340-4b6b-a4c0-81f0517a5ee3",
+                uid: this.props.config.datasource?.uid || "",
             },
             queries: [
                 {
