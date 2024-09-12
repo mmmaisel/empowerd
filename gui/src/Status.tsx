@@ -223,7 +223,7 @@ class Status extends Component<StatusProps, StatusState> {
                 <PowerSwitch
                     switches={switches}
                     onClick={this.onSwitch}
-                    onConfigure={(key: string): void => {}}
+                    onConfigure={this.onConfigureTimer}
                 />
                 <PoweroffTimerConfig
                     timer={this.state.poweroffTimerModal}
