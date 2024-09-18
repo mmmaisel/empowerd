@@ -11,9 +11,18 @@ import { getBackendSrv, locationService } from "@grafana/runtime";
 import { css } from "@emotion/css";
 import { lastValueFrom } from "rxjs";
 
+export type BackendConfig = {
+    solars: number[];
+};
+
+export const BackendConfigDefault = {
+    solars: [],
+};
+
 export type ConfigJson = {
     apiUrl?: string;
     datasource?: PsqlDatasource;
+    backend?: BackendConfig;
 };
 
 type AppConfigStyles = {
@@ -39,6 +48,7 @@ interface AppConfigProps
 type AppConfigState = {
     apiUrl: string;
     datasource: SelectableValue<PsqlDatasource>;
+    backend: BackendConfig;
 };
 
 export class AppConfig extends Component<AppConfigProps, AppConfigState> {
@@ -55,6 +65,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                 label: jsonData?.datasource?.name || "",
                 value: jsonData?.datasource || { name: "", uid: "" },
             },
+            backend: BackendConfigDefault,
         };
     }
 
@@ -113,6 +124,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
             jsonData: {
                 apiUrl: this.state.apiUrl,
                 datasource: this.state.datasource.value,
+                backend: this.state.backend,
             },
         });
     };

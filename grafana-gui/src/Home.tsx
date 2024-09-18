@@ -5,15 +5,16 @@ import {
     SceneApp,
     SceneAppPage,
     EmbeddedScene,
-    PanelBuilders,
-    SceneFlexItem,
-    SceneFlexLayout,
-    SceneQueryRunner,
+    SceneCSSGridLayout,
+    SceneRefreshPicker,
+    SceneTimePicker,
     SceneTimeRange,
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
 import { ROUTES, prefixRoute } from "./Routes";
+import { PowerPlot } from "./panels/PowerPlot";
+import { PowerStats } from "./panels/PowerStats";
 
 type HomePageProps = { config: ConfigJson };
 type HomePageState = {};
@@ -36,33 +37,28 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
     }
 
     mkscene(): EmbeddedScene {
-        const queryRunner = new SceneQueryRunner({
-            datasource: {
-                uid: this.props.config.datasource?.uid || "",
-            },
-            queries: [
-                {
-                    refId: "A",
-                    rawSql: "SELECT MAX(energy_wh) FROM simple_meters WHERE series_id = 1",
-                    format: "table",
-                },
-            ],
-        });
-
+        let plot = PowerPlot(this.props.config);
+        let stats = PowerStats(this.props.config);
         return new EmbeddedScene({
-            $data: queryRunner,
-            $timeRange: new SceneTimeRange({ from: "now-5m", to: "now" }),
-            body: new SceneFlexLayout({
+            $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
+            body: new SceneCSSGridLayout({
+                templateColumns: "minmax(1fr, 1fr)",
+                templateRows: "5fr 1fr",
                 children: [
-                    new SceneFlexItem({
-                        minHeight: 300,
-                        body: PanelBuilders.stat()
-                            .setTitle("PSQL test")
-                            .setUnit("watth")
-                            .build(),
+                    new EmbeddedScene({
+                        $data: plot.query,
+                        body: plot.scene,
+                    }),
+                    new EmbeddedScene({
+                        $data: stats.query,
+                        body: stats.scene,
                     }),
                 ],
             }),
+            controls: [
+                new SceneTimePicker({ isOnCanvas: true }),
+                new SceneRefreshPicker({ isOnCanvas: true, refresh: "5m" }),
+            ],
         });
     }
 

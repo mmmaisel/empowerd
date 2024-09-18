@@ -12,20 +12,25 @@ export enum ROUTES {
 const PLUGIN_BASE_URL = `/a/${pluginJson.id}`;
 
 // Prefixes the route with the base URL of the plugin
-export function prefixRoute(route: string): string {
+export const prefixRoute = (route: string): string => {
     return `${PLUGIN_BASE_URL}/${route}`;
-}
+};
 
 type RoutesProps = ConfigJson;
 type RoutesState = {};
 
 export class Routes extends Component<RoutesProps, RoutesState> {
     render(): ReactNode {
+        let cfg = JSON.parse(JSON.stringify(this.props));
+        cfg.backend = {
+            solars: [1, 8],
+        };
+
         return (
             <Switch>
                 <Route
                     path={prefixRoute(`${ROUTES.Home}`)}
-                    render={(props) => <HomePage config={this.props} />}
+                    render={(props) => <HomePage config={cfg} />}
                 />
                 <Redirect to={prefixRoute(ROUTES.Home)} />
             </Switch>

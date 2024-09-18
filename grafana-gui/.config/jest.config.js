@@ -12,6 +12,7 @@ module.exports = {
   moduleNameMapper: {
     '\\.(css|scss|sass)$': 'identity-obj-proxy',
     'react-inlinesvg': path.resolve(__dirname, 'jest', 'mocks', 'react-inlinesvg.tsx'),
+    'intersection-observer': path.resolve(__dirname, 'jest', 'mocks', 'intersection-observer.tsx'),
   },
   modulePaths: ['<rootDir>/src'],
   setupFilesAfterEnv: ['<rootDir>/jest-setup.js'],
