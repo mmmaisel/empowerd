@@ -24,6 +24,8 @@ export class Routes extends Component<RoutesProps, RoutesState> {
         let cfg = JSON.parse(JSON.stringify(this.props));
         cfg.backend = {
             solars: [1, 8],
+            generators: [2],
+            heatpumps: [7],
         };
 
         return (

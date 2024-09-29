@@ -13,10 +13,14 @@ import { lastValueFrom } from "rxjs";
 
 export type BackendConfig = {
     solars: number[];
+    generators: number[];
+    heatpumps: number[];
 };
 
 export const BackendConfigDefault = {
     solars: [],
+    generators: [],
+    heatpumps: [],
 };
 
 export type ConfigJson = {
