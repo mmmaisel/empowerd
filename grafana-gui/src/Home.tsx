@@ -5,6 +5,7 @@ import {
     SceneApp,
     SceneAppPage,
     EmbeddedScene,
+    SceneControlsSpacer,
     SceneCSSGridLayout,
     SceneRefreshPicker,
     SceneTimePicker,
@@ -56,6 +57,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                 ],
             }),
             controls: [
+                new SceneControlsSpacer(),
                 new SceneTimePicker({ isOnCanvas: true }),
                 new SceneRefreshPicker({ isOnCanvas: true, refresh: "5m" }),
             ],
