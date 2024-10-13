@@ -7,6 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
+import { Colors } from "./Colors";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.timeseries()
@@ -21,22 +22,22 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
         .setOverrides((override: any) => {
             override
                 .matchFieldsWithName("heatpump.power_w")
-                .overrideColor({ fixedColor: "#8F3BB8", mode: "fixed" })
+                .overrideColor({ fixedColor: Colors.purple(0), mode: "fixed" })
                 .overrideDisplayName("Heatpump Power");
             override
                 .matchFieldsWithName("heatpump.heat_w")
-                .overrideColor({ fixedColor: "#37872D", mode: "fixed" })
+                .overrideColor({ fixedColor: Colors.green(0), mode: "fixed" })
                 .overrideDisplayName("Heatpump Heat");
             override
                 .matchFieldsWithName("heatpump.cop")
                 .overrideUnit("none")
                 .overrideMax(10)
-                .overrideColor({ fixedColor: "#FADE29", mode: "fixed" })
+                .overrideColor({ fixedColor: Colors.yellow(0), mode: "fixed" })
                 .overrideDisplayName("Heatpump CoP")
                 .overrideCustomFieldConfig("fillOpacity", 0);
             override
                 .matchFieldsWithName("generator.heat_w")
-                .overrideColor({ fixedColor: "#C4162A", mode: "fixed" })
+                .overrideColor({ fixedColor: Colors.red(0), mode: "fixed" })
                 .overrideDisplayName("Generator Heat");
         })
         .build();

@@ -6,19 +6,8 @@ import {
 } from "@grafana/scenes";
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
-import { Panel, hsl_to_rgb } from "./Common";
-
-const colors = [
-    hsl_to_rgb(50, 230, 128),
-    hsl_to_rgb(40, 230, 128),
-    hsl_to_rgb(60, 230, 128),
-    hsl_to_rgb(50, 230, 160),
-    hsl_to_rgb(40, 230, 160),
-    hsl_to_rgb(60, 230, 160),
-    hsl_to_rgb(50, 230, 96),
-    hsl_to_rgb(40, 230, 96),
-    hsl_to_rgb(60, 230, 96),
-];
+import { Panel } from "./Common";
+import { Colors } from "./Colors";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.stat()
@@ -31,7 +20,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                 override
                     .matchFieldsWithName(`solar${solar}.energy`)
                     .overrideColor({
-                        fixedColor: colors[i % colors.length],
+                        fixedColor: Colors.yellow(i),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Solar ${i + 1} Energy`);

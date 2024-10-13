@@ -7,6 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
+import { Colors } from "./Colors";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.timeseries()
@@ -21,7 +22,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
         .setOverrides((override: any) => {
             override
                 .matchFieldsWithName("solar.power")
-                .overrideColor({ fixedColor: "#F2CC0C", mode: "fixed" })
+                .overrideColor({ fixedColor: Colors.yellow(0), mode: "fixed" })
                 .overrideDisplayName("Solar");
         })
         .build();

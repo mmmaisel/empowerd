@@ -6,43 +6,8 @@ import {
 } from "@grafana/scenes";
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
-import { Panel, hsl_to_rgb } from "./Common";
-
-const colors_top = [
-    hsl_to_rgb(0, 206, 110),
-    hsl_to_rgb(340, 206, 110),
-    hsl_to_rgb(20, 206, 110),
-    hsl_to_rgb(0, 206, 150),
-    hsl_to_rgb(340, 206, 150),
-    hsl_to_rgb(20, 206, 150),
-    hsl_to_rgb(0, 206, 90),
-    hsl_to_rgb(340, 206, 90),
-    hsl_to_rgb(20, 206, 90),
-];
-
-const colors_mid = [
-    hsl_to_rgb(280, 130, 120),
-    hsl_to_rgb(270, 130, 120),
-    hsl_to_rgb(290, 130, 120),
-    hsl_to_rgb(280, 130, 150),
-    hsl_to_rgb(270, 130, 150),
-    hsl_to_rgb(290, 130, 150),
-    hsl_to_rgb(280, 130, 90),
-    hsl_to_rgb(270, 130, 90),
-    hsl_to_rgb(290, 130, 90),
-];
-
-const colors_bot = [
-    hsl_to_rgb(220, 186, 110),
-    hsl_to_rgb(210, 186, 110),
-    hsl_to_rgb(230, 186, 110),
-    hsl_to_rgb(220, 186, 150),
-    hsl_to_rgb(210, 186, 150),
-    hsl_to_rgb(230, 186, 150),
-    hsl_to_rgb(220, 186, 90),
-    hsl_to_rgb(210, 186, 90),
-    hsl_to_rgb(230, 186, 90),
-];
+import { Panel } from "./Common";
+import { Colors } from "./Colors";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.timeseries()
@@ -58,21 +23,21 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                 override
                     .matchFieldsWithName(`boiler${id}.top`)
                     .overrideColor({
-                        fixedColor: colors_top[i % colors_top.length],
+                        fixedColor: Colors.red(i),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Boiler ${i + 1} Top`);
                 override
                     .matchFieldsWithName(`boiler${id}.mid`)
                     .overrideColor({
-                        fixedColor: colors_mid[i % colors_mid.length],
+                        fixedColor: Colors.purple(i),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Boiler ${i + 1} Middel`);
                 override
                     .matchFieldsWithName(`boiler${id}.bot`)
                     .overrideColor({
-                        fixedColor: colors_bot[i % colors_bot.length],
+                        fixedColor: Colors.blue(i),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Boiler ${i + 1} Bottom`);

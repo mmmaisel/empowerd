@@ -6,43 +6,8 @@ import {
 } from "@grafana/scenes";
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
-import { Panel, hsl_to_rgb } from "./Common";
-
-const generator_colors = [
-    hsl_to_rgb(0, 206, 110),
-    hsl_to_rgb(340, 206, 110),
-    hsl_to_rgb(20, 206, 110),
-    hsl_to_rgb(0, 206, 150),
-    hsl_to_rgb(340, 206, 150),
-    hsl_to_rgb(20, 206, 150),
-    hsl_to_rgb(0, 206, 90),
-    hsl_to_rgb(340, 206, 90),
-    hsl_to_rgb(20, 206, 90),
-];
-
-const cop_colors = [
-    hsl_to_rgb(50, 230, 128),
-    hsl_to_rgb(40, 230, 128),
-    hsl_to_rgb(60, 230, 128),
-    hsl_to_rgb(50, 230, 160),
-    hsl_to_rgb(40, 230, 160),
-    hsl_to_rgb(60, 230, 160),
-    hsl_to_rgb(50, 230, 96),
-    hsl_to_rgb(40, 230, 96),
-    hsl_to_rgb(60, 230, 96),
-];
-
-const heatpump_colors = [
-    hsl_to_rgb(115, 128, 90),
-    hsl_to_rgb(105, 128, 90),
-    hsl_to_rgb(125, 128, 90),
-    hsl_to_rgb(115, 128, 120),
-    hsl_to_rgb(105, 128, 120),
-    hsl_to_rgb(125, 128, 120),
-    hsl_to_rgb(115, 128, 60),
-    hsl_to_rgb(105, 128, 60),
-    hsl_to_rgb(125, 128, 60),
-];
+import { Panel } from "./Common";
+import { Colors } from "./Colors";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.stat()
@@ -55,14 +20,14 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                 override
                     .matchFieldsWithName(`heatpump${id}.heat`)
                     .overrideColor({
-                        fixedColor: heatpump_colors[i % heatpump_colors.length],
+                        fixedColor: Colors.green(i),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Heatpump ${i + 1} Heat`);
                 override
                     .matchFieldsWithName(`heatpump${id}.cop`)
                     .overrideColor({
-                        fixedColor: cop_colors[i % cop_colors.length],
+                        fixedColor: Colors.yellow(i),
                         mode: "fixed",
                     })
                     .overrideUnit("none")
@@ -75,8 +40,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                 override
                     .matchFieldsWithName(`generator${id}.heat`)
                     .overrideColor({
-                        fixedColor:
-                            generator_colors[i % generator_colors.length],
+                        fixedColor: Colors.red(i),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Generator ${i + 1} Heat`);

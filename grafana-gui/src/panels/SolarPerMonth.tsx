@@ -10,19 +10,8 @@ import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
-import { Panel, hsl_to_rgb } from "./Common";
-
-const colors = [
-    hsl_to_rgb(50, 230, 128),
-    hsl_to_rgb(40, 230, 128),
-    hsl_to_rgb(60, 230, 128),
-    hsl_to_rgb(50, 230, 160),
-    hsl_to_rgb(40, 230, 160),
-    hsl_to_rgb(60, 230, 160),
-    hsl_to_rgb(50, 230, 96),
-    hsl_to_rgb(40, 230, 96),
-    hsl_to_rgb(60, 230, 96),
-];
+import { Panel } from "./Common";
+import { Colors } from "./Colors";
 
 const month_names = [
     "January",
@@ -70,8 +59,7 @@ const groupByMonthsTransformation =
                         type: "number" as any,
                         config: {
                             color: {
-                                fixedColor:
-                                    colors[(x - first_year) % colors.length],
+                                fixedColor: Colors.yellow(x - first_year),
                                 mode: "fixed",
                             },
                             unit: "watth",
