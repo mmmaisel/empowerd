@@ -14,8 +14,7 @@ import {
 
 import { ConfigJson } from "./AppConfig";
 import { ROUTES, prefixRoute } from "./Routes";
-import { PowerPlot } from "./panels/PowerPlot";
-import { PowerStats } from "./panels/PowerStats";
+import { Overview } from "./panels/Overview";
 
 type HomePageProps = { config: ConfigJson };
 type HomePageState = {};
@@ -38,21 +37,16 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
     }
 
     mkscene(): EmbeddedScene {
-        let plot = PowerPlot(this.props.config);
-        let stats = PowerStats(this.props.config);
+        let overview = Overview(this.props.config);
         return new EmbeddedScene({
-            $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
+            $timeRange: new SceneTimeRange({ from: "now-1h", to: "now" }),
             body: new SceneCSSGridLayout({
                 templateColumns: "minmax(1fr, 1fr)",
                 templateRows: "5fr 1fr",
                 children: [
                     new EmbeddedScene({
-                        $data: plot.query,
-                        body: plot.scene,
-                    }),
-                    new EmbeddedScene({
-                        $data: stats.query,
-                        body: stats.scene,
+                        $data: overview.query,
+                        body: overview.scene,
                     }),
                 ],
             }),
