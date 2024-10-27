@@ -27,7 +27,7 @@ const hsl_to_rgb = (h: number, s: number, l: number): string => {
 };
 
 export class Colors {
-    static red = (i: number): string => {
+    public static red = (i: number): string => {
         const colors = [
             hsl_to_rgb(0, 206, 110),
             hsl_to_rgb(340, 206, 110),
@@ -43,7 +43,7 @@ export class Colors {
         return colors[i % colors.length];
     };
 
-    static yellow = (i: number): string => {
+    public static yellow = (i: number): string => {
         const colors = [
             hsl_to_rgb(50, 230, 128),
             hsl_to_rgb(40, 230, 128),
@@ -59,7 +59,7 @@ export class Colors {
         return colors[i % colors.length];
     };
 
-    static green = (i: number): string => {
+    public static green = (i: number): string => {
         const colors = [
             hsl_to_rgb(115, 128, 90),
             hsl_to_rgb(105, 128, 90),
@@ -75,7 +75,7 @@ export class Colors {
         return colors[i % colors.length];
     };
 
-    static blue = (i: number): string => {
+    public static blue = (i: number): string => {
         const colors = [
             hsl_to_rgb(220, 186, 110),
             hsl_to_rgb(210, 186, 110),
@@ -91,7 +91,7 @@ export class Colors {
         return colors[i % colors.length];
     };
 
-    static purple = (i: number): string => {
+    public static purple = (i: number): string => {
         const colors = [
             hsl_to_rgb(280, 130, 120),
             hsl_to_rgb(270, 130, 120),
