@@ -13,11 +13,13 @@ import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
 import { Generator } from "../queries/Generator";
+import { Heatpump } from "../queries/Heatpump";
 import { Solar } from "../queries/Solar";
 
 export type DrilldownConfig = {
     solar: DataLink[];
     generator: DataLink[];
+    heatpump: DataLink[];
 };
 
 const defaultValueTransformation =
@@ -76,6 +78,14 @@ const mkscene = (
                 })
                 .overrideDisplayName(`Generator Power`)
                 .overrideLinks(dds.generator);
+            override
+                .matchFieldsByQuery("Heatpump")
+                .overrideColor({
+                    fixedColor: Colors.purple(0),
+                    mode: "fixed",
+                })
+                .overrideDisplayName(`Heatpump Thermal-Power`)
+                .overrideLinks(dds.heatpump);
         })
         .build();
 };
@@ -91,6 +101,11 @@ const mkqueries = (config: BackendConfig): any => {
     queries.push({
         refId: "Generator",
         rawSql: Generator.query_power_sum(config.generators).sql(),
+        format: "table",
+    });
+    queries.push({
+        refId: "Heatpump",
+        rawSql: Heatpump.query_heat_sum(config.heatpumps).sql(),
         format: "table",
     });
 

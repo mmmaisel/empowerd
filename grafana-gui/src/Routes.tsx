@@ -8,6 +8,7 @@ import pluginJson from "./plugin.json";
 export enum ROUTES {
     Home = "",
     Power = "power",
+    Heating = "heating",
 }
 
 const PLUGIN_BASE_URL = `/a/${pluginJson.id}`;

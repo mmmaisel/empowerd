@@ -18,6 +18,7 @@ import { ConfigJson } from "./AppConfig";
 import { ROUTES, prefixRoute } from "./Routes";
 import { Overview } from "./panels/Overview";
 import { PowerScene } from "./Power";
+import { HeatingScene } from "./Heating";
 
 type HomePageProps = {
     config: ConfigJson;
@@ -42,6 +43,10 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                             routePath: prefixRoute(ROUTES.Power),
                             getPage: this.mkpower.bind(this),
                         },
+                        {
+                            routePath: prefixRoute(ROUTES.Heating),
+                            getPage: this.mkheating.bind(this),
+                        },
                     ],
                 }),
             ],
@@ -60,6 +65,12 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                 {
                     title: "Power",
                     url: `\${__url.path}/${ROUTES.Power}`,
+                },
+            ],
+            heatpump: [
+                {
+                    title: "Heating",
+                    url: `\${__url.path}/${ROUTES.Heating}`,
                 },
             ],
         });
@@ -97,6 +108,17 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
             getParentPage: () => parent,
             getScene: (_routeMatch: SceneRouteMatch<{}>) =>
                 PowerScene(props.config, props.backCb),
+        });
+    }
+
+    mkheating(_routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
+        let props = this.props;
+        return new SceneAppPage({
+            url: prefixRoute(ROUTES.Heating),
+            title: `Heating`,
+            getParentPage: () => parent,
+            getScene: (_routeMatch: SceneRouteMatch<{}>) =>
+                HeatingScene(props.config, props.backCb),
         });
     }
 

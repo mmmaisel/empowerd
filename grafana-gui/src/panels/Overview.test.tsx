@@ -6,6 +6,7 @@ test("Query for single sources", () => {
     const queries = privateFunctions.mkqueries({
         solars: [1],
         generators: [2],
+        heatpumps: [3],
     });
 
     // prettier-ignore
@@ -20,14 +21,23 @@ test("Query for single sources", () => {
             "WHERE series_id = 2 AND $__timeFilter(time) " +
             "ORDER BY time";
 
+    // prettier-ignore
+    const expected_sql2 =
+        "SELECT time, power_w * cop_pct / 100.0 AS \"heatpump.heat_w\" " +
+            "FROM heatpumps " +
+            "WHERE series_id = 3 AND $__timeFilter(time) " +
+            "ORDER BY time";
+
     expect(queries[0].rawSql).toBe(expected_sql0);
     expect(queries[1].rawSql).toBe(expected_sql1);
+    expect(queries[2].rawSql).toBe(expected_sql2);
 });
 
 test("Query for dual", () => {
     const queries = privateFunctions.mkqueries({
         solars: [1, 2],
         generators: [3, 4],
+        heatpumps: [5, 6],
     });
 
     // prettier-ignore
@@ -68,6 +78,26 @@ test("Query for dual", () => {
             "OFFSET 0" +
         ") AS proxy WHERE time IS NOT NULL ORDER BY time";
 
+    // prettier-ignore
+    const expected_sql2 =
+        "WITH heatpump5 AS (" +
+            "SELECT time, power_w * cop_pct / 100.0 AS heat_w FROM heatpumps " +
+            "WHERE series_id = 5 AND $__timeFilter(time)" +
+        "), heatpump6 AS (" +
+            "SELECT time, power_w * cop_pct / 100.0 AS heat_w FROM heatpumps " +
+            "WHERE series_id = 6 AND $__timeFilter(time)" +
+        ") " +
+        "SELECT time, \"heatpump.heat_w\" " +
+        "FROM (SELECT " +
+            "heatpump5.time AS time, " +
+            "COALESCE(heatpump5.heat_w, 0)+COALESCE(heatpump6.heat_w, 0) " +
+                "AS \"heatpump.heat_w\" " +
+            "FROM heatpump5 " +
+            "FULL OUTER JOIN heatpump6 ON heatpump5.time = heatpump6.time " +
+            "OFFSET 0" +
+        ") AS proxy WHERE time IS NOT NULL ORDER BY time";
+
     expect(queries[0].rawSql).toBe(expected_sql0);
     expect(queries[1].rawSql).toBe(expected_sql1);
+    expect(queries[2].rawSql).toBe(expected_sql2);
 });
