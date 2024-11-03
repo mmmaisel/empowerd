@@ -5,7 +5,7 @@ import {
     SceneObjectState,
     SceneQueryRunner,
 } from "@grafana/scenes";
-import { DataFrame } from "@grafana/data";
+import { DataFrame, DataLink } from "@grafana/data";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 
@@ -14,6 +14,11 @@ import { Panel } from "./Common";
 import { Colors } from "./Colors";
 import { Generator } from "../queries/Generator";
 import { Solar } from "../queries/Solar";
+
+export type DrilldownConfig = {
+    solar: DataLink[];
+    generator: DataLink[];
+};
 
 const defaultValueTransformation =
     () =>
@@ -44,7 +49,10 @@ const defaultValueTransformation =
         );
     };
 
-const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
+const mkscene = (
+    config: BackendConfig,
+    dds: DrilldownConfig
+): SceneObject<SceneObjectState> => {
     return PanelBuilders.stat()
         .setUnit("watt")
         .setNoValue("No Data")
@@ -59,20 +67,15 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Solar Power`)
-                // TODO: parametrize
-                .overrideLinks([
-                    {
-                        title: "Drill down",
-                        url: "${__url.path}/power",
-                    },
-                ]);
+                .overrideLinks(dds.solar);
             override
                 .matchFieldsByQuery("Generator")
                 .overrideColor({
                     fixedColor: Colors.red(0),
                     mode: "fixed",
                 })
-                .overrideDisplayName(`Generator Power`);
+                .overrideDisplayName(`Generator Power`)
+                .overrideLinks(dds.generator);
         })
         .build();
 };
@@ -95,7 +98,7 @@ const mkqueries = (config: BackendConfig): any => {
 };
 
 // TODO: dedup
-export const Overview = (config: ConfigJson): Panel => {
+export const Overview = (config: ConfigJson, links: DrilldownConfig): Panel => {
     const queryRunner = new SceneQueryRunner({
         datasource: {
             uid: config.datasource?.uid || "",
@@ -109,7 +112,7 @@ export const Overview = (config: ConfigJson): Panel => {
 
     return {
         query: transformedData,
-        scene: mkscene(config.backend || BackendConfigDefault),
+        scene: mkscene(config.backend || BackendConfigDefault, links),
     };
 };
 

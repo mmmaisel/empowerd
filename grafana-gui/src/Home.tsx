@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from "react";
 import { config } from "@grafana/runtime";
-import { Alert } from "@grafana/ui";
+import { Alert, IconName } from "@grafana/ui";
 import {
     SceneApp,
     SceneAppPage,
@@ -8,15 +8,21 @@ import {
     SceneControlsSpacer,
     SceneCSSGridLayout,
     SceneRefreshPicker,
+    SceneRouteMatch,
     SceneTimePicker,
     SceneTimeRange,
+    SceneToolbarButton,
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
 import { ROUTES, prefixRoute } from "./Routes";
 import { Overview } from "./panels/Overview";
+import { PowerScene } from "./Power";
 
-type HomePageProps = { config: ConfigJson };
+type HomePageProps = {
+    config: ConfigJson;
+    backCb: () => void;
+};
 type HomePageState = {};
 
 export class HomePage extends Component<HomePageProps, HomePageState> {
@@ -28,16 +34,35 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         this.scene = new SceneApp({
             pages: [
                 new SceneAppPage({
-                    title: "Empowerd Home",
+                    title: "Empowerd",
                     url: prefixRoute(ROUTES.Home),
                     getScene: this.mkscene.bind(this),
+                    drilldowns: [
+                        {
+                            routePath: prefixRoute(ROUTES.Power),
+                            getPage: this.mkpower.bind(this),
+                        },
+                    ],
                 }),
             ],
         });
     }
 
     mkscene(): EmbeddedScene {
-        let overview = Overview(this.props.config);
+        let overview = Overview(this.props.config, {
+            solar: [
+                {
+                    title: "Power",
+                    url: `\${__url.path}/${ROUTES.Power}`,
+                },
+            ],
+            generator: [
+                {
+                    title: "Power",
+                    url: `\${__url.path}/${ROUTES.Power}`,
+                },
+            ],
+        });
         return new EmbeddedScene({
             $timeRange: new SceneTimeRange({ from: "now-1h", to: "now" }),
             body: new SceneCSSGridLayout({
@@ -51,10 +76,27 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                 ],
             }),
             controls: [
+                new SceneToolbarButton({
+                    icon: "arrow-left" as IconName,
+                    onClick: () => {
+                        this.props.backCb();
+                    },
+                }),
                 new SceneControlsSpacer(),
                 new SceneTimePicker({ isOnCanvas: true }),
                 new SceneRefreshPicker({ isOnCanvas: true, refresh: "5m" }),
             ],
+        });
+    }
+
+    mkpower(_routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
+        let props = this.props;
+        return new SceneAppPage({
+            url: prefixRoute(ROUTES.Power),
+            title: `Power`,
+            getParentPage: () => parent,
+            getScene: (_routeMatch: SceneRouteMatch<{}>) =>
+                PowerScene(props.config, props.backCb),
         });
     }
 

@@ -18,7 +18,7 @@
     {
       "type": "page",
       "name": "Home",
-      "path": "/a/%PLUGIN_ID%/home",
+      "path": "/a/%PLUGIN_ID%",
       "role": "Viewer",
       "addToNav": true,
       "defaultNav": true
