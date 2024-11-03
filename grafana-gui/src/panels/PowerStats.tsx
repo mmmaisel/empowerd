@@ -8,6 +8,7 @@ import {
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
+import { Solar } from "../queries/Solar";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.stat()
@@ -24,56 +25,10 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
 };
 
 const mkqueries = (config: BackendConfig): any => {
-    let first_table = "";
-    let sources: string[] = [];
-    let solar_froms: string[] = [];
-    let deltas: string[] = [];
-    let joins: string[] = [];
-
-    // TODO: handle empty config correctly
-
-    for (let solar of config.solars) {
-        if (first_table === "") {
-            first_table = `solar${solar}`;
-        } else {
-            joins.push(`solar${solar}`);
-        }
-
-        sources.push(
-            `solar${solar} AS (` +
-                `SELECT time, energy_wh FROM simple_meters ` +
-                `WHERE series_id = ${solar} AND $__timeFilter(time)` +
-                `)`
-        );
-        solar_froms.push(`solar${solar}.energy_wh`);
-    }
-
-    if (config.solars.length !== 0) {
-        if (solar_froms.length === 1) {
-            deltas.push(`MAX(${solar_froms[0]})-MIN(${solar_froms[0]})`);
-        } else {
-            deltas = solar_froms.map(
-                (x: string) => `COALESCE(MAX(${x}), 0)-COALESCE(MIN(${x}), 0)`
-            );
-        }
-    }
-
-    let join_sql = joins.map(
-        (x) => `FULL OUTER JOIN ${x} ON ${first_table}.time = ${x}.time`
-    );
-
-    const sql =
-        // prettier-ignore
-        `WITH ${sources.join(", ")} ` +
-        `SELECT ` +
-            `${deltas.join("+")} ` +
-            `FROM ${first_table} ` +
-            `${join_sql.join(" ")}`;
-
     return [
         {
             refId: "Solar",
-            rawSql: sql,
+            rawSql: Solar.query_energy_sum(config.solars).sql(),
             format: "table",
         },
     ];

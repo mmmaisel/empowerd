@@ -8,6 +8,10 @@ import {
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
+import { Fragment, Field, Timeseries } from "../queries/Query";
+import { ProxyQuery, TimeProxy } from "../queries/Proxy";
+import { Generator, GeneratorSeries } from "../queries/Generator";
+import { Heatpump, HeatpumpSeries } from "../queries/Heatpump";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.timeseries()
@@ -44,116 +48,79 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
 };
 
 const mkqueries = (config: BackendConfig): any => {
-    let first_table = "";
-    let sources: string[] = [];
-    let selects: string[] = [];
-    let hp_rows: string[] = [];
-    let gen_rows: string[] = [];
-    let rows: string[] = [];
-    let joins: string[] = [];
-
-    // TODO: handle empty config correctly
-
-    for (let id of config.heatpumps) {
-        if (first_table === "") {
-            first_table = `heatpump${id}`;
-        } else {
-            joins.push(`heatpump${id}`);
-        }
-
-        sources.push(
-            `heatpump${id} AS (` +
-                `SELECT time, power_w*cop_pct/100.0 AS heat_w, power_w, ` +
-                `cop_pct / 100.0 AS cop ` +
-                `FROM heatpumps ` +
-                `WHERE series_id = ${id} AND $__timeFilter(time)` +
-                `)`
+    let query = null;
+    if (config.generators.length === 0) {
+        query = Heatpump.query_all(config.heatpumps);
+    } else if (config.heatpumps.length === 0) {
+        query = Generator.query_heat(config.generators);
+    } else {
+        const heatpumps = config.heatpumps.map((id) =>
+            new HeatpumpSeries(id)
+                .time()
+                .heat(null)
+                .power(null)
+                .cop(null)
+                .time_filter()
         );
-        hp_rows.push(`heatpump${id}`);
-    }
-
-    for (let id of config.generators) {
-        if (first_table === "") {
-            first_table = `generator${id}`;
-        } else {
-            joins.push(`generator${id}`);
-        }
-
-        sources.push(
-            `generator${id} AS (` +
-                `SELECT time, power_w * (1-0.138)/0.138 * 1.11 AS heat_w ` +
-                `FROM generators ` +
-                `WHERE series_id = ${id} AND $__timeFilter(time)` +
-                `)`
+        const generators = config.generators.map((id) =>
+            new GeneratorSeries(id).time().heat(null).time_filter()
         );
-        gen_rows.push(`generator${id}`);
-    }
 
-    if (config.heatpumps.length !== 0) {
-        selects.push('"heatpump.power_w"');
-        selects.push('"heatpump.heat_w"');
-        selects.push('"heatpump.cop"');
-        if (config.heatpumps.length === 1) {
-            rows.push(`${hp_rows[0]}.power_w AS \"heatpump.power_w\"`);
-            rows.push(`${hp_rows[0]}.heat_w AS \"heatpump.heat_w\"`);
-            rows.push(`${hp_rows[0]}.cop AS \"heatpump.cop\"`);
-        } else {
-            rows.push(
-                `${hp_rows
-                    .map((x: string) => `COALESCE(${x}.power_w, 0)`)
-                    .join("+")} AS \"heatpump.power_w\"`
-            );
-            rows.push(
-                `${hp_rows
-                    .map((x: string) => `COALESCE(${x}.heat_w, 0)`)
-                    .join("+")} AS \"heatpump.heat_w\"`
-            );
-            rows.push(
-                `(${hp_rows
-                    .map((x: string) => `COALESCE(${x}.cop, 0)`)
-                    .join("+")} ) / ` +
-                    `NULLIF(${hp_rows
-                        .map(
-                            (x: string) =>
-                                `CASE WHEN ${x}.cop > 1 THEN 1 ELSE 0 END`
-                        )
-                        .join("+")},0) AS \"heatpump.cop\"`
-            );
+        let first = "";
+        let heatpump_ids = [...config.heatpumps];
+        let generator_ids = [...config.generators];
+        if (config.heatpumps.length !== 0) {
+            first = `heatpump${config.heatpumps[0]}`;
+            heatpump_ids.shift();
+        } else if (config.generators.length !== 0) {
+            first = `generator${config.generators[0]}`;
+            generator_ids.shift();
         }
-    }
-    if (config.generators.length !== 0) {
-        selects.push('"generator.heat_w"');
-        if (config.generators.length === 1) {
-            rows.push(`${gen_rows[0]}.heat_w AS \"generator.heat_w\"`);
-        } else {
-            rows.push(
-                `${gen_rows
-                    .map((x: string) => `COALESCE(${x}.heat_w, 0)`)
-                    .join("+")} AS \"generator.heat_w\"`
-            );
-        }
-    }
 
-    let join_sql = joins.map(
-        (x) => `FULL OUTER JOIN ${x} ON ${first_table}.time = ${x}.time`
-    );
+        const fields = [
+            new TimeProxy(first),
+            HeatpumpSeries.ps_heat(config.heatpumps).with_alias(
+                `\"heatpump.heat_w\"`
+            ),
+            HeatpumpSeries.ps_power(config.heatpumps).with_alias(
+                `\"heatpump.power_w\"`
+            ),
+            HeatpumpSeries.pa_cop(config.heatpumps).with_alias(
+                `\"heatpump.cop\"`
+            ),
+            GeneratorSeries.ps_heat(config.generators).with_alias(
+                `\"generator.heat_w\"`
+            ),
+        ];
 
-    const sql =
-        // prettier-ignore
-        `WITH ${sources.join(", ")} ` +
-        `SELECT time, ${selects.join(", ")} ` +
-        `FROM ( SELECT ` +
-            `${first_table}.time AS time, ` +
-            `${rows.join(", ")} ` +
-            `FROM ${first_table} ` +
-            `${join_sql.join(" ")} ` +
-            `OFFSET 0` +
-        `) AS x WHERE time IS NOT NULL ORDER BY time`;
+        query = new Timeseries()
+            .subqueries([...heatpumps, ...generators])
+            .fields([
+                new Field(`time`, null),
+                new Field(`\"heatpump.heat_w\"`, null),
+                new Field(`\"heatpump.power_w\"`, null),
+                new Field(`\"heatpump.cop\"`, null),
+                new Field(`\"generator.heat_w\"`, null),
+            ])
+            .from(
+                new ProxyQuery()
+                    .fields(fields)
+                    .from(new Fragment(first))
+                    .joins(
+                        [
+                            HeatpumpSeries.time_join(first, heatpump_ids),
+                            GeneratorSeries.time_join(first, generator_ids),
+                        ].flat()
+                    )
+            )
+            .time_not_null()
+            .ordered();
+    }
 
     return [
         {
             refId: "A",
-            rawSql: sql,
+            rawSql: query.sql(),
             format: "table",
         },
     ];

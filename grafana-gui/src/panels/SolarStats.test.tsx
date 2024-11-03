@@ -7,8 +7,8 @@ test("Query for dual solar source", () => {
 
     // prettier-ignore
     const expected_sql = (i: number): string => {
-        return `SELECT MAX(energy_wh) - MIN(energy_wh) ` +
-        `AS \"solar${i}.energy\"` +
+        return `SELECT MAX(energy_wh)-MIN(energy_wh) ` +
+        `AS \"solar${i}.energy_wh\" ` +
         `FROM simple_meters ` +
         `WHERE series_id = ${i} AND $__timeFilter(time)`;
     };

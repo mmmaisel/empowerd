@@ -12,6 +12,7 @@ import { map } from "rxjs/operators";
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
+import { Solar } from "../queries/Solar";
 
 const month_names = [
     "January",
@@ -93,71 +94,10 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
 };
 
 const mkqueries = (config: BackendConfig): any => {
-    let first_table = "";
-    let sources: string[] = [];
-    let solar_rows: string[] = [];
-    let sum = "";
-    let joins: string[] = [];
-
-    // TODO: handle empty config correctly
-
-    for (let solar of config.solars) {
-        if (first_table === "") {
-            first_table = `solar${solar}`;
-        } else {
-            joins.push(`solar${solar}`);
-        }
-
-        sources.push(
-            // prettier-ignore
-            `solar${solar} AS (` +
-                `SELECT time, energy_wh FROM simple_meters ` +
-                `WHERE series_id = ${solar}` +
-            `)`
-        );
-        solar_rows.push(`solar${solar}.energy_wh`);
-    }
-
-    if (config.solars.length !== 0) {
-        sum = solar_rows.map((x: string) => `COALESCE(${x}, 0)`).join("+");
-    }
-
-    let join_sql = joins.map(
-        (x) => `FULL OUTER JOIN ${x} ON ${first_table}.time = ${x}.time`
-    );
-
-    const sql =
-        // prettier-ignore
-        "WITH samples AS (" +
-            "WITH months AS (" +
-                "SELECT GENERATE_SERIES(" +
-                    "DATE_TRUNC('MONTH', TIMESTAMP $__timeFrom())," +
-                    "DATE_TRUNC('MONTH', TIMESTAMP $__timeTo())," +
-                    "INTERVAL '1 MONTH'" +
-                ") AS month" +
-            ") " +
-            "SELECT " +
-            "month + INTERVAL '12 HOUR' AS start," +
-            "month + INTERVAL '1 MONTH' + INTERVAL '12 HOUR' AS next " +
-            "FROM months" +
-        "), solar AS (" +
-            `WITH ${sources.join(", ")}` +
-            "SELECT " +
-            `${first_table}.time AS time, ${sum} AS energy_wh ` +
-            `FROM ${first_table} ` +
-            `${join_sql.join(" ")}` +
-        ") " +
-        "SELECT " +
-        "samples.start AS month," +
-        "solar_next.energy_wh - solar_start.energy_wh AS energy_wh " +
-        "FROM samples " +
-        "LEFT OUTER JOIN solar AS solar_next ON solar_next.time = samples.next " +
-        "LEFT OUTER JOIN solar AS solar_start ON solar_start.time = samples.start";
-
     return [
         {
             refId: "Solar",
-            rawSql: sql,
+            rawSql: Solar.query_energy_mon(config.solars).sql(),
             format: "table",
         },
     ];

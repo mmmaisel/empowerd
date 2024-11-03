@@ -1,95 +1,220 @@
-import { QueryBuilder, QueryFragment } from "./Builder";
+import { Field, Fragment, Join, Query, Timeseries } from "./Query";
+import { AggregateProxy, TimeProxy, TimeseriesProxy } from "./Proxy";
+import { Samples } from "./Samples";
 
-type Column = {
-    id: number;
-    name: string;
-};
+export class SolarSeries extends Timeseries {
+    static basename = "solar";
+    static time = new Field("time", null);
+    static power = new Field("power_w", null);
+    static energy = new Field("energy_wh", null);
+    static d_energy = new Field("MAX(energy_wh)-MIN(energy_wh)", "d_energy_wh");
 
-export class SolarQuery {
-    _solars: number[];
-    _sum: boolean;
-
-    constructor() {
-        this._solars = [];
-        this._sum = false;
-    }
-
-    solars = (solars: number[]): SolarQuery => {
-        this._solars = solars;
-        return this;
-    };
-
-    sum = (): SolarQuery => {
-        this._sum = true;
-        return this;
-    };
-
-    query(): QueryFragment {
-        let first_table = "";
-        let sources: string[] = [];
-        let selects: string[] = [];
-        let solar_columns: Column[] = [];
-        let columns: string[] = [];
-        let solar_joins: string[] = [];
-
-        for (let solar of this._solars) {
-            if (first_table === "") {
-                first_table = `solar${solar}`;
-            } else {
-                solar_joins.push(`solar${solar}`);
-            }
-
-            sources.push(
-                `solar${solar} AS (` +
-                    `SELECT time, power_w FROM simple_meters ` +
-                    `WHERE series_id = ${solar} AND $__timeFilter(time)` +
-                    `)`
+    static ps_energy(ids: number[]): Field {
+        if (ids.length === 1) {
+            return new Field(`solar${ids[0]}.energy_wh`, `s_energy_wh`);
+        } else {
+            return new Field(
+                ids.map((id) => `COALESCE(solar${id}.energy_wh, 0)`).join("+"),
+                "s_energy_wh"
             );
-            solar_columns.push({ id: solar, name: `solar${solar}.power_w` });
         }
-
-        if (this._solars.length !== 0) {
-            if (solar_columns.length === 1) {
-                if (this._sum) {
-                    selects.push('"solar.power"');
-                    columns.push(`${solar_columns[0].name} AS \"solar.power\"`);
-                } else {
-                    selects.push(`\"solar${solar_columns[0].id}.power\"`);
-                    columns.push(
-                        `${solar_columns[0].name} AS \"solar${solar_columns[0].id}.power\"`
-                    );
-                }
-            } else {
-                if (this._sum) {
-                    selects.push('"solar.power"');
-                    columns.push(
-                        `${solar_columns
-                            .map((x: Column) => `COALESCE(${x.name}, 0)`)
-                            .join("+")} ` + `AS \"solar.power\"`
-                    );
-                } else {
-                    for (let col of solar_columns) {
-                        selects.push(`\"solar${col.id}.power\"`);
-                        columns.push(`${col.name} AS \"solar${col.id}.power\"`);
-                    }
-                }
-            }
-        }
-
-        let joins = solar_joins.map(
-            (x) => `FULL OUTER JOIN ${x} ON ${first_table}.time = ${x}.time`
-        );
-
-        return {
-            sources,
-            selects,
-            table: first_table,
-            columns,
-            joins,
-        };
     }
 
-    timeseries = (): string => {
-        return QueryBuilder.timeseries([this.query()]);
-    };
+    static ps_power(ids: number[]): Field {
+        if (ids.length === 1) {
+            return new Field(`solar${ids[0]}.power_w`, `s_power_w`);
+        } else {
+            return new Field(
+                ids.map((id) => `COALESCE(solar${id}.power_w, 0)`).join("+"),
+                "s_power_w"
+            );
+        }
+    }
+
+    static pds_energy(ids: number[]): Field {
+        if (ids.length === 1) {
+            return new Field(
+                `MAX(solar${ids[0]}.energy_wh)-MIN(solar${ids[0]}.energy_wh`,
+                "ds_energy_wh"
+            );
+        } else {
+            return new Field(
+                ids
+                    .map(
+                        (id) =>
+                            `COALESCE(MAX(solar${id}.energy_wh), 0)-` +
+                            `COALESCE(MIN(solar${id}.energy_wh), 0)`
+                    )
+                    .join("+"),
+                "ds_energy_wh"
+            );
+        }
+    }
+
+    constructor(id: number) {
+        super();
+        this.name_ = `solar${id}`;
+        this.from_ = new Fragment("simple_meters");
+        this.wheres_ = [`series_id = ${id}`];
+    }
+
+    public time(): this {
+        this.fields_.push(SolarSeries.time);
+        return this;
+    }
+
+    public power(alias: string | null): this {
+        this.fields_.push(SolarSeries.power.with_alias(alias));
+        return this;
+    }
+
+    public energy(alias: string | null): this {
+        this.fields_.push(SolarSeries.energy.with_alias(alias));
+        return this;
+    }
+
+    public d_energy(alias: string | null): this {
+        this.fields_.push(SolarSeries.d_energy.with_alias(alias));
+        return this;
+    }
+}
+
+export class SolarProxy extends TimeseriesProxy {
+    constructor(ids: number[], fields: Field[]) {
+        super(SolarSeries, ids, fields);
+    }
+}
+
+export class Solar {
+    static query_power(ids: number[]): Query {
+        if (ids.length === 1) {
+            let id = ids[0];
+            return new SolarSeries(id)
+                .time()
+                .power(`"solar${id}.power_w"`)
+                .time_filter()
+                .ordered();
+        } else {
+            return new Timeseries()
+                .subqueries(
+                    ids.map((id) =>
+                        new SolarSeries(id).time().power(null).time_filter()
+                    )
+                )
+                .fields([
+                    SolarSeries.time,
+                    ...ids.map(
+                        (id) => new Field(`\"solar${id}.power_w\"`, null)
+                    ),
+                ])
+                .from(new SolarProxy(ids, [SolarSeries.power]))
+                .time_not_null()
+                .ordered();
+        }
+    }
+
+    static query_power_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            let id = ids[0];
+            return new SolarSeries(id)
+                .time()
+                .power(`"solar.power_w"`)
+                .time_filter()
+                .ordered();
+        } else {
+            return new Timeseries()
+                .subqueries(
+                    ids.map((id) =>
+                        new SolarSeries(id).time().power(null).time_filter()
+                    )
+                )
+                .fields([
+                    SolarSeries.time,
+                    new Field(`\"solar.power_w\"`, null),
+                ])
+                .from(
+                    new AggregateProxy(SolarSeries, ids, [
+                        SolarSeries.ps_power(ids).with_alias(
+                            `\"solar.power_w\"`
+                        ),
+                    ])
+                )
+                .time_not_null()
+                .ordered();
+        }
+    }
+
+    static query_energy(id: number): Query {
+        return new SolarSeries(id)
+            .d_energy(`\"solar${id}.energy_wh\"`)
+            .time_filter();
+    }
+
+    static query_energy_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            return new SolarSeries(ids[0])
+                .d_energy(`\"solar.energy_wh\"`)
+                .time_filter();
+        } else {
+            return new Query()
+                .subqueries(
+                    ids.map((id) =>
+                        new SolarSeries(id).time().energy(null).time_filter()
+                    )
+                )
+                .fields([
+                    SolarSeries.pds_energy(ids).with_alias(
+                        `\"solar.energy_wh\"`
+                    ),
+                ])
+                .from(new Fragment(`solar${ids[0]}`))
+                .joins(SolarSeries.time_join(`solar${ids[0]}`, ids.slice(1)));
+        }
+    }
+
+    static query_energy_mon(ids: number[]): Query {
+        let solar_query = null;
+        if (ids.length === 1) {
+            let id = ids[0];
+            solar_query = new SolarSeries(id).time().energy(null);
+        } else {
+            solar_query = new Query()
+                .subqueries(
+                    ids.map((id) => new SolarSeries(id).time().energy(null))
+                )
+                .fields([
+                    new TimeProxy(`solar${ids[0]}`),
+                    SolarSeries.ps_energy(ids).with_alias("energy_wh"),
+                ])
+                .joins(SolarSeries.time_join(`solar${ids[0]}`, ids.slice(1)))
+                .from(new Fragment(`solar${ids[0]}`));
+        }
+
+        return (
+            new Query()
+                .subqueries([new Samples(), solar_query.name("solar")])
+                .fields([
+                    new Field("samples.start", "month"),
+                    // TODO: extract this
+                    new Field(
+                        "solar_next.energy_wh - solar_start.energy_wh",
+                        "energy_wh"
+                    ),
+                ])
+                .from(new Fragment("samples"))
+                // TODO: extract this
+                .joins([
+                    new Join(
+                        "LEFT OUTER",
+                        "solar AS solar_next",
+                        "solar_next.time = samples.next"
+                    ),
+                    new Join(
+                        "LEFT OUTER",
+                        "solar AS solar_start",
+                        "solar_start.time = samples.start"
+                    ),
+                ])
+        );
+    }
 }

@@ -12,7 +12,8 @@ import { map } from "rxjs/operators";
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
-import { SolarQuery } from "../queries/Solar";
+import { Generator } from "../queries/Generator";
+import { Solar } from "../queries/Solar";
 
 const defaultValueTransformation =
     () =>
@@ -66,12 +67,12 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                     },
                 ]);
             override
-                .matchFieldsByQuery("Foobar")
+                .matchFieldsByQuery("Generator")
                 .overrideColor({
                     fixedColor: Colors.red(0),
                     mode: "fixed",
                 })
-                .overrideDisplayName(`Dummy`);
+                .overrideDisplayName(`Generator Power`);
         })
         .build();
 };
@@ -81,12 +82,12 @@ const mkqueries = (config: BackendConfig): any => {
 
     queries.push({
         refId: "Solar",
-        rawSql: new SolarQuery().solars(config.solars).sum().timeseries(),
+        rawSql: Solar.query_power_sum(config.solars).sql(),
         format: "table",
     });
     queries.push({
-        refId: "Foobar",
-        rawSql: "SELECT power_w FROM generators WHERE series_id = 2 AND $__timeFilter(time)",
+        refId: "Generator",
+        rawSql: Generator.query_power_sum(config.generators).sql(),
         format: "table",
     });
 

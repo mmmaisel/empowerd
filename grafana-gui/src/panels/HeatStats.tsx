@@ -8,6 +8,8 @@ import {
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
+import { GeneratorSeries } from "../queries/Generator";
+import { HeatpumpSeries } from "../queries/Heatpump";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.stat()
@@ -18,7 +20,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
             let i = 0;
             for (let id of config.heatpumps) {
                 override
-                    .matchFieldsWithName(`heatpump${id}.heat`)
+                    .matchFieldsWithName(`heatpump${id}.heat_wh`)
                     .overrideColor({
                         fixedColor: Colors.green(i),
                         mode: "fixed",
@@ -38,7 +40,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
             i = 0;
             for (let id of config.generators) {
                 override
-                    .matchFieldsWithName(`generator${id}.heat`)
+                    .matchFieldsWithName(`generator${id}.heat_wh`)
                     .overrideColor({
                         fixedColor: Colors.red(i),
                         mode: "fixed",
@@ -56,19 +58,18 @@ const mkqueries = (config: BackendConfig): any => {
     for (let id of config.heatpumps) {
         queries.push({
             refId: `heatpump${id}.heat`,
-            rawSql:
-                `SELECT MAX(heat_wh)-MIN(heat_wh) AS \"heatpump${id}.heat\" ` +
-                `FROM heatpumps ` +
-                `WHERE series_id = ${id} AND $__timeFilter(time)`,
+            rawSql: new HeatpumpSeries(id)
+                .d_heat(`\"heatpump${id}.heat_wh\"`)
+                .time_filter()
+                .sql(),
             format: "table",
         });
         queries.push({
             refId: `heatpump${id}.cop`,
-            rawSql:
-                `SELECT AVG(cop_pct)/100.0 AS \"heatpump${id}.cop\" ` +
-                `FROM heatpumps ` +
-                `WHERE series_id = ${id} AND $__timeFilter(time) ` +
-                `AND cop_pct > 100`,
+            rawSql: new HeatpumpSeries(id)
+                .a_cop(`\"heatpump${id}.cop\"`)
+                .time_filter()
+                .sql(),
             format: "table",
         });
     }
@@ -76,15 +77,10 @@ const mkqueries = (config: BackendConfig): any => {
     for (let id of config.generators) {
         queries.push({
             refId: `generator${id}.heat`,
-            rawSql:
-                // power * (1-eta_el)/eta_el * f_Hs_Hi",
-                // d_runtime_s / 300 * 800 * (1-0.138)/0.138 * 1.11
-                // === d_runtime_s * 2.66667 * 6.93348
-                // === d_runtime_s * 18.48928
-                `SELECT (MAX(runtime_s)-MIN(runtime_s)) * 18.48928 ` +
-                `AS \"generator${id}.heat\" ` +
-                `FROM generators ` +
-                `WHERE series_id = ${id} AND $__timeFilter(time)`,
+            rawSql: new GeneratorSeries(id)
+                .d_heat(`\"generator${id}.heat_wh\"`)
+                .time_filter()
+                .sql(),
             format: "table",
         });
     }

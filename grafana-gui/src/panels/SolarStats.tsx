@@ -8,6 +8,7 @@ import {
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
+import { Solar } from "../queries/Solar";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.stat()
@@ -18,7 +19,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
             let i = 0;
             for (let solar of config.solars) {
                 override
-                    .matchFieldsWithName(`solar${solar}.energy`)
+                    .matchFieldsWithName(`solar${solar}.energy_wh`)
                     .overrideColor({
                         fixedColor: Colors.yellow(i),
                         mode: "fixed",
@@ -33,14 +34,10 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
 const mkqueries = (config: BackendConfig): any => {
     let queries: any = [];
 
-    for (let solar of config.solars) {
+    for (let id of config.solars) {
         queries.push({
-            refId: `solar${solar}`,
-            rawSql:
-                `SELECT MAX(energy_wh) - MIN(energy_wh) ` +
-                `AS \"solar${solar}.energy\"` +
-                `FROM simple_meters ` +
-                `WHERE series_id = ${solar} AND $__timeFilter(time)`,
+            refId: `solar${id}`,
+            rawSql: Solar.query_energy(id).sql(),
             format: "table",
         });
     }

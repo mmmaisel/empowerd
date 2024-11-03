@@ -10,21 +10,20 @@ test("Query for heatpump and generator source", () => {
 
     // prettier-ignore
     const hp_query =
-        "SELECT MAX(heat_wh)-MIN(heat_wh) AS \"heatpump1.heat\" " +
+        "SELECT MAX(heat_wh)-MIN(heat_wh) AS \"heatpump1.heat_wh\" " +
         "FROM heatpumps " +
         "WHERE series_id = 1 AND $__timeFilter(time)";
 
     // prettier-ignore
     const cop_query =
-        "SELECT AVG(cop_pct)/100.0 AS \"heatpump1.cop\" " +
+        "SELECT AVG(cop_pct) / 100.0 AS \"heatpump1.cop\" " +
         "FROM heatpumps " +
-        "WHERE series_id = 1 AND $__timeFilter(time) " +
-        "AND cop_pct > 100";
+        "WHERE series_id = 1 AND cop_pct > 100 AND $__timeFilter(time)";
 
     // prettier-ignore
     const gen_query =
         "SELECT (MAX(runtime_s)-MIN(runtime_s)) * 18.48928 " +
-        "AS \"generator2.heat\" " +
+        "AS \"generator2.heat_wh\" " +
         "FROM generators " +
         "WHERE series_id = 2 AND $__timeFilter(time)";
 

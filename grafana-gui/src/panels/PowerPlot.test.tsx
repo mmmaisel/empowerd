@@ -7,16 +7,9 @@ test("Query for single solar source", () => {
 
     // prettier-ignore
     const expected_sql =
-        "WITH solar1 AS (" +
-            "SELECT time, power_w FROM simple_meters " +
-            "WHERE series_id = 1 AND $__timeFilter(time)" +
-        ") " +
-        "SELECT time, \"solar.power\" " +
-        "FROM ( SELECT " +
-            "solar1.time AS time, solar1.power_w AS \"solar.power\" " +
-            "FROM solar1  " +
-            "OFFSET 0" +
-        ") AS x WHERE time IS NOT NULL ORDER BY time";
+        "SELECT time, power_w AS \"solar.power_w\" FROM simple_meters " +
+            "WHERE series_id = 1 AND $__timeFilter(time) " +
+            "ORDER BY time";
 
     expect(queries[0].rawSql).toBe(expected_sql);
 });
@@ -33,15 +26,15 @@ test("Query for dual solar source", () => {
             "SELECT time, power_w FROM simple_meters " +
             "WHERE series_id = 8 AND $__timeFilter(time)" +
         ") " +
-        "SELECT time, \"solar.power\" " +
-        "FROM ( SELECT " +
+        "SELECT time, \"solar.power_w\" " +
+        "FROM (SELECT " +
             "solar1.time AS time, " +
             "COALESCE(solar1.power_w, 0)+COALESCE(solar8.power_w, 0) " +
-                "AS \"solar.power\" " +
+                "AS \"solar.power_w\" " +
             "FROM solar1 " +
             "FULL OUTER JOIN solar8 ON solar1.time = solar8.time " +
             "OFFSET 0" +
-        ") AS x WHERE time IS NOT NULL ORDER BY time";
+        ") AS proxy WHERE time IS NOT NULL ORDER BY time";
 
     expect(queries[0].rawSql).toBe(expected_sql);
 });

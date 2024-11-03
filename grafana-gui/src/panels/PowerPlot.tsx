@@ -8,7 +8,7 @@ import {
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
-import { SolarQuery } from "../queries/Solar";
+import { Solar } from "../queries/Solar";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.timeseries()
@@ -22,7 +22,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
         .setOption("tooltip", { mode: "multi" as any, sort: "none" as any })
         .setOverrides((override: any) => {
             override
-                .matchFieldsWithName("solar.power")
+                .matchFieldsWithName("solar.power_w")
                 .overrideColor({ fixedColor: Colors.yellow(0), mode: "fixed" })
                 .overrideDisplayName("Solar");
         })
@@ -33,7 +33,7 @@ const mkqueries = (config: BackendConfig): any => {
     return [
         {
             refId: "A",
-            rawSql: new SolarQuery().solars(config.solars).sum().timeseries(),
+            rawSql: Solar.query_power_sum(config.solars).sql(),
             format: "table",
         },
     ];

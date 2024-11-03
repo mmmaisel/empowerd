@@ -8,6 +8,7 @@ import {
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
+import { Boiler } from "../queries/Boiler";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
     return PanelBuilders.timeseries()
@@ -33,7 +34,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                         fixedColor: Colors.purple(i),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Boiler ${i + 1} Middel`);
+                    .overrideDisplayName(`Boiler ${i + 1} Middle`);
                 override
                     .matchFieldsWithName(`boiler${id}.bot`)
                     .overrideColor({
@@ -48,61 +49,10 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
 };
 
 const mkqueries = (config: BackendConfig): any => {
-    let first_table = "";
-    let sources: string[] = [];
-    let selects: string[] = [];
-    let joins: string[] = [];
-
-    // TODO: handle empty config correctly
-
-    // T out
-    // prettier-ignore
-    "SELECT time, temp_out_degc_e1 / 10.0 AS \"weather.temperature_out\" " +
-    "FROM weathers " +
-    "WHERE series_id = 5 AND $__timeFilter(time) ORDER BY time"
-
-    for (let id of config.heatpumps) {
-        if (first_table === "") {
-            first_table = `boiler${id}`;
-        } else {
-            joins.push(`boiler${id}`);
-        }
-
-        sources.push(
-            `boiler${id} AS (` +
-                `SELECT time, ` +
-                `boiler_top_degc_e1 / 10.0 AS top, ` +
-                `boiler_mid_degc_e1 / 10.0 AS mid, ` +
-                `boiler_bot_degc_e1 / 10.0 AS bot ` +
-                `FROM heatpumps ` +
-                `WHERE series_id = ${id} AND $__timeFilter(time)` +
-                `)`
-        );
-        selects.push(`boiler${id}.top`);
-        selects.push(`boiler${id}.mid`);
-        selects.push(`boiler${id}.bot`);
-    }
-
-    let join_sql = joins.map(
-        (x) => `FULL OUTER JOIN ${x} ON ${first_table}.time = ${x}.time`
-    );
-
-    const sql =
-        // prettier-ignore
-        `WITH ${sources.join(", ")} ` +
-        `SELECT time, ${selects.map(x => `"${x}"`).join(", ")} ` +
-        `FROM ( SELECT ` +
-            `${first_table}.time AS time, ` +
-            `${selects.map(x => `${x} AS "${x}"`).join(", ")} ` +
-            `FROM ${first_table} ` +
-            `${join_sql.join(" ")} ` +
-            `OFFSET 0` +
-        `) AS x WHERE time IS NOT NULL ORDER BY time`;
-
     return [
         {
             refId: "A",
-            rawSql: sql,
+            rawSql: Boiler.query_temps(config.heatpumps).sql(),
             format: "table",
         },
     ];
