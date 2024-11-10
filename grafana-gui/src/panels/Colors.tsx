@@ -106,4 +106,20 @@ export class Colors {
 
         return colors[i % colors.length];
     };
+
+    public static grey = (i: number): string => {
+        const colors = [
+            hsl_to_rgb(220, 255, 220),
+            hsl_to_rgb(210, 255, 220),
+            hsl_to_rgb(230, 255, 220),
+            hsl_to_rgb(220, 255, 250),
+            hsl_to_rgb(210, 255, 250),
+            hsl_to_rgb(230, 255, 250),
+            hsl_to_rgb(220, 255, 190),
+            hsl_to_rgb(210, 255, 190),
+            hsl_to_rgb(230, 255, 190),
+        ];
+
+        return colors[i % colors.length];
+    };
 }

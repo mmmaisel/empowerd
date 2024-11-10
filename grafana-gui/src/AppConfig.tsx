@@ -12,15 +12,19 @@ import { css } from "@emotion/css";
 import { lastValueFrom } from "rxjs";
 
 export type BackendConfig = {
-    solars: number[];
+    batteries: number[];
     generators: number[];
     heatpumps: number[];
+    meters: number[];
+    solars: number[];
 };
 
 export const BackendConfigDefault = {
-    solars: [],
+    batteries: [],
     generators: [],
     heatpumps: [],
+    meters: [],
+    solars: [],
 };
 
 export type ConfigJson = {

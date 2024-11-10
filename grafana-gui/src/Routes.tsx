@@ -43,9 +43,11 @@ export class Routes extends Component<RoutesProps, RoutesState> {
     render(): ReactNode {
         let cfg = JSON.parse(JSON.stringify(this.props));
         cfg.backend = {
-            solars: [1, 8],
+            batteries: [4],
             generators: [2],
             heatpumps: [7],
+            meters: [3],
+            solars: [1, 8],
         };
 
         if (this.state.back) {

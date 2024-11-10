@@ -127,6 +127,37 @@ export class Generator {
         }
     }
 
+    static query_heat_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            let id = ids[0];
+            return new GeneratorSeries(id)
+                .time()
+                .heat(`\"generator.heat_w\"`)
+                .time_filter()
+                .ordered();
+        } else {
+            return new Timeseries()
+                .subqueries(
+                    ids.map((id) =>
+                        new GeneratorSeries(id).time().heat(null).time_filter()
+                    )
+                )
+                .fields([
+                    GeneratorSeries.time,
+                    new Field(`\"generator.heat_w\"`, null),
+                ])
+                .from(
+                    new AggregateProxy(GeneratorSeries, ids, [
+                        GeneratorSeries.ps_heat(ids).with_alias(
+                            `\"generator.heat_w\"`
+                        ),
+                    ])
+                )
+                .time_not_null()
+                .ordered();
+        }
+    }
+
     static query_power_sum(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];

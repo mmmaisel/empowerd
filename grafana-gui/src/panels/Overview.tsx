@@ -10,9 +10,11 @@ import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
-import { Panel } from "./Common";
+import { Battery } from "../queries/Battery";
 import { Colors } from "./Colors";
-import { Heatpump } from "../queries/Heatpump";
+import { Heating } from "../queries/Heating";
+import { Meter } from "../queries/Meter";
+import { Panel } from "./Common";
 import { Production } from "../queries/Production";
 
 export type DrilldownConfig = {
@@ -69,12 +71,36 @@ const mkscene = (
                 .overrideDisplayName(`Power Production`)
                 .overrideLinks(dds.power);
             override
-                .matchFieldsByQuery("Heatpump")
+                .matchFieldsByQuery("Meter")
+                .overrideColor({
+                    fixedColor: Colors.red(0),
+                    mode: "fixed",
+                })
+                .overrideDisplayName(`Meter Power`)
+                .overrideLinks(dds.power);
+            override
+                .matchFieldsByQuery("Battery Power")
+                .overrideColor({
+                    fixedColor: Colors.blue(0),
+                    mode: "fixed",
+                })
+                .overrideDisplayName(`Battery Power`)
+                .overrideLinks(dds.power);
+            override
+                .matchFieldsByQuery("Battery Charge")
+                .overrideColor({
+                    fixedColor: Colors.grey(0),
+                    mode: "fixed",
+                })
+                .overrideDisplayName(`Battery Charge`)
+                .overrideLinks(dds.power);
+            override
+                .matchFieldsByQuery("Heat")
                 .overrideColor({
                     fixedColor: Colors.purple(0),
                     mode: "fixed",
                 })
-                .overrideDisplayName(`Heatpump Thermal-Power`)
+                .overrideDisplayName(`Heat Production`)
                 .overrideLinks(dds.heatpump);
         })
         .build();
@@ -89,8 +115,23 @@ const mkqueries = (config: BackendConfig): any => {
         format: "table",
     });
     queries.push({
-        refId: "Heatpump",
-        rawSql: Heatpump.query_heat_sum(config.heatpumps).sql(),
+        refId: "Meter",
+        rawSql: Meter.query_power_sum(config.meters).sql(),
+        format: "table",
+    });
+    queries.push({
+        refId: "Battery Power",
+        rawSql: Battery.query_power_sum(config.batteries).sql(),
+        format: "table",
+    });
+    queries.push({
+        refId: "Battery Charge",
+        rawSql: Battery.query_charge_sum(config.batteries).sql(),
+        format: "table",
+    });
+    queries.push({
+        refId: "Heat",
+        rawSql: Heating.query_heat_sum(config).sql(),
         format: "table",
     });
 
