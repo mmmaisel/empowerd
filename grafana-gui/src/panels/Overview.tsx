@@ -12,13 +12,11 @@ import { map } from "rxjs/operators";
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
-import { Generator } from "../queries/Generator";
 import { Heatpump } from "../queries/Heatpump";
-import { Solar } from "../queries/Solar";
+import { Production } from "../queries/Production";
 
 export type DrilldownConfig = {
-    solar: DataLink[];
-    generator: DataLink[];
+    power: DataLink[];
     heatpump: DataLink[];
 };
 
@@ -63,21 +61,13 @@ const mkscene = (
         .setOption("justifyMode", "center" as any)
         .setOverrides((override: any) => {
             override
-                .matchFieldsByQuery("Solar")
+                .matchFieldsByQuery("Production")
                 .overrideColor({
-                    fixedColor: Colors.yellow(0),
+                    fixedColor: Colors.green(0),
                     mode: "fixed",
                 })
-                .overrideDisplayName(`Solar Power`)
-                .overrideLinks(dds.solar);
-            override
-                .matchFieldsByQuery("Generator")
-                .overrideColor({
-                    fixedColor: Colors.red(0),
-                    mode: "fixed",
-                })
-                .overrideDisplayName(`Generator Power`)
-                .overrideLinks(dds.generator);
+                .overrideDisplayName(`Power Production`)
+                .overrideLinks(dds.power);
             override
                 .matchFieldsByQuery("Heatpump")
                 .overrideColor({
@@ -94,13 +84,8 @@ const mkqueries = (config: BackendConfig): any => {
     let queries: any = [];
 
     queries.push({
-        refId: "Solar",
-        rawSql: Solar.query_power_sum(config.solars).sql(),
-        format: "table",
-    });
-    queries.push({
-        refId: "Generator",
-        rawSql: Generator.query_power_sum(config.generators).sql(),
+        refId: "Production",
+        rawSql: Production.query_power_sum(config).sql(),
         format: "table",
     });
     queries.push({

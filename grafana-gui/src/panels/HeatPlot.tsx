@@ -69,10 +69,10 @@ const mkqueries = (config: BackendConfig): any => {
         let first = "";
         let heatpump_ids = [...config.heatpumps];
         let generator_ids = [...config.generators];
-        if (config.heatpumps.length !== 0) {
+        if (heatpump_ids.length !== 0) {
             first = `heatpump${config.heatpumps[0]}`;
             heatpump_ids.shift();
-        } else if (config.generators.length !== 0) {
+        } else if (generator_ids.length !== 0) {
             first = `generator${config.generators[0]}`;
             generator_ids.shift();
         }

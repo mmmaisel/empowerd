@@ -55,13 +55,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
 
     mkscene(): EmbeddedScene {
         let overview = Overview(this.props.config, {
-            solar: [
-                {
-                    title: "Power",
-                    url: `\${__url.path}/${ROUTES.Power}`,
-                },
-            ],
-            generator: [
+            power: [
                 {
                     title: "Power",
                     url: `\${__url.path}/${ROUTES.Power}`,
