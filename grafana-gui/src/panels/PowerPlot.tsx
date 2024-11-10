@@ -8,6 +8,7 @@ import {
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
 import { Colors } from "./Colors";
+import { Generator } from "../queries/Generator";
 import { Solar } from "../queries/Solar";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
@@ -25,6 +26,10 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                 .matchFieldsWithName("solar.power_w")
                 .overrideColor({ fixedColor: Colors.yellow(0), mode: "fixed" })
                 .overrideDisplayName("Solar");
+            override
+                .matchFieldsWithName("generator.power_w")
+                .overrideColor({ fixedColor: Colors.red(0), mode: "fixed" })
+                .overrideDisplayName("Generator");
         })
         .build();
 };
@@ -34,6 +39,11 @@ const mkqueries = (config: BackendConfig): any => {
         {
             refId: "A",
             rawSql: Solar.query_power_sum(config.solars).sql(),
+            format: "table",
+        },
+        {
+            refId: "B",
+            rawSql: Generator.query_power_sum(config.generators).sql(),
             format: "table",
         },
     ];

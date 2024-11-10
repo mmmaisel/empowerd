@@ -12,6 +12,12 @@ export class GeneratorSeries extends Timeseries {
         "(MAX(runtime_s)-MIN(runtime_s)) * 18.48928",
         "heat_wh"
     );
+
+    static d_energy = new Field(
+        "(MAX(runtime_s)-MIN(runtime_s)) * 0.222222",
+        "energy_wh"
+    );
+
     // power * (1-eta_el)/eta_el * f_Hs_Hi
     // power = (1-0.138)/0.138 * 1.11
     // === power * 6.93348
@@ -43,6 +49,19 @@ export class GeneratorSeries extends Timeseries {
         }
     }
 
+    static pds_energy(ids: number[]): Field {
+        if (ids.length === 1) {
+            return new Field(`generator${ids[0]}.energy_wh`, `s_energy`);
+        } else {
+            return new Field(
+                ids
+                    .map((id) => `COALESCE(generator${id}.energy_wh, 0)`)
+                    .join("+"),
+                `s_energy`
+            );
+        }
+    }
+
     constructor(id: number) {
         super();
         this.name_ = `generator${id}`;
@@ -65,6 +84,11 @@ export class GeneratorSeries extends Timeseries {
         return this;
     }
 
+    public d_energy(alias: string | null): this {
+        this.fields_.push(GeneratorSeries.d_energy.with_alias(alias));
+        return this;
+    }
+
     public power(alias: string | null): this {
         this.fields_.push(GeneratorSeries.power.with_alias(alias));
         return this;
@@ -83,7 +107,7 @@ export class Generator {
             let id = ids[0];
             return new GeneratorSeries(id)
                 .time()
-                .heat(`"generator.heat_w"`)
+                .heat(`\"generator.heat_w\"`)
                 .time_filter()
                 .ordered();
         } else {
@@ -95,7 +119,7 @@ export class Generator {
                 )
                 .fields([
                     GeneratorSeries.time,
-                    new Field(`"generator.heat_w`, null),
+                    new Field(`\"generator.heat_w\"`, null),
                 ])
                 .from(new GeneratorProxy(ids, [GeneratorSeries.heat]))
                 .time_not_null()
@@ -108,7 +132,7 @@ export class Generator {
             let id = ids[0];
             return new GeneratorSeries(id)
                 .time()
-                .power(`"generator.power_w"`)
+                .power(`\"generator.power_w\"`)
                 .time_filter()
                 .ordered();
         } else {
@@ -131,6 +155,36 @@ export class Generator {
                 )
                 .time_not_null()
                 .ordered();
+        }
+    }
+
+    static query_energy_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            return new GeneratorSeries(ids[0])
+                .d_energy(`\"generator.energy_wh\"`)
+                .time_filter();
+        } else {
+            return new Query()
+                .subqueries(
+                    ids.map((id) =>
+                        new GeneratorSeries(id)
+                            .time()
+                            .d_energy(null)
+                            .time_filter()
+                    )
+                )
+                .fields([
+                    GeneratorSeries.pds_energy(ids).with_alias(
+                        `\"generator.energy_wh\"`
+                    ),
+                ])
+                .from(new Fragment(`generator${ids[0]}`))
+                .joins(
+                    GeneratorSeries.time_join(
+                        `generator${ids[0]}`,
+                        ids.slice(1)
+                    )
+                );
         }
     }
 }
