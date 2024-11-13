@@ -37,16 +37,32 @@ where
     format!("Could not write register {reg}: {e}")
 }
 
+pub enum LambdaMode {
+    Heating,
+    Cooling,
+    Defrosting,
+}
+
 pub struct LambdaContext(Context);
 
 impl LambdaContext {
-    pub async fn get_current_power(&mut self) -> Result<i16, String> {
-        let state = self
+    pub async fn get_op_mode(&mut self) -> Result<LambdaMode, String> {
+        let state = match self
             .0
             .read_holding_registers(1002, 1)
             .await
             .map_err(|e| read_err_msg(1002, e))?
-            .map_err(|e| read_err_msg(1002, e))?;
+            .map_err(|e| read_err_msg(1002, e))?[0]
+        {
+            9 => LambdaMode::Cooling,
+            10 => LambdaMode::Defrosting,
+            _ => LambdaMode::Heating,
+        };
+
+        Ok(state)
+    }
+
+    pub async fn get_current_power(&mut self) -> Result<i16, String> {
         let data = self
             .0
             .read_holding_registers(103, 1)
@@ -54,12 +70,7 @@ impl LambdaContext {
             .map_err(|e| read_err_msg(103, e))?
             .map_err(|e| read_err_msg(103, e))?;
 
-        // Cooling / Defrosting ?
-        if state[0] == 9 || state[0] == 10 {
-            Ok(-(data[0] as i16))
-        } else {
-            Ok(data[0] as i16)
-        }
+        Ok(data[0] as i16)
     }
 
     pub async fn get_cop(&mut self) -> Result<i16, String> {

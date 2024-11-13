@@ -28,7 +28,7 @@ use crate::{
     task_group::TaskResult,
     Error,
 };
-use lambda_client::LambdaClient;
+use lambda_client::{LambdaClient, LambdaMode};
 use slog::{trace, Logger};
 use std::collections::VecDeque;
 
@@ -167,16 +167,27 @@ impl LambdaHeatPumpSource {
                     "Query Lambda Heat Pump data failed: {e}",
                 ))
             })?;
+            let mode = context.get_op_mode().await.map_err(|e| {
+                Error::Temporary(format!(
+                    "Query Lambda Heat Pump data failed: {e}",
+                ))
+            })?;
+
+            let mut heat =
+                last_record.heat.unwrap_or(Energy::new::<joule>(0.0))
+                    + (energy_total - last_record.energy) * cop;
+            match mode {
+                LambdaMode::Heating => (),
+                LambdaMode::Cooling => heat = -heat,
+                LambdaMode::Defrosting => heat = Energy::new::<joule>(0.0),
+            }
 
             // Commit new sample to database.
             let mut record = Heatpump {
                 time: Time::new::<second>(timing.now as f64),
                 energy: energy_total,
                 power: Power::new::<watt>(0.0),
-                heat: Some(
-                    last_record.heat.unwrap_or(Energy::new::<joule>(0.0))
-                        + (energy_total - last_record.energy) * cop,
-                ),
+                heat: Some(heat),
                 cop: Some(cop),
                 boiler_top: Some(Temperature::new::<celsius>(
                     boiler.0 as f64 / 10.0,
