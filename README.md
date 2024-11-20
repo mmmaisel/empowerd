@@ -76,9 +76,28 @@ by the Free Software Foundation, either version 3 of the License, or (at your
 option) any later version.
 
 ### Icon License
+Water switch icons in `gui/public` are licensed under either LGPL-2.0-or-later,
+or CC-BY-SA-4.0.
+
+Power switch icons in `gui/public` directory are based on `system-shutdown` icon
+from [`Adwaita` icon theme](https://github.com/GNOME/adwaita-icon-theme/blob/3.13.1),
+licensed under the LGPL-3.0. Original `COPYING` file follows below:
+
+```
+This work is licenced under the terms of either the GNU LGPL v3 or
+Creative Commons Attribution-Share Alike 3.0 United States License.
+
+To view a copy of the CC-BY-SA licence, visit
+http://creativecommons.org/licenses/by-sa/3.0/ or send a letter to Creative
+Commons, 171 Second Street, Suite 300, San Francisco, California 94105, USA.
+
+When attributing the artwork, using "GNOME Project" is enough.
+Please link to http://www.gnome.org where available.
+```
+
 Icons `config.svg`, `logout.svg` and `status.svg` in `gui/public` directory were
 taken from the [`Humanity` icon theme](https://launchpad.net/humanity), licensed
-under the GNU GPLv2. Original `AUTHORS` file follows below:
+under the GPL-2.0. Original `AUTHORS` file follows below:
 
 ```
 ####################
