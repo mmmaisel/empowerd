@@ -5,13 +5,12 @@ import {
     SceneObjectState,
     SceneQueryRunner,
 } from "@grafana/scenes";
-import { DataFrame, DataLink } from "@grafana/data";
-import { Observable } from "rxjs";
-import { map } from "rxjs/operators";
+import { DataLink } from "@grafana/data";
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Battery } from "../queries/Battery";
 import { Colors } from "./Colors";
+import { DefaultValueTrafo } from "../trafos/DefaultValue";
 import { Heating } from "../queries/Heating";
 import { Meter } from "../queries/Meter";
 import { Panel } from "./Common";
@@ -21,35 +20,6 @@ export type DrilldownConfig = {
     power: DataLink[];
     heatpump: DataLink[];
 };
-
-const defaultValueTransformation =
-    () =>
-    (source: Observable<DataFrame[]>): Observable<DataFrame[]> => {
-        return source.pipe(
-            map((data: DataFrame[]) => {
-                for (let frame of data) {
-                    if (frame.length === 0) {
-                        frame.length = 1;
-                        frame.fields = [
-                            {
-                                config: {},
-                                name: "time",
-                                type: "time" as any,
-                                values: [null],
-                            },
-                            {
-                                config: {},
-                                name: "value",
-                                type: "number" as any,
-                                values: [null],
-                            },
-                        ];
-                    }
-                }
-                return data;
-            })
-        );
-    };
 
 const mkscene = (
     config: BackendConfig,
@@ -148,7 +118,7 @@ export const Overview = (config: ConfigJson, links: DrilldownConfig): Panel => {
     });
     const transformedData = new SceneDataTransformer({
         $data: queryRunner,
-        transformations: [defaultValueTransformation],
+        transformations: [DefaultValueTrafo],
     });
 
     return {
