@@ -7,6 +7,7 @@ import pluginJson from "./plugin.json";
 
 export enum ROUTES {
     Home = "",
+    Details = "details",
     Power = "power",
     Heating = "heating",
 }

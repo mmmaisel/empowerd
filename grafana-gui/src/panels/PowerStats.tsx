@@ -1,3 +1,4 @@
+import { DataLink } from "@grafana/data";
 import {
     PanelBuilders,
     SceneQueryRunner,
@@ -11,16 +12,25 @@ import { Colors } from "./Colors";
 import { Generator } from "../queries/Generator";
 import { Solar } from "../queries/Solar";
 
-const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
+export type DrilldownConfig = {
+    solar: DataLink[];
+};
+
+const mkscene = (
+    config: BackendConfig,
+    dds: DrilldownConfig
+): SceneObject<SceneObjectState> => {
     return PanelBuilders.stat()
         .setUnit("watth")
+        .setNoValue("No Data")
         .setOption("graphMode", "none" as any)
         .setOption("textMode", "value_and_name" as any)
         .setOverrides((override: any) => {
             override
                 .matchFieldsByQuery("Solar")
                 .overrideColor({ fixedColor: Colors.yellow(0), mode: "fixed" })
-                .overrideDisplayName("Solar");
+                .overrideDisplayName("Solar")
+                .overrideLinks(dds.solar);
             override
                 .matchFieldsByQuery("Generator")
                 .overrideColor({ fixedColor: Colors.red(0), mode: "fixed" })
@@ -45,7 +55,10 @@ const mkqueries = (config: BackendConfig): any => {
 };
 
 // TODO: dedup
-export const PowerStats = (config: ConfigJson): Panel => {
+export const PowerStats = (
+    config: ConfigJson,
+    links: DrilldownConfig
+): Panel => {
     const queryRunner = new SceneQueryRunner({
         datasource: {
             uid: config.datasource?.uid || "",
@@ -55,7 +68,7 @@ export const PowerStats = (config: ConfigJson): Panel => {
 
     return {
         query: queryRunner,
-        scene: mkscene(config.backend || BackendConfigDefault),
+        scene: mkscene(config.backend || BackendConfigDefault, links),
     };
 };
 

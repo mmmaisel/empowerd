@@ -10,26 +10,15 @@ import {
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
-import { PowerPlot } from "./panels/PowerPlot";
-import { PowerStats } from "./panels/PowerStats";
-import { ROUTES } from "./Routes";
+import { SolarPerMonth } from "./panels/SolarPerMonth";
 
-export const PowerScene = (
+export const SolarDetailsScene = (
     config: ConfigJson,
     backCb: () => void
 ): EmbeddedScene => {
-    let plot = PowerPlot(config);
-    let stats = PowerStats(config, {
-        solar: [
-            {
-                title: "Solar per Month",
-                url: `\${__url.path}/${ROUTES.Details}`,
-            },
-        ],
-    });
-
+    let plot = SolarPerMonth(config);
     return new EmbeddedScene({
-        $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
+        $timeRange: new SceneTimeRange({ from: "now-3y", to: "now" }),
         body: new SceneCSSGridLayout({
             templateColumns: "minmax(1fr, 1fr)",
             templateRows: "5fr 1fr",
@@ -37,10 +26,6 @@ export const PowerScene = (
                 new EmbeddedScene({
                     $data: plot.query,
                     body: plot.scene,
-                }),
-                new EmbeddedScene({
-                    $data: stats.query,
-                    body: stats.scene,
                 }),
             ],
         }),

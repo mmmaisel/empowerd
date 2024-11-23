@@ -18,6 +18,7 @@ import { ROUTES, prefixRoute } from "./Routes";
 import { Overview } from "./panels/Overview";
 import { PowerScene } from "./Power";
 import { HeatingScene } from "./Heating";
+import { SolarDetailsScene } from "./SolarDetails";
 
 type HomePageProps = {
     config: ConfigJson;
@@ -95,6 +96,12 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
             getParentPage: () => parent,
             getScene: (_routeMatch: SceneRouteMatch<{}>) =>
                 PowerScene(props.config, props.backCb),
+            drilldowns: [
+                {
+                    routePath: prefixRoute(`${ROUTES.Power}/${ROUTES.Details}`),
+                    getPage: this.mkdetails.bind(this),
+                },
+            ],
         });
     }
 
@@ -106,6 +113,17 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
             getParentPage: () => parent,
             getScene: (_routeMatch: SceneRouteMatch<{}>) =>
                 HeatingScene(props.config, props.backCb),
+        });
+    }
+
+    mkdetails(_routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
+        let props = this.props;
+        return new SceneAppPage({
+            url: prefixRoute(`${ROUTES.Power}/${ROUTES.Details}`),
+            title: `Solar Details`,
+            getParentPage: () => parent,
+            getScene: (_routeMatch: SceneRouteMatch<{}>) =>
+                SolarDetailsScene(props.config, props.backCb),
         });
     }
 
