@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from "react";
 import { config } from "@grafana/runtime";
-import { Alert, IconName } from "@grafana/ui";
+import { Alert } from "@grafana/ui";
 import {
     SceneApp,
     SceneAppPage,
@@ -11,7 +11,6 @@ import {
     SceneRouteMatch,
     SceneTimePicker,
     SceneTimeRange,
-    SceneToolbarButton,
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
@@ -81,12 +80,6 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                 ],
             }),
             controls: [
-                new SceneToolbarButton({
-                    icon: "arrow-left" as IconName,
-                    onClick: () => {
-                        this.props.backCb();
-                    },
-                }),
                 new SceneControlsSpacer(),
                 new SceneTimePicker({ isOnCanvas: true }),
                 new SceneRefreshPicker({ isOnCanvas: true, refresh: "5m" }),
