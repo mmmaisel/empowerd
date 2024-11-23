@@ -17,7 +17,11 @@ test("Query for single solar source", () => {
             "WHERE series_id = 1 AND $__timeFilter(time) " +
             "ORDER BY time";
 
+    // prettier-ignore
+    const expected_sql1 = "SELECT NULL AS s_power";
+
     expect(queries[0].rawSql).toBe(expected_sql0);
+    expect(queries[1].rawSql).toBe(expected_sql1);
 });
 
 test("Query for single generator source", () => {
@@ -65,7 +69,7 @@ test("Query for single sources", () => {
         ") " +
         "SELECT time, \"production.power_w\" " +
         "FROM (SELECT " +
-            "solar1.time AS time, " +
+            "COALESCE(generator2.time, solar1.time) AS time, " +
             "COALESCE(solar1.power_w, 0)+COALESCE(generator2.power_w, 0) " +
                 "AS \"production.power_w\" " +
             "FROM solar1 " +
@@ -100,7 +104,7 @@ test("Query for single sources", () => {
         ") " +
         "SELECT time, s_heat " +
         "FROM (SELECT " +
-            "generator2.time AS time, " +
+            "COALESCE(generator2.time, heatpump3.time) AS time, " +
             "COALESCE(generator2.heat_w, 0)+COALESCE(heatpump3.heat_w, 0) " +
                 "AS s_heat " +
             "FROM generator2 " +
@@ -140,7 +144,9 @@ test("Query for dual", () => {
         ") " +
         "SELECT time, \"production.power_w\" " +
         "FROM (SELECT " +
-            "solar1.time AS time, " +
+            "COALESCE(" +
+                "generator3.time, generator4.time, " +
+                "solar1.time, solar2.time) AS time, " +
             "COALESCE(solar1.power_w, 0)+COALESCE(solar2.power_w, 0)+" +
             "COALESCE(generator3.power_w, 0)+COALESCE(generator4.power_w, 0) " +
                 "AS \"production.power_w\" " +
@@ -208,7 +214,8 @@ test("Query for dual", () => {
         ") " +
         "SELECT time, s_heat " +
         "FROM (SELECT " +
-            "generator3.time AS time, " +
+            "COALESCE(generator3.time, generator4.time, " +
+                "heatpump5.time, heatpump6.time) AS time, " +
             "COALESCE(generator3.heat_w, 0)+COALESCE(generator4.heat_w, 0)+" +
             "COALESCE(heatpump5.heat_w, 0)+COALESCE(heatpump6.heat_w, 0) " +
                 "AS s_heat " +

@@ -59,14 +59,15 @@ export class Heating {
             heatpump_ids.shift();
         }
 
-        const fields = [new TimeProxy(first), HeatingSeries.ps_heat(config)];
-
         return new Timeseries()
             .subqueries([...generators, ...heatpumps])
             .fields([new Field(`time`, null), new Field(`s_heat`, null)])
             .from(
                 new ProxyQuery()
-                    .fields(fields)
+                    .fields([
+                        TimeProxy.from_series([...generators, ...heatpumps]),
+                        HeatingSeries.ps_heat(config),
+                    ])
                     .from(new Fragment(first))
                     .joins(
                         [

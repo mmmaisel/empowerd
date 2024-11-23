@@ -78,7 +78,7 @@ const mkqueries = (config: BackendConfig): any => {
         }
 
         const fields = [
-            new TimeProxy(first),
+            TimeProxy.from_series([...heatpumps, ...generators]),
             HeatpumpSeries.ps_heat(config.heatpumps).with_alias(
                 `\"heatpump.heat_w\"`
             ),

@@ -58,7 +58,7 @@ test("Query for combined source", () => {
             "\"heatpump.heat_w\", \"heatpump.power_w\", \"heatpump.cop\", " +
             "\"generator.heat_w\" " +
         "FROM (SELECT " +
-            "heatpump7.time AS time, " +
+            "COALESCE(heatpump7.time, generator2.time) AS time, " +
             "heatpump7.heat_w AS \"heatpump.heat_w\", " +
             "heatpump7.power_w AS \"heatpump.power_w\", " +
             "heatpump7.cop AS \"heatpump.cop\", " +
@@ -101,7 +101,8 @@ test("Query for combined multi source", () => {
             "\"heatpump.heat_w\", \"heatpump.power_w\", \"heatpump.cop\", " +
             "\"generator.heat_w\" " +
         "FROM (SELECT " +
-            "heatpump7.time AS time, " +
+            "COALESCE(heatpump7.time, heatpump8.time, " +
+                "generator2.time, generator3.time) AS time, " +
             "COALESCE(heatpump7.heat_w, 0)+COALESCE(heatpump8.heat_w, 0) " +
                 "AS \"heatpump.heat_w\", " +
             "COALESCE(heatpump7.power_w, 0)+COALESCE(heatpump8.power_w, 0) " +

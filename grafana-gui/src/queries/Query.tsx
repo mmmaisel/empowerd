@@ -66,6 +66,10 @@ export class Query extends Fragment {
         super("");
     }
 
+    public get_name(): string {
+        return this.name_ || "";
+    }
+
     public name(name: string): this {
         this.name_ = name;
         return this;
@@ -104,9 +108,11 @@ export class Query extends Fragment {
             sql += `WITH ${withs.join(", ")} `;
         }
 
-        sql +=
-            `SELECT ${this.fields_.map((f) => f.sql()).join(", ")} ` +
-            `FROM ${this.from_.sql()}`;
+        sql += `SELECT ${this.fields_.map((f) => f.sql()).join(", ")}`;
+        const from_sql = this.from_.sql();
+        if (from_sql !== "") {
+            sql += ` FROM ${from_sql}`;
+        }
 
         if (this.joins_.length !== 0) {
             sql += ` ${this.joins_.map((x) => x.sql()).join(" ")}`;

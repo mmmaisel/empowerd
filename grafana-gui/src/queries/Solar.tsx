@@ -183,7 +183,7 @@ export class Solar {
                     ids.map((id) => new SolarSeries(id).time().energy(null))
                 )
                 .fields([
-                    new TimeProxy(`solar${ids[0]}`),
+                    new TimeProxy([`solar${ids[0]}.time`]),
                     SolarSeries.ps_energy(ids).with_alias("energy_wh"),
                 ])
                 .joins(SolarSeries.time_join(`solar${ids[0]}`, ids.slice(1)))

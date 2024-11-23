@@ -58,7 +58,7 @@ export class Production {
         }
 
         const fields = [
-            new TimeProxy(first),
+            TimeProxy.from_series([...generators, ...solars]),
             ProductionSeries.ps_power(config).with_alias(
                 `\"production.power_w\"`
             ),

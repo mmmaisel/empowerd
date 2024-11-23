@@ -1,4 +1,4 @@
-import { Field, Fragment, Query } from "./Query";
+import { Field, Fragment, Query, Timeseries } from "./Query";
 
 export class ProxyField extends Field {
     constructor(expr: string) {
@@ -11,8 +11,17 @@ export class ProxyField extends Field {
 }
 
 export class TimeProxy extends Field {
-    constructor(expr: string) {
-        super(`${expr}.time`, "time");
+    constructor(times: string[]) {
+        if (times.length === 1) {
+            super(times[0], "time");
+        } else {
+            super(`COALESCE(${times.join(", ")})`, "time");
+        }
+    }
+
+    public static from_series(series: Timeseries[]): TimeProxy {
+        let times = series.map((x) => `${x.get_name()}.time`);
+        return new TimeProxy(times);
     }
 }
 
@@ -27,7 +36,7 @@ export class TimeseriesProxy extends ProxyQuery {
     constructor(series: any, ids: number[], fields: Field[]) {
         super();
         this.fields_ = [
-            new TimeProxy(`${series.basename}${ids[0]}`),
+            new TimeProxy([`${series.basename}${ids[0]}.time`]),
             ...ids
                 .map((id) =>
                     fields.map(
@@ -50,7 +59,7 @@ export class AggregateProxy extends ProxyQuery {
     constructor(series: any, ids: number[], fields: Field[]) {
         super();
         this.fields_ = [
-            new TimeProxy(`${series.basename}${ids[0]}`),
+            new TimeProxy([`${series.basename}${ids[0]}.time`]),
             ...fields,
         ];
         this.from_ = new Fragment(`${series.basename}${ids[0]}`);
