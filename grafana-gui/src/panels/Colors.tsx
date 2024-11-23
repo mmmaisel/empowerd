@@ -43,6 +43,22 @@ export class Colors {
         return colors[i % colors.length];
     };
 
+    public static orange = (i: number): string => {
+        const colors = [
+            hsl_to_rgb(35, 206, 130),
+            hsl_to_rgb(40, 206, 130),
+            hsl_to_rgb(30, 206, 130),
+            hsl_to_rgb(35, 206, 160),
+            hsl_to_rgb(40, 206, 160),
+            hsl_to_rgb(30, 206, 160),
+            hsl_to_rgb(35, 206, 100),
+            hsl_to_rgb(40, 206, 100),
+            hsl_to_rgb(30, 206, 100),
+        ];
+
+        return colors[i % colors.length];
+    };
+
     public static yellow = (i: number): string => {
         const colors = [
             hsl_to_rgb(50, 230, 128),
@@ -70,6 +86,22 @@ export class Colors {
             hsl_to_rgb(115, 128, 60),
             hsl_to_rgb(105, 128, 60),
             hsl_to_rgb(125, 128, 60),
+        ];
+
+        return colors[i % colors.length];
+    };
+
+    public static cyan = (i: number): string => {
+        const colors = [
+            hsl_to_rgb(185, 173, 130),
+            hsl_to_rgb(175, 173, 130),
+            hsl_to_rgb(195, 173, 130),
+            hsl_to_rgb(185, 173, 160),
+            hsl_to_rgb(175, 173, 160),
+            hsl_to_rgb(195, 173, 160),
+            hsl_to_rgb(185, 173, 100),
+            hsl_to_rgb(175, 173, 100),
+            hsl_to_rgb(195, 173, 100),
         ];
 
         return colors[i % colors.length];
