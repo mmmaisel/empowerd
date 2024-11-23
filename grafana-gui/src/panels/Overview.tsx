@@ -10,9 +10,9 @@ import { DataLink } from "@grafana/data";
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Battery } from "../queries/Battery";
 import { Colors } from "./Colors";
+import { Consumption } from "../queries/Consumption";
 import { DefaultValueTrafo } from "../trafos/DefaultValue";
 import { Heating } from "../queries/Heating";
-import { Meter } from "../queries/Meter";
 import { Panel } from "./Common";
 import { Production } from "../queries/Production";
 
@@ -25,7 +25,7 @@ const mkscene = (
     config: BackendConfig,
     dds: DrilldownConfig
 ): SceneObject<SceneObjectState> => {
-    return PanelBuilders.stat()
+    let panel = PanelBuilders.stat()
         .setUnit("watt")
         .setNoValue("No Data")
         .setOption("graphMode", "area" as any)
@@ -41,27 +41,36 @@ const mkscene = (
                 .overrideDisplayName(`Power Production`)
                 .overrideLinks(dds.power);
             override
-                .matchFieldsByQuery("Meter")
+                .matchFieldsByQuery("Consumption")
                 .overrideColor({
                     fixedColor: Colors.red(0),
                     mode: "fixed",
                 })
-                .overrideDisplayName(`Meter Power`)
+                .overrideDisplayName(`Power Consumption`)
                 .overrideLinks(dds.power);
             override
-                .matchFieldsByQuery("Battery Power")
+                .matchFieldsByQuery("Battery")
                 .overrideColor({
-                    fixedColor: Colors.blue(0),
+                    fixedColor: Colors.grey(0),
+                    mode: "fixed",
+                })
+                .overrideDisplayName(`Battery`)
+                .overrideLinks(dds.power);
+            override
+                .matchFieldsWithName("battery.power_w")
+                .overrideColor({
+                    fixedColor: Colors.grey(0),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Battery Power`)
                 .overrideLinks(dds.power);
             override
-                .matchFieldsByQuery("Battery Charge")
+                .matchFieldsWithName("battery.charge_wh")
                 .overrideColor({
                     fixedColor: Colors.grey(0),
                     mode: "fixed",
                 })
+                .overrideUnit("watth")
                 .overrideDisplayName(`Battery Charge`)
                 .overrideLinks(dds.power);
             override
@@ -72,8 +81,15 @@ const mkscene = (
                 })
                 .overrideDisplayName(`Heat Production`)
                 .overrideLinks(dds.heatpump);
-        })
-        .build();
+        });
+
+    // Not exposed through builder interface
+    (panel as any)._fieldConfigBuilder.setFieldConfigDefaults(
+        "fieldMinMax",
+        true
+    );
+
+    return panel.build();
 };
 
 const mkqueries = (config: BackendConfig): any => {
@@ -85,18 +101,13 @@ const mkqueries = (config: BackendConfig): any => {
         format: "table",
     });
     queries.push({
-        refId: "Meter",
-        rawSql: Meter.query_power_sum(config.meters).sql(),
+        refId: "Consumption",
+        rawSql: Consumption.query_power_sum(config).sql(),
         format: "table",
     });
     queries.push({
-        refId: "Battery Power",
-        rawSql: Battery.query_power_sum(config.batteries).sql(),
-        format: "table",
-    });
-    queries.push({
-        refId: "Battery Charge",
-        rawSql: Battery.query_charge_sum(config.batteries).sql(),
+        refId: "Battery",
+        rawSql: Battery.query_power_charge_sum(config.batteries).sql(),
         format: "table",
     });
     queries.push({
