@@ -5,6 +5,7 @@ export class HeatpumpSeries extends Timeseries {
     static basename = "heatpump";
     static time = new Field("time", null);
     static heat = new Field("power_w * cop_pct / 100.0", "heat_w");
+    static heat_wh = new Field("heat_wh", null);
     static power = new Field("power_w", null);
     static cop = new Field("cop_pct / 100.0", "cop");
     static d_heat = new Field("MAX(heat_wh)-MIN(heat_wh)", "d_heat_wh");
@@ -39,6 +40,29 @@ export class HeatpumpSeries extends Timeseries {
         }
     }
 
+    static pds_heat(ids: number[]): Field {
+        if (ids.length === 1) {
+            return new Field(
+                `MAX(heatpump${ids[0]}.heat_wh)-MIN(heatpump${ids[0]}.heat_wh`,
+                "ds_heat_wh"
+            );
+        } else {
+            return new Field(
+                ids
+                    .map(
+                        (id) =>
+                            // prettier-ignore
+                            `COALESCE(` +
+                                `MAX(heatpump${id}.heat_wh)-` +
+                                `MIN(heatpump${id}.heat_wh)` +
+                            `, 0)`
+                    )
+                    .join("+"),
+                "ds_heat_wh"
+            );
+        }
+    }
+
     static ps_power(ids: number[]): Field {
         if (ids.length === 1) {
             return new Field(`heatpump${ids[0]}.power_w`, `s_power`);
@@ -64,6 +88,11 @@ export class HeatpumpSeries extends Timeseries {
 
     public heat(alias: string | null): this {
         this.fields_.push(HeatpumpSeries.heat.with_alias(alias));
+        return this;
+    }
+
+    public heat_wh(alias: string | null): this {
+        this.fields_.push(HeatpumpSeries.heat_wh.with_alias(alias));
         return this;
     }
 
@@ -122,7 +151,7 @@ export class Heatpump {
                     HeatpumpSeries.time,
                     new Field(`"heatpump.heat_w`, null),
                     new Field(`"heatpump.power_w`, null),
-                    new Field(`"heatpump.cop_w`, null),
+                    new Field(`"heatpump.cop`, null),
                 ])
                 .from(
                     new HeatpumpProxy(ids, [
@@ -141,7 +170,7 @@ export class Heatpump {
             let id = ids[0];
             return new HeatpumpSeries(id)
                 .time()
-                .heat(`"heatpump.heat_w"`)
+                .heat(`\"heatpump.heat_w\"`)
                 .time_filter()
                 .ordered();
         } else {
@@ -164,6 +193,54 @@ export class Heatpump {
                 )
                 .time_not_null()
                 .ordered();
+        }
+    }
+
+    static query_dheat_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            return new HeatpumpSeries(ids[0]).d_heat(null).time_filter();
+        } else {
+            return new Timeseries()
+                .subqueries(
+                    ids.map((id) =>
+                        new HeatpumpSeries(id)
+                            .time()
+                            .heat_wh(null)
+                            .time_filter()
+                    )
+                )
+                .fields([
+                    HeatpumpSeries.pds_heat(ids).with_alias(
+                        `\"heatpump.heat_wh\"`
+                    ),
+                ])
+                .from(new Fragment(`heatpump${ids[0]}`))
+                .joins(
+                    HeatpumpSeries.time_join(`heatpump${ids[0]}`, ids.slice(1))
+                );
+        }
+    }
+
+    static query_acop_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            let id = ids[0];
+            return new HeatpumpSeries(id)
+                .a_cop(`\"heatpump.cop\"`)
+                .time_filter();
+        } else {
+            return new Timeseries()
+                .subqueries(
+                    ids.map((id) =>
+                        new HeatpumpSeries(id).time().cop(null).time_filter()
+                    )
+                )
+                .fields([
+                    HeatpumpSeries.pa_cop(ids).with_alias(`\"heatpump.cop\"`),
+                ])
+                .from(new Fragment(`heatpump${ids[0]}`))
+                .joins(
+                    HeatpumpSeries.time_join(`heatpump${ids[0]}`, ids.slice(1))
+                );
         }
     }
 }

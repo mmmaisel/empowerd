@@ -11,7 +11,7 @@ import {
 
 import { ConfigJson } from "./AppConfig";
 import { BoilerPlot } from "./panels/BoilerPlot";
-import { HeatStats } from "./panels/HeatStats";
+import { HeatSumStats } from "./panels/HeatSumStats";
 import { HeatPlot } from "./panels/HeatPlot";
 
 // TODO: dedup controls and embedded scene
@@ -21,7 +21,7 @@ export const HeatingScene = (
 ): EmbeddedScene => {
     let boiler = BoilerPlot(config);
     let heat = HeatPlot(config);
-    let stats = HeatStats(config);
+    let stats = HeatSumStats(config);
     return new EmbeddedScene({
         $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
         body: new SceneCSSGridLayout({

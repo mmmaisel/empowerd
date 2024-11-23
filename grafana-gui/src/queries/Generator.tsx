@@ -22,6 +22,7 @@ export class GeneratorSeries extends Timeseries {
     // power = (1-0.138)/0.138 * 1.11
     // === power * 6.93348
     static heat = new Field("power_w * 6.93348", "heat_w");
+    static heat_wh = new Field("energy_wh * 6.93348", "heat_wh");
     // d_runtime_s / 300 * 800 === d_runtime_s * 2.66667
     static power = new Field("power_w", null);
 
@@ -45,6 +46,26 @@ export class GeneratorSeries extends Timeseries {
                     .map((id) => `COALESCE(generator${id}.power_w, 0)`)
                     .join("+"),
                 `s_power`
+            );
+        }
+    }
+
+    static pds_heat(ids: number[]): Field {
+        if (ids.length === 1) {
+            return new Field(`generator${ids[0]}.heat_wh`, `s_heat`);
+        } else {
+            return new Field(
+                ids
+                    .map(
+                        (id) =>
+                            // prettier-ignore
+                            `COALESCE(` +
+                                `MAX(generator${id}.heat_wh)-` +
+                                `MIN(generator${id}.heat_wh)` +
+                            `, 0)`
+                    )
+                    .join("+"),
+                `ds_heat_wh`
             );
         }
     }
@@ -76,6 +97,11 @@ export class GeneratorSeries extends Timeseries {
 
     public heat(alias: string | null): this {
         this.fields_.push(GeneratorSeries.heat.with_alias(alias));
+        return this;
+    }
+
+    public heat_wh(alias: string | null): this {
+        this.fields_.push(GeneratorSeries.heat_wh.with_alias(alias));
         return this;
     }
 
@@ -207,6 +233,36 @@ export class Generator {
                 .fields([
                     GeneratorSeries.pds_energy(ids).with_alias(
                         `\"generator.energy_wh\"`
+                    ),
+                ])
+                .from(new Fragment(`generator${ids[0]}`))
+                .joins(
+                    GeneratorSeries.time_join(
+                        `generator${ids[0]}`,
+                        ids.slice(1)
+                    )
+                );
+        }
+    }
+
+    static query_dheat_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            return new GeneratorSeries(ids[0])
+                .d_heat(`\"generator.heat_wh\"`)
+                .time_filter();
+        } else {
+            return new Query()
+                .subqueries(
+                    ids.map((id) =>
+                        new GeneratorSeries(id)
+                            .time()
+                            .heat_wh(null)
+                            .time_filter()
+                    )
+                )
+                .fields([
+                    GeneratorSeries.pds_heat(ids).with_alias(
+                        `\"generator.heat_wh\"`
                     ),
                 ])
                 .from(new Fragment(`generator${ids[0]}`))
