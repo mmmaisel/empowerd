@@ -101,12 +101,12 @@ const mkscene = (
                 .overrideDisplayName(`Out Temperature`)
                 .overrideLinks(dds.weather);
             override
-                .matchFieldsWithName("rain_act_um")
+                .matchFieldsWithName("rain_act_mm")
                 .overrideColor({
                     fixedColor: Colors.blue(0),
                     mode: "fixed",
                 })
-                .overrideUnit("um")
+                .overrideUnit("lengthmm")
                 .overrideDisplayName(`Rain`)
                 .overrideLinks(dds.weather);
         });

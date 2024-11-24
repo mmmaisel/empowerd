@@ -14,7 +14,8 @@ export class WeatherSeries extends Timeseries {
     static hum_x2 = new Field("hum_x2_e3/10.0", "hum_x2_pct");
     static temp_x3 = new Field("temp_x3_degc_e1/10.0", "temp_x3_degc");
     static hum_x3 = new Field("hum_x3_e3/10.0", "hum_x3_pct");
-    static rain_act = new Field("rain_act_um", null);
+    static rain_act = new Field("rain_act_um/1000.0", "rain_act_mm");
+    static rain_day = new Field("rain_day_um/1000.0", "rain_day_mm");
 
     constructor(id: number) {
         super();
@@ -87,6 +88,11 @@ export class WeatherSeries extends Timeseries {
         this.fields_.push(WeatherSeries.rain_act.with_alias(alias));
         return this;
     }
+
+    public rain_day(alias: string | null): this {
+        this.fields_.push(WeatherSeries.rain_day.with_alias(alias));
+        return this;
+    }
 }
 
 export class Weather {
@@ -120,6 +126,15 @@ export class Weather {
             .hum_x1(null)
             .hum_x2(null)
             .hum_x3(null)
+            .time_filter()
+            .ordered();
+    }
+
+    static query_rain(ids: number[]): Query {
+        return new WeatherSeries(ids[0])
+            .time()
+            .rain_act(null)
+            .rain_day(null)
             .time_filter()
             .ordered();
     }

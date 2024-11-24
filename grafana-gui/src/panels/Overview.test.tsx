@@ -37,7 +37,9 @@ test("Query for single weather source", () => {
 
     // prettier-ignore
     const expected_sql0 =
-        "SELECT time, temp_out_degc_e1/10.0 AS temp_out_degc, rain_act_um " +
+        "SELECT time, " +
+                "temp_out_degc_e1/10.0 AS temp_out_degc, " +
+                "rain_act_um/1000.0 AS rain_act_mm " +
             "FROM weathers " +
             "WHERE series_id = 1 AND $__timeFilter(time) " +
             "ORDER BY time";
