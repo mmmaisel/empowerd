@@ -19,6 +19,7 @@ import { Overview } from "./panels/Overview";
 import { PowerScene } from "./Power";
 import { HeatingScene } from "./Heating";
 import { SolarDetailsScene } from "./SolarDetails";
+import { WeatherScene } from "./Weather";
 
 type HomePageProps = {
     config: ConfigJson;
@@ -47,6 +48,10 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                             routePath: prefixRoute(ROUTES.Heating),
                             getPage: this.mkheating.bind(this),
                         },
+                        {
+                            routePath: prefixRoute(ROUTES.Weather),
+                            getPage: this.mkweather.bind(this),
+                        },
                     ],
                 }),
             ],
@@ -65,6 +70,12 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                 {
                     title: "Heating",
                     url: `\${__url.path}/${ROUTES.Heating}`,
+                },
+            ],
+            weather: [
+                {
+                    title: "Weather",
+                    url: `\${__url.path}/${ROUTES.Weather}`,
                 },
             ],
         });
@@ -113,6 +124,17 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
             getParentPage: () => parent,
             getScene: (_routeMatch: SceneRouteMatch<{}>) =>
                 HeatingScene(props.config, props.backCb),
+        });
+    }
+
+    mkweather(_routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
+        let props = this.props;
+        return new SceneAppPage({
+            url: prefixRoute(ROUTES.Weather),
+            title: `Weather`,
+            getParentPage: () => parent,
+            getScene: (_routeMatch: SceneRouteMatch<{}>) =>
+                WeatherScene(props.config, props.backCb),
         });
     }
 

@@ -9,6 +9,7 @@ test("Query for single solar source", () => {
         heatpumps: [],
         meters: [],
         solars: [1],
+        weathers: [],
     });
 
     // prettier-ignore
@@ -24,6 +25,26 @@ test("Query for single solar source", () => {
     expect(queries[1].rawSql).toBe(expected_sql1);
 });
 
+test("Query for single weather source", () => {
+    const queries = privateFunctions.mkqueries({
+        batteries: [],
+        generators: [],
+        heatpumps: [],
+        meters: [],
+        solars: [],
+        weathers: [1],
+    });
+
+    // prettier-ignore
+    const expected_sql0 =
+        "SELECT time, temp_out_degc_e1/10.0 AS temp_out_degc, rain_act_um " +
+            "FROM weathers " +
+            "WHERE series_id = 1 AND $__timeFilter(time) " +
+            "ORDER BY time";
+
+    expect(queries[4].rawSql).toBe(expected_sql0);
+});
+
 test("Query for single generator source", () => {
     const queries = privateFunctions.mkqueries({
         batteries: [],
@@ -31,6 +52,7 @@ test("Query for single generator source", () => {
         heatpumps: [],
         meters: [],
         solars: [],
+        weathers: [],
     });
 
     // prettier-ignore
@@ -56,6 +78,7 @@ test("Query for single sources", () => {
         heatpumps: [3],
         meters: [4],
         solars: [1],
+        weathers: [],
     });
 
     // prettier-ignore
@@ -148,6 +171,7 @@ test("Query for dual", () => {
         heatpumps: [5, 6],
         meters: [7, 8],
         solars: [1, 2],
+        weathers: [],
     });
 
     // prettier-ignore

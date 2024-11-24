@@ -17,6 +17,7 @@ export type BackendConfig = {
     heatpumps: number[];
     meters: number[];
     solars: number[];
+    weathers: number[];
 };
 
 export const BackendConfigDefault = {
@@ -25,6 +26,7 @@ export const BackendConfigDefault = {
     heatpumps: [],
     meters: [],
     solars: [],
+    weathers: [],
 };
 
 export type ConfigJson = {

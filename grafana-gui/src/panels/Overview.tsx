@@ -15,10 +15,12 @@ import { DefaultValueTrafo } from "../trafos/DefaultValue";
 import { Heating } from "../queries/Heating";
 import { Panel } from "./Common";
 import { Production } from "../queries/Production";
+import { Weather } from "../queries/Weather";
 
 export type DrilldownConfig = {
     power: DataLink[];
     heatpump: DataLink[];
+    weather: DataLink[];
 };
 
 const mkscene = (
@@ -81,6 +83,32 @@ const mkscene = (
                 })
                 .overrideDisplayName(`Heat Production`)
                 .overrideLinks(dds.heatpump);
+            override
+                .matchFieldsByQuery("Weather")
+                .overrideColor({
+                    fixedColor: Colors.blue(0),
+                    mode: "fixed",
+                })
+                .overrideDisplayName(`Weather`)
+                .overrideLinks(dds.weather);
+            override
+                .matchFieldsWithName("temp_out_degc")
+                .overrideColor({
+                    fixedColor: Colors.yellow(0),
+                    mode: "fixed",
+                })
+                .overrideUnit("celsius")
+                .overrideDisplayName(`Out Temperature`)
+                .overrideLinks(dds.weather);
+            override
+                .matchFieldsWithName("rain_act_um")
+                .overrideColor({
+                    fixedColor: Colors.blue(0),
+                    mode: "fixed",
+                })
+                .overrideUnit("um")
+                .overrideDisplayName(`Rain`)
+                .overrideLinks(dds.weather);
         });
 
     // Not exposed through builder interface
@@ -113,6 +141,11 @@ const mkqueries = (config: BackendConfig): any => {
     queries.push({
         refId: "Heat",
         rawSql: Heating.query_heat_sum(config).sql(),
+        format: "table",
+    });
+    queries.push({
+        refId: "Weather",
+        rawSql: Weather.query_temp_rain(config.weathers).sql(),
         format: "table",
     });
 

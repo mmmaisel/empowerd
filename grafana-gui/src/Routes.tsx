@@ -10,6 +10,7 @@ export enum ROUTES {
     Details = "details",
     Power = "power",
     Heating = "heating",
+    Weather = "weather",
 }
 
 const PLUGIN_BASE_URL = `/a/${pluginJson.id}`;
@@ -49,6 +50,7 @@ export class Routes extends Component<RoutesProps, RoutesState> {
             heatpumps: [7],
             meters: [3],
             solars: [1, 8],
+            weathers: [5],
         };
 
         if (this.state.back) {
