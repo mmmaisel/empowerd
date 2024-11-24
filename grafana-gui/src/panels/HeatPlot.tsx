@@ -27,7 +27,8 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
             override
                 .matchFieldsWithName("heatpump.power_w")
                 .overrideColor({ fixedColor: Colors.purple(0), mode: "fixed" })
-                .overrideDisplayName("Heatpump Power");
+                .overrideDisplayName("Heatpump Power")
+                .overrideCustomFieldConfig("fillOpacity", 0);
             override
                 .matchFieldsWithName("heatpump.heat_w")
                 .overrideColor({ fixedColor: Colors.green(0), mode: "fixed" })
