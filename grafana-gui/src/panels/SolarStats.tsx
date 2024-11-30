@@ -7,7 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Solar } from "../queries/Solar";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
@@ -21,7 +21,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                 override
                     .matchFieldsWithName(`solar${solar}.energy_wh`)
                     .overrideColor({
-                        fixedColor: Colors.yellow(i),
+                        fixedColor: Color.yellow(i).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Solar ${i + 1} Energy`);

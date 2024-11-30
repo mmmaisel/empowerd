@@ -7,7 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Fragment, Field, Timeseries } from "../queries/Query";
 import { ProxyQuery, TimeProxy } from "../queries/Proxy";
 import { Generator, GeneratorSeries } from "../queries/Generator";
@@ -26,23 +26,35 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
         .setOverrides((override: any) => {
             override
                 .matchFieldsWithName("heatpump.power_w")
-                .overrideColor({ fixedColor: Colors.purple(0), mode: "fixed" })
+                .overrideColor({
+                    fixedColor: Color.purple(0).to_rgb(),
+                    mode: "fixed",
+                })
                 .overrideDisplayName("Heatpump Power")
                 .overrideCustomFieldConfig("fillOpacity", 0);
             override
                 .matchFieldsWithName("heatpump.heat_w")
-                .overrideColor({ fixedColor: Colors.green(0), mode: "fixed" })
+                .overrideColor({
+                    fixedColor: Color.green(0).to_rgb(),
+                    mode: "fixed",
+                })
                 .overrideDisplayName("Heatpump Heat");
             override
                 .matchFieldsWithName("heatpump.cop")
                 .overrideUnit("none")
                 .overrideMax(10)
-                .overrideColor({ fixedColor: Colors.yellow(0), mode: "fixed" })
+                .overrideColor({
+                    fixedColor: Color.yellow(0).to_rgb(),
+                    mode: "fixed",
+                })
                 .overrideDisplayName("Heatpump CoP")
                 .overrideCustomFieldConfig("fillOpacity", 0);
             override
                 .matchFieldsWithName("generator.heat_w")
-                .overrideColor({ fixedColor: Colors.red(0), mode: "fixed" })
+                .overrideColor({
+                    fixedColor: Color.red(0).to_rgb(),
+                    mode: "fixed",
+                })
                 .overrideDisplayName("Generator Heat");
         })
         .build();

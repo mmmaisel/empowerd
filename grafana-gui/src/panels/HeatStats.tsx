@@ -7,7 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { GeneratorSeries } from "../queries/Generator";
 import { HeatpumpSeries } from "../queries/Heatpump";
 
@@ -22,14 +22,14 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                 override
                     .matchFieldsWithName(`heatpump${id}.heat_wh`)
                     .overrideColor({
-                        fixedColor: Colors.green(i),
+                        fixedColor: Color.green(i).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Heatpump ${i + 1} Heat`);
                 override
                     .matchFieldsWithName(`heatpump${id}.cop`)
                     .overrideColor({
-                        fixedColor: Colors.yellow(i),
+                        fixedColor: Color.yellow(i).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideUnit("none")
@@ -42,7 +42,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                 override
                     .matchFieldsWithName(`generator${id}.heat_wh`)
                     .overrideColor({
-                        fixedColor: Colors.red(i),
+                        fixedColor: Color.red(i).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Generator ${i + 1} Heat`);

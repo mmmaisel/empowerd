@@ -7,7 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Weather } from "../queries/Weather";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
@@ -22,42 +22,42 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
             override
                 .matchFieldsWithName(`temp_in_degc`)
                 .overrideColor({
-                    fixedColor: Colors.yellow(0),
+                    fixedColor: Color.yellow(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Inside`);
             override
                 .matchFieldsWithName(`temp_out_degc`)
                 .overrideColor({
-                    fixedColor: Colors.blue(0),
+                    fixedColor: Color.blue(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Outside`);
             override
                 .matchFieldsWithName(`dew_point_degc`)
                 .overrideColor({
-                    fixedColor: Colors.purple(0),
+                    fixedColor: Color.purple(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Dew Point`);
             override
                 .matchFieldsWithName(`temp_x1_degc`)
                 .overrideColor({
-                    fixedColor: Colors.red(0),
+                    fixedColor: Color.red(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`X1`);
             override
                 .matchFieldsWithName(`temp_x2_degc`)
                 .overrideColor({
-                    fixedColor: Colors.green(0),
+                    fixedColor: Color.green(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`X2`);
             override
                 .matchFieldsWithName(`temp_x3_degc`)
                 .overrideColor({
-                    fixedColor: Colors.orange(0),
+                    fixedColor: Color.orange(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`X3`);

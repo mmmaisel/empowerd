@@ -8,7 +8,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Generator } from "../queries/Generator";
 import { Solar } from "../queries/Solar";
 
@@ -28,12 +28,18 @@ const mkscene = (
         .setOverrides((override: any) => {
             override
                 .matchFieldsByQuery("Solar")
-                .overrideColor({ fixedColor: Colors.yellow(0), mode: "fixed" })
+                .overrideColor({
+                    fixedColor: Color.yellow(0).to_rgb(),
+                    mode: "fixed",
+                })
                 .overrideDisplayName("Solar")
                 .overrideLinks(dds.solar);
             override
                 .matchFieldsByQuery("Generator")
-                .overrideColor({ fixedColor: Colors.red(0), mode: "fixed" })
+                .overrideColor({
+                    fixedColor: Color.red(0).to_rgb(),
+                    mode: "fixed",
+                })
                 .overrideDisplayName("Generator");
         })
         .build();

@@ -9,7 +9,7 @@ import {
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { DefaultValueTrafo } from "../trafos/DefaultValue";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Generator } from "../queries/Generator";
 import { Heatpump } from "../queries/Heatpump";
 
@@ -23,14 +23,14 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
             override
                 .matchFieldsByQuery(`heatpump.heat`)
                 .overrideColor({
-                    fixedColor: Colors.green(0),
+                    fixedColor: Color.green(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Heatpump Heat`);
             override
                 .matchFieldsByQuery(`heatpump.cop`)
                 .overrideColor({
-                    fixedColor: Colors.yellow(0),
+                    fixedColor: Color.yellow(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideUnit("none")
@@ -38,7 +38,7 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
             override
                 .matchFieldsByQuery(`generator.heat`)
                 .overrideColor({
-                    fixedColor: Colors.red(0),
+                    fixedColor: Color.red(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Generator Heat`);

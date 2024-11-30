@@ -48,7 +48,7 @@ export const GroupByMonthTrafo =
                         type: "number" as any,
                         config: {
                             color: {
-                                fixedColor: palette(x - first_year),
+                                fixedColor: palette(x - first_year).to_rgb(),
                                 mode: "fixed",
                             },
                             unit: unit,

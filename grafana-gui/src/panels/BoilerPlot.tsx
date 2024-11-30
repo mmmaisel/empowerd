@@ -7,7 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Boiler } from "../queries/Boiler";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
@@ -24,21 +24,21 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
                 override
                     .matchFieldsWithName(`boiler${id}.top`)
                     .overrideColor({
-                        fixedColor: Colors.red(i),
+                        fixedColor: Color.red(i).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Boiler ${i + 1} Top`);
                 override
                     .matchFieldsWithName(`boiler${id}.mid`)
                     .overrideColor({
-                        fixedColor: Colors.purple(i),
+                        fixedColor: Color.purple(i).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Boiler ${i + 1} Middle`);
                 override
                     .matchFieldsWithName(`boiler${id}.bot`)
                     .overrideColor({
-                        fixedColor: Colors.blue(i),
+                        fixedColor: Color.blue(i).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName(`Boiler ${i + 1} Bottom`);

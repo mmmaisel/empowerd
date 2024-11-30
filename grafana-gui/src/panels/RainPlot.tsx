@@ -7,7 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Weather } from "../queries/Weather";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
@@ -27,14 +27,14 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
             override
                 .matchFieldsWithName(`rain_act_mm`)
                 .overrideColor({
-                    fixedColor: Colors.cyan(0),
+                    fixedColor: Color.cyan(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Rain Actual`);
             override
                 .matchFieldsWithName(`rain_day_mm`)
                 .overrideColor({
-                    fixedColor: Colors.blue(0),
+                    fixedColor: Color.blue(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Rain Day`);

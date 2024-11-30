@@ -7,7 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Weather } from "../queries/Weather";
 
 const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
@@ -22,35 +22,35 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
             override
                 .matchFieldsWithName(`hum_in_pct`)
                 .overrideColor({
-                    fixedColor: Colors.yellow(0),
+                    fixedColor: Color.yellow(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Inside`);
             override
                 .matchFieldsWithName(`hum_out_pct`)
                 .overrideColor({
-                    fixedColor: Colors.blue(0),
+                    fixedColor: Color.blue(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Outside`);
             override
                 .matchFieldsWithName(`hum_x1_pct`)
                 .overrideColor({
-                    fixedColor: Colors.red(0),
+                    fixedColor: Color.red(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`X1`);
             override
                 .matchFieldsWithName(`hum_x2_pct`)
                 .overrideColor({
-                    fixedColor: Colors.green(0),
+                    fixedColor: Color.green(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`X2`);
             override
                 .matchFieldsWithName(`hum_x3_pct`)
                 .overrideColor({
-                    fixedColor: Colors.orange(0),
+                    fixedColor: Color.orange(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`X3`);

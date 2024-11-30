@@ -7,7 +7,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Generator } from "../queries/Generator";
 import { Solar } from "../queries/Solar";
 
@@ -24,11 +24,17 @@ const mkscene = (config: BackendConfig): SceneObject<SceneObjectState> => {
         .setOverrides((override: any) => {
             override
                 .matchFieldsWithName("solar.power_w")
-                .overrideColor({ fixedColor: Colors.yellow(0), mode: "fixed" })
+                .overrideColor({
+                    fixedColor: Color.yellow(0).to_rgb(),
+                    mode: "fixed",
+                })
                 .overrideDisplayName("Solar");
             override
                 .matchFieldsWithName("generator.power_w")
-                .overrideColor({ fixedColor: Colors.red(0), mode: "fixed" })
+                .overrideColor({
+                    fixedColor: Color.red(0).to_rgb(),
+                    mode: "fixed",
+                })
                 .overrideDisplayName("Generator");
         })
         .build();

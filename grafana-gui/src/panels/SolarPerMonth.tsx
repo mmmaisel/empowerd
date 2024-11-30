@@ -8,7 +8,7 @@ import {
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Panel } from "./Common";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { GroupByMonthTrafo } from "../trafos/GroupByMonth";
 import { Solar } from "../queries/Solar";
 
@@ -39,7 +39,7 @@ export const SolarPerMonth = (config: ConfigJson): Panel => {
     const transformedData = new SceneDataTransformer({
         $data: queryRunner,
         transformations: [
-            GroupByMonthTrafo.bind(null, "Solar", "watth", Colors.yellow),
+            GroupByMonthTrafo.bind(null, "Solar", "watth", Color.yellow),
         ],
     });
 

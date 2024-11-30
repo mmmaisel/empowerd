@@ -9,7 +9,7 @@ import { DataLink } from "@grafana/data";
 
 import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
 import { Battery } from "../queries/Battery";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 import { Consumption } from "../queries/Consumption";
 import { DefaultValueTrafo } from "../trafos/DefaultValue";
 import { Heating } from "../queries/Heating";
@@ -37,7 +37,7 @@ const mkscene = (
             override
                 .matchFieldsByQuery("Production")
                 .overrideColor({
-                    fixedColor: Colors.green(0),
+                    fixedColor: Color.green(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Power Production`)
@@ -45,7 +45,7 @@ const mkscene = (
             override
                 .matchFieldsByQuery("Consumption")
                 .overrideColor({
-                    fixedColor: Colors.red(0),
+                    fixedColor: Color.red(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Power Consumption`)
@@ -53,7 +53,7 @@ const mkscene = (
             override
                 .matchFieldsByQuery("Battery")
                 .overrideColor({
-                    fixedColor: Colors.grey(0),
+                    fixedColor: Color.grey(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Battery`)
@@ -61,7 +61,7 @@ const mkscene = (
             override
                 .matchFieldsWithName("battery.power_w")
                 .overrideColor({
-                    fixedColor: Colors.grey(0),
+                    fixedColor: Color.grey(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Battery Power`)
@@ -69,7 +69,7 @@ const mkscene = (
             override
                 .matchFieldsWithName("battery.charge_wh")
                 .overrideColor({
-                    fixedColor: Colors.grey(0),
+                    fixedColor: Color.grey(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideUnit("watth")
@@ -78,7 +78,7 @@ const mkscene = (
             override
                 .matchFieldsByQuery("Heat")
                 .overrideColor({
-                    fixedColor: Colors.purple(0),
+                    fixedColor: Color.purple(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Heat Production`)
@@ -86,7 +86,7 @@ const mkscene = (
             override
                 .matchFieldsByQuery("Weather")
                 .overrideColor({
-                    fixedColor: Colors.blue(0),
+                    fixedColor: Color.blue(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideDisplayName(`Weather`)
@@ -94,7 +94,7 @@ const mkscene = (
             override
                 .matchFieldsWithName("temp_out_degc")
                 .overrideColor({
-                    fixedColor: Colors.yellow(0),
+                    fixedColor: Color.yellow(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideUnit("celsius")
@@ -103,7 +103,7 @@ const mkscene = (
             override
                 .matchFieldsWithName("rain_act_mm")
                 .overrideColor({
-                    fixedColor: Colors.blue(0),
+                    fixedColor: Color.blue(0).to_rgb(),
                     mode: "fixed",
                 })
                 .overrideUnit("lengthmm")
