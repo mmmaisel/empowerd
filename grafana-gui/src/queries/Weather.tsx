@@ -18,6 +18,9 @@ export class WeatherSeries extends Timeseries {
     static rain_day = new Field("rain_day_um/1000.0", "rain_day_mm");
     static baro_abs = new Field("baro_abs_pa/100.0", "baro_abs_hpa");
     static baro_sea = new Field("baro_sea_pa/100.0", "baro_sea_hpa");
+    static wind_act = new Field("wind_act_mms/1000.0", "wind_act_ms");
+    static wind_gust = new Field("wind_gust_mms/1000.0", "wind_gust_ms");
+    static wind_dir = new Field("wind_dir_deg_e1/10.0", "wind_dir_deg");
 
     constructor(id: number) {
         super();
@@ -105,6 +108,21 @@ export class WeatherSeries extends Timeseries {
         this.fields_.push(WeatherSeries.baro_sea.with_alias(alias));
         return this;
     }
+
+    public wind_act(alias: string | null): this {
+        this.fields_.push(WeatherSeries.wind_act.with_alias(alias));
+        return this;
+    }
+
+    public wind_gust(alias: string | null): this {
+        this.fields_.push(WeatherSeries.wind_gust.with_alias(alias));
+        return this;
+    }
+
+    public wind_dir(alias: string | null): this {
+        this.fields_.push(WeatherSeries.wind_dir.with_alias(alias));
+        return this;
+    }
 }
 
 export class Weather {
@@ -156,6 +174,16 @@ export class Weather {
             .time()
             .baro_abs(null)
             .baro_sea(null)
+            .time_filter()
+            .ordered();
+    }
+
+    static query_wind(ids: number[]): Query {
+        return new WeatherSeries(ids[0])
+            .time()
+            .wind_act(null)
+            .wind_gust(null)
+            .wind_dir(null)
             .time_filter()
             .ordered();
     }
