@@ -97,10 +97,10 @@ export const HeatStats = (config: ConfigJson): Panel => {
         queries: mkqueries(config.backend || BackendConfigDefault),
     });
 
-    return {
+    return new Panel({
         query: queryRunner,
         scene: mkscene(config.backend || BackendConfigDefault),
-    };
+    });
 };
 
 export let privateFunctions: any = {};

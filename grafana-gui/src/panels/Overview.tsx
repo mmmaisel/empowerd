@@ -165,10 +165,10 @@ export const Overview = (config: ConfigJson, links: DrilldownConfig): Panel => {
         transformations: [DefaultValueTrafo],
     });
 
-    return {
+    return new Panel({
         query: transformedData,
         scene: mkscene(config.backend || BackendConfigDefault, links),
-    };
+    });
 };
 
 export let privateFunctions: any = {};

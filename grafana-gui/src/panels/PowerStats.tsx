@@ -72,10 +72,10 @@ export const PowerStats = (
         queries: mkqueries(config.backend || BackendConfigDefault),
     });
 
-    return {
+    return new Panel({
         query: queryRunner,
         scene: mkscene(config.backend || BackendConfigDefault, links),
-    };
+    });
 };
 
 export let privateFunctions: any = {};

@@ -43,10 +43,10 @@ export const SolarPerMonth = (config: ConfigJson): Panel => {
         ],
     });
 
-    return {
+    return new Panel({
         query: transformedData,
         scene: mkscene(config.backend || BackendConfigDefault),
-    };
+    });
 };
 
 export let privateFunctions: any = {};

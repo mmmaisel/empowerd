@@ -16,17 +16,13 @@ export const SolarDetailsScene = (
     config: ConfigJson,
     backCb: () => void
 ): EmbeddedScene => {
-    let plot = SolarPerMonth(config);
     return new EmbeddedScene({
         $timeRange: new SceneTimeRange({ from: "now-3y", to: "now" }),
         body: new SceneCSSGridLayout({
             templateColumns: "minmax(1fr, 1fr)",
             templateRows: "5fr 1fr",
             children: [
-                new EmbeddedScene({
-                    $data: plot.query,
-                    body: plot.scene,
-                }),
+                SolarPerMonth(config).to_scene(),
             ],
         }),
         controls: [

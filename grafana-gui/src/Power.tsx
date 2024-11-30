@@ -18,30 +18,21 @@ export const PowerScene = (
     config: ConfigJson,
     backCb: () => void
 ): EmbeddedScene => {
-    let plot = PowerPlot(config);
-    let stats = PowerStats(config, {
-        solar: [
-            {
-                title: "Solar per Month",
-                url: `\${__url.path}/${ROUTES.Details}`,
-            },
-        ],
-    });
-
     return new EmbeddedScene({
         $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
         body: new SceneCSSGridLayout({
             templateColumns: "minmax(1fr, 1fr)",
             templateRows: "5fr 1fr",
             children: [
-                new EmbeddedScene({
-                    $data: plot.query,
-                    body: plot.scene,
-                }),
-                new EmbeddedScene({
-                    $data: stats.query,
-                    body: stats.scene,
-                }),
+                PowerPlot(config).to_scene(),
+                PowerStats(config, {
+                    solar: [
+                        {
+                            title: "Solar per Month",
+                            url: `\${__url.path}/${ROUTES.Details}`,
+                        },
+                    ],
+                }).to_scene(),
             ],
         }),
         controls: [

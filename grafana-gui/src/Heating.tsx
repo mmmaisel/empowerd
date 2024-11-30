@@ -19,28 +19,16 @@ export const HeatingScene = (
     config: ConfigJson,
     backCb: () => void
 ): EmbeddedScene => {
-    let boiler = BoilerPlot(config);
-    let heat = HeatPlot(config);
-    let stats = HeatSumStats(config);
     return new EmbeddedScene({
         $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
         body: new SceneCSSGridLayout({
             templateColumns: "minmax(1fr, 1fr)",
             templateRows: "3fr 3fr 1fr",
             children: [
-                new EmbeddedScene({
-                    $data: boiler.query,
-                    body: boiler.scene,
-                }),
-                new EmbeddedScene({
-                    $data: heat.query,
-                    body: heat.scene,
-                }),
+                BoilerPlot(config).to_scene(),
+                HeatPlot(config).to_scene(),
                 // TODO: display accumulated stats
-                new EmbeddedScene({
-                    $data: stats.query,
-                    body: stats.scene,
-                }),
+                HeatSumStats(config).to_scene(),
             ],
         }),
         controls: [
