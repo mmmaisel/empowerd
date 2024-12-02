@@ -25,10 +25,9 @@ export const HeatingScene = (
             templateColumns: "minmax(1fr, 1fr)",
             templateRows: "3fr 3fr 1fr",
             children: [
-                BoilerPlot(config).to_scene(),
-                HeatPlot(config).to_scene(),
-                // TODO: display accumulated stats
-                HeatSumStats(config).to_scene(),
+                new BoilerPlot(config.backend, config.datasource).build(),
+                new HeatPlot(config.backend, config.datasource).build(),
+                new HeatSumStats(config.backend, config.datasource).build(),
             ],
         }),
         controls: [

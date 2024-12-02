@@ -59,36 +59,36 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
     }
 
     mkscene(): EmbeddedScene {
-        let overview = Overview(this.props.config, {
-            power: [
-                {
-                    title: "Power",
-                    url: `\${__url.path}/${ROUTES.Power}`,
-                },
-            ],
-            heatpump: [
-                {
-                    title: "Heating",
-                    url: `\${__url.path}/${ROUTES.Heating}`,
-                },
-            ],
-            weather: [
-                {
-                    title: "Weather",
-                    url: `\${__url.path}/${ROUTES.Weather}`,
-                },
-            ],
-        });
         return new EmbeddedScene({
             $timeRange: new SceneTimeRange({ from: "now-1h", to: "now" }),
             body: new SceneCSSGridLayout({
                 templateColumns: "minmax(1fr, 1fr)",
                 templateRows: "5fr 1fr",
                 children: [
-                    new EmbeddedScene({
-                        $data: overview.query,
-                        body: overview.scene,
-                    }),
+                    new Overview(
+                        this.props.config.backend,
+                        this.props.config.datasource,
+                        {
+                            power: [
+                                {
+                                    title: "Power",
+                                    url: `\${__url.path}/${ROUTES.Power}`,
+                                },
+                            ],
+                            heatpump: [
+                                {
+                                    title: "Heating",
+                                    url: `\${__url.path}/${ROUTES.Heating}`,
+                                },
+                            ],
+                            weather: [
+                                {
+                                    title: "Weather",
+                                    url: `\${__url.path}/${ROUTES.Weather}`,
+                                },
+                            ],
+                        }
+                    ).build(),
                 ],
             }),
             controls: [

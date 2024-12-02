@@ -1,9 +1,13 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./HumidityPlot";
+import { BackendConfigDefault } from "../AppConfig";
+import { HumidityPlot } from "./HumidityPlot";
 
 test("Query for single weather source", () => {
-    const queries = privateFunctions.mkqueries({ weathers: [1] });
+    const queries = new HumidityPlot({
+        ...BackendConfigDefault,
+        weathers: [1],
+    }).queries();
 
     // prettier-ignore
     const expected_sql =

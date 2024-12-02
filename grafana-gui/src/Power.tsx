@@ -24,15 +24,15 @@ export const PowerScene = (
             templateColumns: "minmax(1fr, 1fr)",
             templateRows: "5fr 1fr",
             children: [
-                PowerPlot(config).to_scene(),
-                PowerStats(config, {
+                new PowerPlot(config.backend, config.datasource).build(),
+                new PowerStats(config.backend, config.datasource, {
                     solar: [
                         {
                             title: "Solar per Month",
                             url: `\${__url.path}/${ROUTES.Details}`,
                         },
                     ],
-                }).to_scene(),
+                }).build(),
             ],
         }),
         controls: [

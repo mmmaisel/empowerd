@@ -1,12 +1,14 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./HeatStats";
+import { BackendConfigDefault } from "../AppConfig";
+import { HeatStats } from "./HeatStats";
 
 test("Query for heatpump and generator source", () => {
-    const queries = privateFunctions.mkqueries({
+    const queries = new HeatStats({
+        ...BackendConfigDefault,
         heatpumps: [1],
         generators: [2],
-    });
+    }).queries();
 
     // prettier-ignore
     const hp_query =

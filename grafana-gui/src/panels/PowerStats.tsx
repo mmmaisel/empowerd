@@ -1,13 +1,8 @@
 import { DataLink } from "@grafana/data";
-import {
-    PanelBuilders,
-    SceneQueryRunner,
-    SceneObject,
-    SceneObjectState,
-} from "@grafana/scenes";
+import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 
-import { BackendConfig, BackendConfigDefault, ConfigJson } from "../AppConfig";
-import { Panel } from "./Common";
+import { BackendConfig } from "../AppConfig";
+import { EmpPanelBuilder } from "./Common";
 import { Color } from "./Color";
 import { Generator } from "../queries/Generator";
 import { Solar } from "../queries/Solar";
@@ -16,71 +11,58 @@ export type DrilldownConfig = {
     solar: DataLink[];
 };
 
-const mkscene = (
-    config: BackendConfig,
-    dds: DrilldownConfig
-): SceneObject<SceneObjectState> => {
-    return PanelBuilders.stat()
-        .setUnit("watth")
-        .setNoValue("No Data")
-        .setOption("graphMode", "none" as any)
-        .setOption("textMode", "value_and_name" as any)
-        .setOverrides((override: any) => {
-            override
-                .matchFieldsByQuery("Solar")
-                .overrideColor({
-                    fixedColor: Color.yellow(0).to_rgb(),
-                    mode: "fixed",
-                })
-                .overrideDisplayName("Solar")
-                .overrideLinks(dds.solar);
-            override
-                .matchFieldsByQuery("Generator")
-                .overrideColor({
-                    fixedColor: Color.red(0).to_rgb(),
-                    mode: "fixed",
-                })
-                .overrideDisplayName("Generator");
-        })
-        .build();
-};
+export class PowerStats extends EmpPanelBuilder {
+    private dds: DrilldownConfig;
 
-const mkqueries = (config: BackendConfig): any => {
-    return [
-        {
-            refId: "Solar",
-            rawSql: Solar.query_energy_sum(config.solars).sql(),
-            format: "table",
-        },
-        {
-            refId: "Generator",
-            rawSql: Generator.query_energy_sum(config.generators).sql(),
-            format: "table",
-        },
-    ];
-};
+    constructor(
+        config: BackendConfig | undefined,
+        datasource: any,
+        dds: DrilldownConfig
+    ) {
+        super(config, datasource);
+        this.dds = dds;
+    }
 
-// TODO: dedup
-export const PowerStats = (
-    config: ConfigJson,
-    links: DrilldownConfig
-): Panel => {
-    const queryRunner = new SceneQueryRunner({
-        datasource: {
-            uid: config.datasource?.uid || "",
-        },
-        queries: mkqueries(config.backend || BackendConfigDefault),
-    });
+    public scene(): SceneObject<SceneObjectState> {
+        return PanelBuilders.stat()
+            .setUnit("watth")
+            .setNoValue("No Data")
+            .setOption("graphMode", "none" as any)
+            .setOption("textMode", "value_and_name" as any)
+            .setOverrides((override: any) => {
+                override
+                    .matchFieldsByQuery("Solar")
+                    .overrideColor({
+                        fixedColor: Color.yellow(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName("Solar")
+                    .overrideLinks(this.dds.solar);
+                override
+                    .matchFieldsByQuery("Generator")
+                    .overrideColor({
+                        fixedColor: Color.red(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName("Generator");
+            })
+            .build();
+    }
 
-    return new Panel({
-        query: queryRunner,
-        scene: mkscene(config.backend || BackendConfigDefault, links),
-    });
-};
-
-export let privateFunctions: any = {};
-if (process.env.NODE_ENV === "test") {
-    privateFunctions = {
-        mkqueries,
-    };
+    public queries(): any[] {
+        return [
+            {
+                refId: "Solar",
+                rawSql: Solar.query_energy_sum(this.config.solars).sql(),
+                format: "table",
+            },
+            {
+                refId: "Generator",
+                rawSql: Generator.query_energy_sum(
+                    this.config.generators
+                ).sql(),
+                format: "table",
+            },
+        ];
+    }
 }

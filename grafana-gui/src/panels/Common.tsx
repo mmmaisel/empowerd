@@ -1,31 +1,41 @@
 import {
     EmbeddedScene,
-    SceneDataTransformer,
     SceneObject,
     SceneObjectState,
     SceneQueryRunner,
 } from "@grafana/scenes";
+import { DataSourceRef } from "@grafana/schema";
 
-type PanelArgs = {
-    query: SceneQueryRunner | SceneDataTransformer;
-    scene: SceneObject<SceneObjectState>;
-}
+import { BackendConfig, BackendConfigDefault } from "../AppConfig";
 
-export class Panel {
-    public query: SceneQueryRunner | SceneDataTransformer;
-    public scene: SceneObject<SceneObjectState>;
+export abstract class EmpPanelBuilder {
+    public config: BackendConfig;
+    public ds_uid: string;
 
     constructor(
-        args: PanelArgs
+        config: BackendConfig | undefined,
+        datasource: DataSourceRef | undefined = undefined
     ) {
-        this.query = args.query;
-        this.scene = args.scene;
+        this.config = config || BackendConfigDefault;
+        this.ds_uid = datasource?.uid || "";
     }
 
-    public to_scene(): EmbeddedScene {
+    public abstract scene(): SceneObject<SceneObjectState>;
+    public abstract queries(): any[];
+
+    protected query_runner(): SceneQueryRunner {
+        return new SceneQueryRunner({
+            datasource: {
+                uid: this.ds_uid,
+            },
+            queries: this.queries(),
+        });
+    }
+
+    public build(): EmbeddedScene {
         return new EmbeddedScene({
-            $data: this.query,
-            body: this.scene,
+            $data: this.query_runner(),
+            body: this.scene(),
         });
     }
 }

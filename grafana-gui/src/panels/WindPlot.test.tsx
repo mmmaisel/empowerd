@@ -1,9 +1,13 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./WindPlot";
+import { BackendConfigDefault } from "../AppConfig";
+import { WindPlot } from "./WindPlot";
 
 test("Query for single weather source", () => {
-    const queries = privateFunctions.mkqueries({ weathers: [1] });
+    const queries = new WindPlot({
+        ...BackendConfigDefault,
+        weathers: [1],
+    }).queries();
 
     // prettier-ignore
     const expected_sql =

@@ -1,9 +1,13 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./TemperaturePlot";
+import { BackendConfigDefault } from "../AppConfig";
+import { TemperaturePlot } from "./TemperaturePlot";
 
 test("Query for single weather source", () => {
-    const queries = privateFunctions.mkqueries({ weathers: [1] });
+    const queries = new TemperaturePlot({
+        ...BackendConfigDefault,
+        weathers: [1],
+    }).queries();
 
     // prettier-ignore
     const expected_sql =

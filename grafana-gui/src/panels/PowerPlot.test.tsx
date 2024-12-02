@@ -1,9 +1,14 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./PowerPlot";
+import { BackendConfigDefault } from "../AppConfig";
+import { PowerPlot } from "./PowerPlot";
 
 test("Query for single solar source", () => {
-    const queries = privateFunctions.mkqueries({ solars: [1], generators: [] });
+    const queries = new PowerPlot({
+        ...BackendConfigDefault,
+        solars: [1],
+        generators: [],
+    }).queries();
 
     // prettier-ignore
     const expected_sql =
@@ -15,10 +20,11 @@ test("Query for single solar source", () => {
 });
 
 test("Query for dual solar source", () => {
-    const queries = privateFunctions.mkqueries({
+    const queries = new PowerPlot({
+        ...BackendConfigDefault,
         solars: [1, 8],
         generators: [],
-    });
+    }).queries();
 
     // prettier-ignore
     const expected_sql =

@@ -22,7 +22,7 @@ export const SolarDetailsScene = (
             templateColumns: "minmax(1fr, 1fr)",
             templateRows: "5fr 1fr",
             children: [
-                SolarPerMonth(config).to_scene(),
+                new SolarPerMonth(config.backend, config.datasource).build(),
             ],
         }),
         controls: [

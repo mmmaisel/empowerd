@@ -1,9 +1,13 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./SolarStats";
+import { BackendConfigDefault } from "../AppConfig";
+import { SolarStats } from "./SolarStats";
 
 test("Query for dual solar source", () => {
-    const queries = privateFunctions.mkqueries({ solars: [1, 8] });
+    const queries = new SolarStats({
+        ...BackendConfigDefault,
+        solars: [1, 8],
+    }).queries();
 
     // prettier-ignore
     const expected_sql = (i: number): string => {

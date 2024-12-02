@@ -31,17 +31,23 @@ export const WeatherScene = (
                     templateColumns: "1fr",
                     templateRows: "1fr 1fr",
                     children: [
-                        TemperaturePlot(config).to_scene(),
-                        HumidityPlot(config).to_scene(),
+                        new TemperaturePlot(
+                            config.backend,
+                            config.datasource
+                        ).build(),
+                        new HumidityPlot(
+                            config.backend,
+                            config.datasource
+                        ).build(),
                     ],
                 }),
                 new SceneCSSGridLayout({
                     templateColumns: "1fr",
                     templateRows: "1fr 1fr 1fr",
                     children: [
-                        RainPlot(config).to_scene(),
-                        BaroPlot(config).to_scene(),
-                        WindPlot(config).to_scene(),
+                        new RainPlot(config.backend, config.datasource).build(),
+                        new BaroPlot(config.backend, config.datasource).build(),
+                        new WindPlot(config.backend, config.datasource).build(),
                     ],
                 }),
             ],

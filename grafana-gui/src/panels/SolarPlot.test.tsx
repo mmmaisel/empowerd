@@ -1,9 +1,13 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./SolarPlot";
+import { BackendConfigDefault } from "../AppConfig";
+import { SolarPlot } from "./SolarPlot";
 
 test("Query for single solar source", () => {
-    const queries = privateFunctions.mkqueries({ solars: [1] });
+    const queries = new SolarPlot({
+        ...BackendConfigDefault,
+        solars: [1],
+    }).queries();
 
     // prettier-ignore
     const expected_sql =
@@ -15,7 +19,10 @@ test("Query for single solar source", () => {
 });
 
 test("Query for dual solar source", () => {
-    const queries = privateFunctions.mkqueries({ solars: [1, 8] });
+    const queries = new SolarPlot({
+        ...BackendConfigDefault,
+        solars: [1, 8],
+    }).queries();
 
     // prettier-ignore
     const expected_sql =

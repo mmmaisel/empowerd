@@ -1,12 +1,14 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./HeatSumStats";
+import { BackendConfigDefault } from "../AppConfig";
+import { HeatSumStats } from "./HeatSumStats";
 
 test("Query for single heatpump and generator source", () => {
-    const queries = privateFunctions.mkqueries({
+    const queries = new HeatSumStats({
+        ...BackendConfigDefault,
         heatpumps: [1],
         generators: [2],
-    });
+    }).queries();
 
     // prettier-ignore
     const hp_query =
@@ -33,10 +35,11 @@ test("Query for single heatpump and generator source", () => {
 });
 
 test("Query for dual heatpump and generator source", () => {
-    const queries = privateFunctions.mkqueries({
+    const queries = new HeatSumStats({
+        ...BackendConfigDefault,
         heatpumps: [1, 2],
         generators: [3, 4],
-    });
+    }).queries();
 
     // prettier-ignore
     const hp_query =

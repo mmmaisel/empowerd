@@ -1,12 +1,14 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./HeatPlot";
+import { BackendConfigDefault } from "../AppConfig";
+import { HeatPlot } from "./HeatPlot";
 
 test("Query for single generator source", () => {
-    const queries = privateFunctions.mkqueries({
+    const queries = new HeatPlot({
+        ...BackendConfigDefault,
         generators: [2],
         heatpumps: [],
-    });
+    }).queries();
 
     // prettier-ignore
     const expected_sql =
@@ -19,10 +21,11 @@ test("Query for single generator source", () => {
 });
 
 test("Query for single heatpump source", () => {
-    const queries = privateFunctions.mkqueries({
+    const queries = new HeatPlot({
+        ...BackendConfigDefault,
         generators: [],
         heatpumps: [7],
-    });
+    }).queries();
 
     // prettier-ignore
     const expected_sql =
@@ -38,10 +41,11 @@ test("Query for single heatpump source", () => {
 });
 
 test("Query for combined source", () => {
-    const queries = privateFunctions.mkqueries({
+    const queries = new HeatPlot({
+        ...BackendConfigDefault,
         generators: [2],
         heatpumps: [7],
-    });
+    }).queries();
 
     // prettier-ignore
     const expected_sql =
@@ -72,10 +76,11 @@ test("Query for combined source", () => {
 });
 
 test("Query for combined multi source", () => {
-    const queries = privateFunctions.mkqueries({
+    const queries = new HeatPlot({
+        ...BackendConfigDefault,
         generators: [2, 3],
         heatpumps: [7, 8],
-    });
+    }).queries();
 
     // prettier-ignore
     const expected_sql =

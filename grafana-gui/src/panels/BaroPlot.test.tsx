@@ -1,9 +1,13 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./BaroPlot";
+import { BackendConfigDefault } from "../AppConfig";
+import { BaroPlot } from "./BaroPlot";
 
 test("Query for single weather source", () => {
-    const queries = privateFunctions.mkqueries({ weathers: [1] });
+    const queries = new BaroPlot({
+        ...BackendConfigDefault,
+        weathers: [1],
+    }).queries();
 
     // prettier-ignore
     const expected_sql =

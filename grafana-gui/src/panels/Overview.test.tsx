@@ -1,16 +1,17 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./Overview";
+import { BackendConfigDefault } from "../AppConfig";
+import { Overview } from "./Overview";
 
 test("Query for single solar source", () => {
-    const queries = privateFunctions.mkqueries({
-        batteries: [],
-        generators: [],
-        heatpumps: [],
-        meters: [],
-        solars: [1],
-        weathers: [],
-    });
+    const queries = new Overview(
+        {
+            ...BackendConfigDefault,
+            solars: [1],
+        },
+        undefined,
+        undefined as any
+    ).queries();
 
     // prettier-ignore
     const expected_sql0 =
@@ -26,14 +27,14 @@ test("Query for single solar source", () => {
 });
 
 test("Query for single weather source", () => {
-    const queries = privateFunctions.mkqueries({
-        batteries: [],
-        generators: [],
-        heatpumps: [],
-        meters: [],
-        solars: [],
-        weathers: [1],
-    });
+    const queries = new Overview(
+        {
+            ...BackendConfigDefault,
+            weathers: [1],
+        },
+        undefined,
+        undefined as any
+    ).queries();
 
     // prettier-ignore
     const expected_sql0 =
@@ -48,14 +49,14 @@ test("Query for single weather source", () => {
 });
 
 test("Query for single generator source", () => {
-    const queries = privateFunctions.mkqueries({
-        batteries: [],
-        generators: [2],
-        heatpumps: [],
-        meters: [],
-        solars: [],
-        weathers: [],
-    });
+    const queries = new Overview(
+        {
+            ...BackendConfigDefault,
+            generators: [2],
+        },
+        undefined,
+        undefined as any
+    ).queries();
 
     // prettier-ignore
     const expected_sql0 =
@@ -74,14 +75,18 @@ test("Query for single generator source", () => {
 });
 
 test("Query for single sources", () => {
-    const queries = privateFunctions.mkqueries({
-        batteries: [5],
-        generators: [2],
-        heatpumps: [3],
-        meters: [4],
-        solars: [1],
-        weathers: [],
-    });
+    const queries = new Overview(
+        {
+            ...BackendConfigDefault,
+            batteries: [5],
+            generators: [2],
+            heatpumps: [3],
+            meters: [4],
+            solars: [1],
+        },
+        undefined,
+        undefined as any
+    ).queries();
 
     // prettier-ignore
     const expected_sql0 =
@@ -167,14 +172,18 @@ test("Query for single sources", () => {
 });
 
 test("Query for dual", () => {
-    const queries = privateFunctions.mkqueries({
-        batteries: [9, 10],
-        generators: [3, 4],
-        heatpumps: [5, 6],
-        meters: [7, 8],
-        solars: [1, 2],
-        weathers: [],
-    });
+    const queries = new Overview(
+        {
+            ...BackendConfigDefault,
+            batteries: [9, 10],
+            generators: [3, 4],
+            heatpumps: [5, 6],
+            meters: [7, 8],
+            solars: [1, 2],
+        },
+        undefined,
+        undefined as any
+    ).queries();
 
     // prettier-ignore
     const expected_sql0 =

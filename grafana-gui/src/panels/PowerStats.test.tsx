@@ -1,9 +1,14 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./PowerStats";
+import { BackendConfigDefault } from "../AppConfig";
+import { PowerStats } from "./PowerStats";
 
 test("Query for single solar source", () => {
-    const queries = privateFunctions.mkqueries({ solars: [1], generators: [] });
+    const queries = new PowerStats(
+        { ...BackendConfigDefault, solars: [1], generators: [] },
+        undefined,
+        undefined as any
+    ).queries();
 
     // prettier-ignore
     const expected_sql =
@@ -15,10 +20,15 @@ test("Query for single solar source", () => {
 });
 
 test("Query for dual solar source", () => {
-    const queries = privateFunctions.mkqueries({
-        solars: [1, 8],
-        generators: [],
-    });
+    const queries = new PowerStats(
+        {
+            ...BackendConfigDefault,
+            solars: [1, 8],
+            generators: [],
+        },
+        undefined,
+        undefined as any
+    ).queries();
 
     // prettier-ignore
     const expected_sql =

@@ -1,9 +1,13 @@
 import "intersection-observer";
 
-import { privateFunctions } from "./BoilerPlot";
+import { BackendConfigDefault } from "../AppConfig";
+import { BoilerPlot } from "./BoilerPlot";
 
 test("Query for single boiler source", () => {
-    const queries = privateFunctions.mkqueries({ heatpumps: [1] });
+    const queries = new BoilerPlot({
+        ...BackendConfigDefault,
+        heatpumps: [1],
+    }).queries();
 
     // prettier-ignore
     const expected_sql =
@@ -19,7 +23,10 @@ test("Query for single boiler source", () => {
 });
 
 test("Query for dual boiler source", () => {
-    const queries = privateFunctions.mkqueries({ heatpumps: [1, 7] });
+    const queries = new BoilerPlot({
+        ...BackendConfigDefault,
+        heatpumps: [1, 7],
+    }).queries();
 
     // prettier-ignore
     const expected_sql =
