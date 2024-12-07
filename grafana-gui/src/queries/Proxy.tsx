@@ -36,7 +36,7 @@ export class TimeseriesProxy extends ProxyQuery {
     constructor(series: any, ids: number[], fields: Field[]) {
         super();
         this.fields_ = [
-            new TimeProxy([`${series.basename}${ids[0]}.time`]),
+            new TimeProxy(ids.map((id) => `${series.basename}${id}.time`)),
             ...ids
                 .map((id) =>
                     fields.map(
@@ -59,7 +59,7 @@ export class AggregateProxy extends ProxyQuery {
     constructor(series: any, ids: number[], fields: Field[]) {
         super();
         this.fields_ = [
-            new TimeProxy([`${series.basename}${ids[0]}.time`]),
+            new TimeProxy(ids.map((id) => `${series.basename}${id}.time`)),
             ...fields,
         ];
         this.from_ = new Fragment(`${series.basename}${ids[0]}`);

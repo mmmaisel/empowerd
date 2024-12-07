@@ -35,7 +35,7 @@ test("Query for dual solar source", () => {
         ") " +
         "SELECT time, \"solar1.power_w\", \"solar8.power_w\" " +
         "FROM (SELECT " +
-            "solar1.time AS time, " +
+            "COALESCE(solar1.time, solar8.time) AS time, " +
             "solar1.power_w AS \"solar1.power_w\", " +
             "solar8.power_w AS \"solar8.power_w\" " +
             "FROM solar1 " +

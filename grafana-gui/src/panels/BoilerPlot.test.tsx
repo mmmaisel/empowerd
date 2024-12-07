@@ -48,7 +48,7 @@ test("Query for dual boiler source", () => {
         "SELECT time, \"boiler1.top\", \"boiler1.mid\", \"boiler1.bot\", " +
             "\"boiler7.top\", \"boiler7.mid\", \"boiler7.bot\" " +
         "FROM (SELECT " +
-            "boiler1.time AS time, " +
+            "COALESCE(boiler1.time, boiler7.time) AS time, " +
             "boiler1.top AS \"boiler1.top\", " +
             "boiler1.mid AS \"boiler1.mid\", " +
             "boiler1.bot AS \"boiler1.bot\", " +
