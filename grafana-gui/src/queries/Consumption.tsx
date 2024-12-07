@@ -27,7 +27,7 @@ export class ConsumptionSeries extends Timeseries {
             (id) => `COALESCE(meter${id}.power_w, 0)`
         );
         let batteries = config.batteries.map(
-            (id) => `COALESCE(-battery${id}.power_w, 0)`
+            (id) => `COALESCE(battery${id}.npower_w, 0)`
         );
         let generators = config.generators.map(
             (id) => `COALESCE(generator${id}.power_w, 0)`
@@ -53,7 +53,7 @@ export class Consumption {
             new MeterSeries(id).time().power(null).time_filter()
         );
         const batteries = config.batteries.map((id) =>
-            new BatterySeries(id).time().power(null).time_filter()
+            new BatterySeries(id).time().npower(null).time_filter()
         );
         const generators = config.generators.map((id) =>
             new GeneratorSeries(id).time().power(null).time_filter()

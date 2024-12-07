@@ -5,6 +5,7 @@ export class BatterySeries extends Timeseries {
     static basename = "battery";
     static time = new Field("time", null);
     static power = new Field("power_w", null);
+    static npower = new Field("-power_w", "npower_w");
     static charge = new Field("charge_wh", null);
     // TODO: energy_in_wh, energy_out_wh
 
@@ -46,6 +47,11 @@ export class BatterySeries extends Timeseries {
 
     public power(alias: string | null): this {
         this.fields_.push(BatterySeries.power.with_alias(alias));
+        return this;
+    }
+
+    public npower(alias: string | null): this {
+        this.fields_.push(BatterySeries.npower.with_alias(alias));
         return this;
     }
 
@@ -186,7 +192,7 @@ export class Battery {
                     .time()
                     // TODO: get rid of aliases
                     .charge(`"battery.charge_wh"`)
-                    .power(`"battery.power_w"`)
+                    .npower(`"battery.power_w"`)
                     .time_filter()
                     .ordered()
             );

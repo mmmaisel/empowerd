@@ -113,7 +113,7 @@ test("Query for single sources", () => {
             "SELECT time, power_w FROM bidir_meters " +
             "WHERE series_id = 4 AND $__timeFilter(time)" +
         "), battery5 AS (" +
-            "SELECT time, power_w FROM batteries " +
+            "SELECT time, -power_w AS npower_w FROM batteries " +
             "WHERE series_id = 5 AND $__timeFilter(time)" +
         "), generator2 AS (" +
             "SELECT time, power_w FROM generators " +
@@ -127,7 +127,7 @@ test("Query for single sources", () => {
             "COALESCE(" +
                 "meter4.time, battery5.time, generator2.time, " +
                 "solar1.time) AS time, " +
-            "COALESCE(meter4.power_w, 0)+COALESCE(-battery5.power_w, 0)+" +
+            "COALESCE(meter4.power_w, 0)+COALESCE(battery5.npower_w, 0)+" +
             "COALESCE(generator2.power_w, 0)+COALESCE(solar1.power_w, 0) " +
                 "AS \"consumption.power_w\" " +
             "FROM meter4 " +
@@ -140,7 +140,7 @@ test("Query for single sources", () => {
     // prettier-ignore
     const expected_sql2 =
         "SELECT time, charge_wh AS \"battery.charge_wh\", " +
-            "power_w AS \"battery.power_w\" " +
+            "-power_w AS \"battery.power_w\" " +
         "FROM batteries " +
         "WHERE series_id = 5 AND $__timeFilter(time) " +
         "ORDER BY time";
@@ -224,10 +224,10 @@ test("Query for dual", () => {
             "SELECT time, power_w FROM bidir_meters " +
             "WHERE series_id = 8 AND $__timeFilter(time)" +
         "), battery9 AS (" +
-            "SELECT time, power_w FROM batteries " +
+            "SELECT time, -power_w AS npower_w FROM batteries " +
             "WHERE series_id = 9 AND $__timeFilter(time)" +
         "), battery10 AS (" +
-            "SELECT time, power_w FROM batteries " +
+            "SELECT time, -power_w AS npower_w FROM batteries " +
             "WHERE series_id = 10 AND $__timeFilter(time)" +
         "), generator3 AS (" +
             "SELECT time, power_w FROM generators " +
@@ -248,7 +248,7 @@ test("Query for dual", () => {
                 "battery9.time, battery10.time, generator3.time, " +
                 "generator4.time, solar1.time, solar2.time) AS time, " +
             "COALESCE(meter7.power_w, 0)+COALESCE(meter8.power_w, 0)+" +
-            "COALESCE(-battery9.power_w, 0)+COALESCE(-battery10.power_w, 0)+" +
+            "COALESCE(battery9.npower_w, 0)+COALESCE(battery10.npower_w, 0)+" +
             "COALESCE(generator3.power_w, 0)+COALESCE(generator4.power_w, 0)+" +
             "COALESCE(solar1.power_w, 0)+COALESCE(solar2.power_w, 0) " +
                 "AS \"consumption.power_w\" " +
@@ -274,7 +274,7 @@ test("Query for dual", () => {
         ") " +
         "SELECT time, \"battery.charge_wh\", \"battery.power_w\" " +
         "FROM (SELECT " +
-            "battery9.time AS time, " +
+            "COALESCE(battery9.time, battery10.time) AS time, " +
             "COALESCE(battery9.charge_wh, 0)+COALESCE(battery10.charge_wh, 0) " +
                 "AS \"battery.charge_wh\", " +
             "COALESCE(battery9.power_w, 0)+COALESCE(battery10.power_w, 0) " +
