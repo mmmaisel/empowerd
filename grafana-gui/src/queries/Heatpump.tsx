@@ -243,4 +243,35 @@ export class Heatpump {
                 );
         }
     }
+
+    static query_power_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            let id = ids[0];
+            return new HeatpumpSeries(id)
+                .time()
+                .power(`\"heatpump.power_w\"`)
+                .time_filter()
+                .ordered();
+        } else {
+            return new Timeseries()
+                .subqueries(
+                    ids.map((id) =>
+                        new HeatpumpSeries(id).time().power(null).time_filter()
+                    )
+                )
+                .fields([
+                    HeatpumpSeries.time,
+                    new Field(`\"heatpump.power_w\"`, null),
+                ])
+                .from(
+                    new AggregateProxy(HeatpumpSeries, ids, [
+                        HeatpumpSeries.ps_power(ids).with_alias(
+                            `\"heatpump.power_w\"`
+                        ),
+                    ])
+                )
+                .time_not_null()
+                .ordered();
+        }
+    }
 }

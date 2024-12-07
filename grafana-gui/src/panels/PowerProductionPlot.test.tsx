@@ -1,10 +1,10 @@
 import "intersection-observer";
 
 import { BackendConfigDefault } from "../AppConfig";
-import { PowerPlot } from "./PowerPlot";
+import { PowerProductionPlot } from "./PowerProductionPlot";
 
 test("Query for single solar source", () => {
-    const queries = new PowerPlot({
+    const queries = new PowerProductionPlot({
         ...BackendConfigDefault,
         solars: [1],
         generators: [],
@@ -20,7 +20,7 @@ test("Query for single solar source", () => {
 });
 
 test("Query for dual solar source", () => {
-    const queries = new PowerPlot({
+    const queries = new PowerProductionPlot({
         ...BackendConfigDefault,
         solars: [1, 8],
         generators: [],
@@ -37,7 +37,7 @@ test("Query for dual solar source", () => {
         ") " +
         "SELECT time, \"solar.power_w\" " +
         "FROM (SELECT " +
-            "solar1.time AS time, " +
+            "COALESCE(solar1.time, solar8.time) AS time, " +
             "COALESCE(solar1.power_w, 0)+COALESCE(solar8.power_w, 0) " +
                 "AS \"solar.power_w\" " +
             "FROM solar1 " +

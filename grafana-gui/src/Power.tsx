@@ -10,7 +10,8 @@ import {
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
-import { PowerPlot } from "./panels/PowerPlot";
+import { PowerConsumptionPlot } from "./panels/PowerConsumptionPlot";
+import { PowerProductionPlot } from "./panels/PowerProductionPlot";
 import { PowerStats } from "./panels/PowerStats";
 import { ROUTES } from "./Routes";
 
@@ -22,9 +23,16 @@ export const PowerScene = (
         $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
         body: new SceneCSSGridLayout({
             templateColumns: "minmax(1fr, 1fr)",
-            templateRows: "5fr 1fr",
+            templateRows: "5fr 5fr 1fr",
             children: [
-                new PowerPlot(config.backend, config.datasource).build(),
+                new PowerProductionPlot(
+                    config.backend,
+                    config.datasource
+                ).build(),
+                new PowerConsumptionPlot(
+                    config.backend,
+                    config.datasource
+                ).build(),
                 new PowerStats(config.backend, config.datasource, {
                     solar: [
                         {
