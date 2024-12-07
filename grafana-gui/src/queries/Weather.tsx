@@ -1,4 +1,5 @@
-import { Field, Fragment, Query, Timeseries } from "./Query";
+import { Field, Fragment, Join, Query, Timeseries } from "./Query";
+import { Samples } from "./Samples";
 
 export class WeatherSeries extends Timeseries {
     static basename = "weather";
@@ -186,5 +187,25 @@ export class Weather {
             .wind_dir(null)
             .time_filter()
             .ordered();
+    }
+
+    static query_rain_int(ids: number[]): Query {
+        let id = ids[0];
+        let rain_query = new WeatherSeries(id).time().rain_day(null);
+
+        return new Query()
+            .subqueries([
+                new Samples("DAY", "1 DAY", "23:00", false),
+                rain_query.name("weather"),
+            ])
+            .fields([new Field("SUM(weather.rain_day_mm)", "rain_int_mm")])
+            .from(new Fragment("samples"))
+            .joins([
+                new Join(
+                    "LEFT OUTER",
+                    "weather",
+                    "weather.time = samples.start"
+                ),
+            ]);
     }
 }

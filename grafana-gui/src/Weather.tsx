@@ -15,6 +15,7 @@ import { HumidityPlot } from "./panels/HumidityPlot";
 import { RainPlot } from "./panels/RainPlot";
 import { TemperaturePlot } from "./panels/TemperaturePlot";
 import { WindPlot } from "./panels/WindPlot";
+import { WeatherStats } from "./panels/WeatherStats";
 
 // TODO: dedup controls and embedded scene
 export const WeatherScene = (
@@ -43,11 +44,15 @@ export const WeatherScene = (
                 }),
                 new SceneCSSGridLayout({
                     templateColumns: "1fr",
-                    templateRows: "1fr 1fr 1fr",
+                    templateRows: "3fr 3fr 3fr 1fr",
                     children: [
                         new RainPlot(config.backend, config.datasource).build(),
                         new BaroPlot(config.backend, config.datasource).build(),
                         new WindPlot(config.backend, config.datasource).build(),
+                        new WeatherStats(
+                            config.backend,
+                            config.datasource
+                        ).build(),
                     ],
                 }),
             ],
