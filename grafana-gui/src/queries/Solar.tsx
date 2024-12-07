@@ -192,7 +192,10 @@ export class Solar {
 
         return (
             new Query()
-                .subqueries([new Samples(), solar_query.name("solar")])
+                .subqueries([
+                    new Samples("MONTH", "1 MONTH", "12 HOUR", true),
+                    solar_query.name("solar"),
+                ])
                 .fields([
                     new Field("samples.start", "month"),
                     // TODO: extract this

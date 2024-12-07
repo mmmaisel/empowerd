@@ -1,26 +1,44 @@
 import { Query } from "./Query";
 
 export class Samples extends Query {
-    constructor() {
+    private trunc: string;
+    private interval: string;
+    private offset: string;
+    private next: boolean;
+
+    constructor(
+        trunc: string,
+        interval: string,
+        offset: string,
+        next: boolean
+    ) {
         super();
         this.name_ = "samples";
+        this.trunc = trunc;
+        this.interval = interval;
+        this.offset = offset;
+        this.next = next;
     }
 
     public sql(): string {
-        const sql =
+        const samples =
             // prettier-ignore
-            "WITH months AS (" +
+            "points AS (" +
                 "SELECT GENERATE_SERIES(" +
-                    "DATE_TRUNC('MONTH', TIMESTAMP $__timeFrom())," +
-                    "DATE_TRUNC('MONTH', TIMESTAMP $__timeTo())," +
-                    "INTERVAL '1 MONTH'" +
-                ") AS month" +
-            ") " +
-            "SELECT " +
-            "month + INTERVAL '12 HOUR' AS start," +
-            "month + INTERVAL '1 MONTH' + INTERVAL '12 HOUR' AS next " +
-            "FROM months";
+                    `DATE_TRUNC('${this.trunc}', TIMESTAMP $__timeFrom()),` +
+                    `DATE_TRUNC('${this.trunc}', TIMESTAMP $__timeTo()),` +
+                    `INTERVAL '${this.interval}'` +
+                ") AS point" +
+            ")";
 
-        return sql;
+        let selects = [`point + INTERVAL '${this.offset}' AS start`];
+        if (this.next) {
+            selects.push(
+                `point + INTERVAL '${this.interval}' + ` +
+                    `INTERVAL '${this.offset}' AS next`
+            );
+        }
+
+        return `WITH ${samples} SELECT ${selects.join(", ")} FROM points`;
     }
 }

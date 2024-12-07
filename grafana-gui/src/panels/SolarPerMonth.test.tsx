@@ -12,17 +12,17 @@ test("Query for single solar source", () => {
     // prettier-ignore
     const expected_sql =
         "WITH samples AS (" +
-            "WITH months AS (" +
+            "WITH points AS (" +
                 "SELECT GENERATE_SERIES(" +
                     "DATE_TRUNC('MONTH', TIMESTAMP $__timeFrom())," +
                     "DATE_TRUNC('MONTH', TIMESTAMP $__timeTo())," +
                     "INTERVAL '1 MONTH'" +
-                ") AS month" +
+                ") AS point" +
             ") " +
             "SELECT " +
-            "month + INTERVAL '12 HOUR' AS start," +
-            "month + INTERVAL '1 MONTH' + INTERVAL '12 HOUR' AS next " +
-            "FROM months" +
+            "point + INTERVAL '12 HOUR' AS start, " +
+            "point + INTERVAL '1 MONTH' + INTERVAL '12 HOUR' AS next " +
+            "FROM points" +
         "), solar AS (" +
             "SELECT time, energy_wh FROM simple_meters WHERE series_id = 1" +
         ") " +
@@ -45,17 +45,17 @@ test("Query for dual solar source", () => {
     // prettier-ignore
     const expected_sql =
         "WITH samples AS (" +
-            "WITH months AS (" +
+            "WITH points AS (" +
                 "SELECT GENERATE_SERIES(" +
                     "DATE_TRUNC('MONTH', TIMESTAMP $__timeFrom())," +
                     "DATE_TRUNC('MONTH', TIMESTAMP $__timeTo())," +
                     "INTERVAL '1 MONTH'" +
-                ") AS month" +
+                ") AS point" +
             ") " +
             "SELECT " +
-            "month + INTERVAL '12 HOUR' AS start," +
-            "month + INTERVAL '1 MONTH' + INTERVAL '12 HOUR' AS next " +
-            "FROM months" +
+            "point + INTERVAL '12 HOUR' AS start, " +
+            "point + INTERVAL '1 MONTH' + INTERVAL '12 HOUR' AS next " +
+            "FROM points" +
         "), solar AS (" +
             "WITH solar1 AS (" +
                 "SELECT time, energy_wh FROM simple_meters WHERE series_id = 1" +
