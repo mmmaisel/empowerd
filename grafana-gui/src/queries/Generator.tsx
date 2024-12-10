@@ -5,12 +5,12 @@ export class GeneratorSeries extends Timeseries {
     static basename = "generator";
     static time = new Field("time", null);
     // power * (1-eta_el)/eta_el * f_Hs_Hi",
-    // d_runtime_s / 300 * 800 * (1-0.138)/0.138 * 1.11
-    // === d_runtime_s * 2.66667 * 6.93348
-    // === d_runtime_s * 18.48928
+    // d_runtime_s * 800 / 3600 * (1-0.138)/0.138 * 1.11
+    // === d_runtime_s * 0.222222 * 6.93348
+    // === d_runtime_s * 1.540773
     static d_heat = new Field(
-        "(MAX(runtime_s)-MIN(runtime_s)) * 18.48928",
-        "heat_wh"
+        "(MAX(runtime_s)-MIN(runtime_s)) * 1.540773",
+        "d_heat_wh"
     );
 
     static d_energy = new Field(

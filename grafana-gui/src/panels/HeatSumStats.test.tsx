@@ -24,7 +24,7 @@ test("Query for single heatpump and generator source", () => {
 
     // prettier-ignore
     const gen_query =
-        "SELECT (MAX(runtime_s)-MIN(runtime_s)) * 18.48928 " +
+        "SELECT (MAX(runtime_s)-MIN(runtime_s)) * 1.540773 " +
         "AS \"generator.heat_wh\" " +
         "FROM generators " +
         "WHERE series_id = 2 AND $__timeFilter(time)";
