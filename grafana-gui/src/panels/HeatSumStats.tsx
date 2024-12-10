@@ -51,7 +51,7 @@ export class HeatSumStats extends EmpPanelBuilder {
 
         queries.push({
             refId: `heatpump.heat`,
-            rawSql: Heatpump.query_dheat_sum(this.config.heatpumps).sql(),
+            rawSql: Heatpump.query_dheat_wh_sum(this.config.heatpumps).sql(),
             format: "table",
         });
         queries.push({
@@ -61,7 +61,7 @@ export class HeatSumStats extends EmpPanelBuilder {
         });
         queries.push({
             refId: `generator.heat`,
-            rawSql: Generator.query_dheat_sum(this.config.generators).sql(),
+            rawSql: Generator.query_dheat_wh_sum(this.config.generators).sql(),
             format: "table",
         });
 

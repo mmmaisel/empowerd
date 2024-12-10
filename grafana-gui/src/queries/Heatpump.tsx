@@ -1,5 +1,10 @@
 import { Field, Fragment, Query, Timeseries } from "./Query";
-import { AggregateProxy, TimeseriesProxy } from "./Proxy";
+import {
+    AggregateProxy,
+    DeltaSumProxyField,
+    SumProxyField,
+    TimeseriesProxy,
+} from "./Proxy";
 
 export class HeatpumpSeries extends Timeseries {
     static basename = "heatpump";
@@ -8,7 +13,7 @@ export class HeatpumpSeries extends Timeseries {
     static heat_wh = new Field("heat_wh", null);
     static power = new Field("power_w", null);
     static cop = new Field("cop_pct / 100.0", "cop");
-    static d_heat = new Field("MAX(heat_wh)-MIN(heat_wh)", "d_heat_wh");
+    static d_heat_wh = new Field("MAX(heat_wh)-MIN(heat_wh)", "d_heat_wh");
     static a_cop = new Field("AVG(cop_pct) / 100.0", "cop");
 
     static pa_cop(ids: number[]): Field {
@@ -30,48 +35,30 @@ export class HeatpumpSeries extends Timeseries {
     }
 
     static ps_heat(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`heatpump${ids[0]}.heat_w`, `s_heat`);
-        } else {
-            return new Field(
-                ids.map((id) => `COALESCE(heatpump${id}.heat_w, 0)`).join("+"),
-                `s_heat`
-            );
-        }
+        return new SumProxyField(
+            this.heat.alias,
+            "s_heat_w",
+            this.basename,
+            ids
+        );
     }
 
-    static pds_heat(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(
-                `MAX(heatpump${ids[0]}.heat_wh)-MIN(heatpump${ids[0]}.heat_wh`,
-                "ds_heat_wh"
-            );
-        } else {
-            return new Field(
-                ids
-                    .map(
-                        (id) =>
-                            // prettier-ignore
-                            `COALESCE(` +
-                                `MAX(heatpump${id}.heat_wh)-` +
-                                `MIN(heatpump${id}.heat_wh)` +
-                            `, 0)`
-                    )
-                    .join("+"),
-                "ds_heat_wh"
-            );
-        }
+    static pds_heat_wh(ids: number[]): Field {
+        return new DeltaSumProxyField(
+            this.heat_wh.alias,
+            "ds_heat_wh",
+            this.basename,
+            ids
+        );
     }
 
     static ps_power(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`heatpump${ids[0]}.power_w`, `s_power`);
-        } else {
-            return new Field(
-                ids.map((id) => `COALESCE(heatpump${id}.power_w, 0)`).join("+"),
-                `s_power`
-            );
-        }
+        return new SumProxyField(
+            this.power.alias,
+            "s_power_w",
+            this.basename,
+            ids
+        );
     }
 
     constructor(id: number) {
@@ -96,8 +83,8 @@ export class HeatpumpSeries extends Timeseries {
         return this;
     }
 
-    public d_heat(alias: string | null): this {
-        this.fields_.push(HeatpumpSeries.d_heat.with_alias(alias));
+    public d_heat_wh(alias: string | null): this {
+        this.fields_.push(HeatpumpSeries.d_heat_wh.with_alias(alias));
         return this;
     }
 
@@ -196,9 +183,9 @@ export class Heatpump {
         }
     }
 
-    static query_dheat_sum(ids: number[]): Query {
+    static query_dheat_wh_sum(ids: number[]): Query {
         if (ids.length === 1) {
-            return new HeatpumpSeries(ids[0]).d_heat(null).time_filter();
+            return new HeatpumpSeries(ids[0]).d_heat_wh(null).time_filter();
         } else {
             return new Timeseries()
                 .subqueries(
@@ -210,7 +197,7 @@ export class Heatpump {
                     )
                 )
                 .fields([
-                    HeatpumpSeries.pds_heat(ids).with_alias(
+                    HeatpumpSeries.pds_heat_wh(ids).with_alias(
                         `\"heatpump.heat_wh\"`
                     ),
                 ])

@@ -54,7 +54,7 @@ export class HeatStats extends EmpPanelBuilder {
             queries.push({
                 refId: `heatpump${id}.heat`,
                 rawSql: new HeatpumpSeries(id)
-                    .d_heat(`\"heatpump${id}.heat_wh\"`)
+                    .d_heat_wh(`\"heatpump${id}.heat_wh\"`)
                     .time_filter()
                     .sql(),
                 format: "table",
@@ -73,7 +73,7 @@ export class HeatStats extends EmpPanelBuilder {
             queries.push({
                 refId: `generator${id}.heat`,
                 rawSql: new GeneratorSeries(id)
-                    .d_heat(`\"generator${id}.heat_wh\"`)
+                    .d_heat_wh(`\"generator${id}.heat_wh\"`)
                     .time_filter()
                     .sql(),
                 format: "table",

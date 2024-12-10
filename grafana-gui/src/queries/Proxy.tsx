@@ -10,6 +10,47 @@ export class ProxyField extends Field {
     }
 }
 
+export class SumProxyField extends Field {
+    constructor(expr: string, alias: string, basename: string, ids: number[]) {
+        if (ids.length === 1) {
+            super(`${basename}${ids[0]}.${expr}`, alias);
+        } else {
+            super(
+                ids
+                    .map((id) => `COALESCE(${basename}${id}.${expr}, 0)`)
+                    .join("+"),
+                alias
+            );
+        }
+    }
+}
+
+export class DeltaSumProxyField extends Field {
+    constructor(expr: string, alias: string, basename: string, ids: number[]) {
+        if (ids.length === 1) {
+            super(
+                `MAX(${basename}${ids[0]}.${expr})-` +
+                    `MIN(${basename}${ids[0]}.${expr})`,
+                alias
+            );
+        } else {
+            super(
+                ids
+                    .map(
+                        (id) =>
+                            // prettier-ignore
+                            `COALESCE(` +
+                                `MAX(${basename}${id}.${expr})-` +
+                                `MIN(${basename}${id}.${expr}), ` +
+                            `0)`
+                    )
+                    .join("+"),
+                alias
+            );
+        }
+    }
+}
+
 export class TimeProxy extends Field {
     constructor(times: string[]) {
         if (times.length === 1) {

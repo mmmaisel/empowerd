@@ -1,5 +1,5 @@
 import { Field, Fragment, Query, Timeseries } from "./Query";
-import { AggregateProxy, TimeseriesProxy } from "./Proxy";
+import { AggregateProxy, SumProxyField, TimeseriesProxy } from "./Proxy";
 
 export class MeterSeries extends Timeseries {
     static basename = "meter";
@@ -8,14 +8,12 @@ export class MeterSeries extends Timeseries {
     // TODO: energy_in_wh, energy_out_wh
 
     static ps_power(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`meter${ids[0]}.power_w`, `s_power_w`);
-        } else {
-            return new Field(
-                ids.map((id) => `COALESCE(meter${id}.power_w, 0)`).join("+"),
-                "s_power_w"
-            );
-        }
+        return new SumProxyField(
+            this.power.alias,
+            "s_power_w",
+            this.basename,
+            ids
+        );
     }
 
     constructor(id: number) {

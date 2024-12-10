@@ -1,5 +1,10 @@
 import { Field, Fragment, Query, Timeseries } from "./Query";
-import { AggregateProxy, TimeseriesProxy } from "./Proxy";
+import {
+    AggregateProxy,
+    DeltaSumProxyField,
+    SumProxyField,
+    TimeseriesProxy,
+} from "./Proxy";
 
 export class GeneratorSeries extends Timeseries {
     static basename = "generator";
@@ -8,14 +13,16 @@ export class GeneratorSeries extends Timeseries {
     // d_runtime_s * 800 / 3600 * (1-0.138)/0.138 * 1.11
     // === d_runtime_s * 0.222222 * 6.93348
     // === d_runtime_s * 1.540773
-    static d_heat = new Field(
+    static d_heat_wh = new Field(
         "(MAX(runtime_s)-MIN(runtime_s)) * 1.540773",
         "d_heat_wh"
     );
 
+    static energy = new Field("runtime_s * 0.222222", "energy_wh");
+
     static d_energy = new Field(
         "(MAX(runtime_s)-MIN(runtime_s)) * 0.222222",
-        "energy_wh"
+        "d_energy_wh"
     );
 
     // power * (1-eta_el)/eta_el * f_Hs_Hi
@@ -27,60 +34,39 @@ export class GeneratorSeries extends Timeseries {
     static power = new Field("power_w", null);
 
     static ps_heat(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`generator${ids[0]}.heat_w`, `s_heat`);
-        } else {
-            return new Field(
-                ids.map((id) => `COALESCE(generator${id}.heat_w, 0)`).join("+"),
-                `s_heat`
-            );
-        }
+        return new SumProxyField(
+            this.heat.alias,
+            "s_heat_w",
+            this.basename,
+            ids
+        );
     }
 
     static ps_power(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`generator${ids[0]}.power_w`, `s_power`);
-        } else {
-            return new Field(
-                ids
-                    .map((id) => `COALESCE(generator${id}.power_w, 0)`)
-                    .join("+"),
-                `s_power`
-            );
-        }
+        return new SumProxyField(
+            this.power.alias,
+            "s_power_w",
+            this.basename,
+            ids
+        );
     }
 
     static pds_heat(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`generator${ids[0]}.heat_wh`, `s_heat`);
-        } else {
-            return new Field(
-                ids
-                    .map(
-                        (id) =>
-                            // prettier-ignore
-                            `COALESCE(` +
-                                `MAX(generator${id}.heat_wh)-` +
-                                `MIN(generator${id}.heat_wh)` +
-                            `, 0)`
-                    )
-                    .join("+"),
-                `ds_heat_wh`
-            );
-        }
+        return new DeltaSumProxyField(
+            this.heat_wh.alias,
+            "ds_heat_wh",
+            this.basename,
+            ids
+        );
     }
 
     static pds_energy(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`generator${ids[0]}.energy_wh`, `s_energy`);
-        } else {
-            return new Field(
-                ids
-                    .map((id) => `COALESCE(generator${id}.energy_wh, 0)`)
-                    .join("+"),
-                `s_energy`
-            );
-        }
+        return new DeltaSumProxyField(
+            this.energy.alias,
+            "ds_energy_wh",
+            this.basename,
+            ids
+        );
     }
 
     constructor(id: number) {
@@ -105,13 +91,18 @@ export class GeneratorSeries extends Timeseries {
         return this;
     }
 
-    public d_heat(alias: string | null): this {
-        this.fields_.push(GeneratorSeries.d_heat.with_alias(alias));
+    public d_heat_wh(alias: string | null): this {
+        this.fields_.push(GeneratorSeries.d_heat_wh.with_alias(alias));
         return this;
     }
 
     public d_energy(alias: string | null): this {
         this.fields_.push(GeneratorSeries.d_energy.with_alias(alias));
+        return this;
+    }
+
+    public energy(alias: string | null): this {
+        this.fields_.push(GeneratorSeries.energy.with_alias(alias));
         return this;
     }
 
@@ -226,7 +217,7 @@ export class Generator {
                     ids.map((id) =>
                         new GeneratorSeries(id)
                             .time()
-                            .d_energy(null)
+                            .energy(null)
                             .time_filter()
                     )
                 )
@@ -245,10 +236,10 @@ export class Generator {
         }
     }
 
-    static query_dheat_sum(ids: number[]): Query {
+    static query_dheat_wh_sum(ids: number[]): Query {
         if (ids.length === 1) {
             return new GeneratorSeries(ids[0])
-                .d_heat(`\"generator.heat_wh\"`)
+                .d_heat_wh(`\"generator.heat_wh\"`)
                 .time_filter();
         } else {
             return new Query()

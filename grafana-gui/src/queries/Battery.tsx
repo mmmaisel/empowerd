@@ -1,5 +1,10 @@
 import { Field, Fragment, Query, Timeseries } from "./Query";
-import { AggregateProxy, TimeseriesProxy } from "./Proxy";
+import {
+    AggregateProxy,
+    DeltaSumProxyField,
+    SumProxyField,
+    TimeseriesProxy,
+} from "./Proxy";
 
 export class BatterySeries extends Timeseries {
     static basename = "battery";
@@ -7,30 +12,42 @@ export class BatterySeries extends Timeseries {
     static power = new Field("power_w", null);
     static npower = new Field("-power_w", "npower_w");
     static charge = new Field("charge_wh", null);
-    // TODO: energy_in_wh, energy_out_wh
+    static energy_in = new Field("energy_in_wh", null);
+    static energy_out = new Field("energy_out_wh", null);
+    static d_energy_in = new Field(
+        "MAX(energy_in_wh)-MIN(energy_in_wh)",
+        "d_energy_in_wh"
+    );
+    static d_energy_out = new Field(
+        "MAX(energy_out_wh)-MIN(energy_out_wh)",
+        "d_energy_out_wh"
+    );
 
     static ps_power(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`battery${ids[0]}.power_w`, `s_power_w`);
-        } else {
-            return new Field(
-                ids.map((id) => `COALESCE(battery${id}.power_w, 0)`).join("+"),
-                "s_power_w"
-            );
-        }
+        return new SumProxyField(
+            this.power.alias,
+            "s_power_w",
+            this.basename,
+            ids
+        );
     }
 
     static ps_charge(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`battery${ids[0]}.charge_wh`, `s_charge_wh`);
-        } else {
-            return new Field(
-                ids
-                    .map((id) => `COALESCE(battery${id}.charge_wh, 0)`)
-                    .join("+"),
-                "s_charge_wh"
-            );
-        }
+        return new SumProxyField(
+            this.charge.alias,
+            "s_change_wh",
+            this.basename,
+            ids
+        );
+    }
+
+    static pds_energy_in(ids: number[]): Field {
+        return new DeltaSumProxyField(
+            this.energy_in.alias,
+            "ds_energy_in_wh",
+            this.basename,
+            ids
+        );
     }
 
     constructor(id: number) {

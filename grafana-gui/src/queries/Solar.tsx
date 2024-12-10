@@ -1,5 +1,11 @@
 import { Field, Fragment, Join, Query, Timeseries } from "./Query";
-import { AggregateProxy, TimeProxy, TimeseriesProxy } from "./Proxy";
+import {
+    AggregateProxy,
+    DeltaSumProxyField,
+    SumProxyField,
+    TimeProxy,
+    TimeseriesProxy,
+} from "./Proxy";
 import { Samples } from "./Samples";
 
 export class SolarSeries extends Timeseries {
@@ -10,45 +16,30 @@ export class SolarSeries extends Timeseries {
     static d_energy = new Field("MAX(energy_wh)-MIN(energy_wh)", "d_energy_wh");
 
     static ps_energy(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`solar${ids[0]}.energy_wh`, `s_energy_wh`);
-        } else {
-            return new Field(
-                ids.map((id) => `COALESCE(solar${id}.energy_wh, 0)`).join("+"),
-                "s_energy_wh"
-            );
-        }
+        return new SumProxyField(
+            this.energy.expr,
+            "s_energy_wh",
+            this.basename,
+            ids
+        );
     }
 
     static ps_power(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(`solar${ids[0]}.power_w`, `s_power_w`);
-        } else {
-            return new Field(
-                ids.map((id) => `COALESCE(solar${id}.power_w, 0)`).join("+"),
-                "s_power_w"
-            );
-        }
+        return new SumProxyField(
+            this.power.expr,
+            "s_power_w",
+            this.basename,
+            ids
+        );
     }
 
     static pds_energy(ids: number[]): Field {
-        if (ids.length === 1) {
-            return new Field(
-                `MAX(solar${ids[0]}.energy_wh)-MIN(solar${ids[0]}.energy_wh`,
-                "ds_energy_wh"
-            );
-        } else {
-            return new Field(
-                ids
-                    .map(
-                        (id) =>
-                            `COALESCE(MAX(solar${id}.energy_wh), 0)-` +
-                            `COALESCE(MIN(solar${id}.energy_wh), 0)`
-                    )
-                    .join("+"),
-                "ds_energy_wh"
-            );
-        }
+        return new DeltaSumProxyField(
+            this.energy.expr,
+            "ds_energy_wh",
+            this.basename,
+            ids
+        );
     }
 
     constructor(id: number) {

@@ -40,10 +40,9 @@ test("Query for dual solar source", () => {
             "WHERE series_id = 8 AND $__timeFilter(time)" +
         ") " +
         "SELECT " +
-            "COALESCE(MAX(solar1.energy_wh), 0)" +
-            "-COALESCE(MIN(solar1.energy_wh), 0)" +
-            "+COALESCE(MAX(solar8.energy_wh), 0)" +
-            "-COALESCE(MIN(solar8.energy_wh), 0) AS \"solar.energy_wh\" " +
+            "COALESCE(MAX(solar1.energy_wh)-MIN(solar1.energy_wh), 0)+" +
+            "COALESCE(MAX(solar8.energy_wh)-MIN(solar8.energy_wh), 0) " +
+            "AS \"solar.energy_wh\" " +
         "FROM solar1 " +
         "FULL OUTER JOIN solar8 ON solar1.time = solar8.time";
 
