@@ -35,7 +35,7 @@ export class BatterySeries extends Timeseries {
     static ps_charge(ids: number[]): Field {
         return new SumProxyField(
             this.charge.alias,
-            "s_change_wh",
+            "s_charge_wh",
             this.basename,
             ids
         );
@@ -44,7 +44,16 @@ export class BatterySeries extends Timeseries {
     static pds_energy_in(ids: number[]): Field {
         return new DeltaSumProxyField(
             this.energy_in.alias,
-            "ds_energy_in_wh",
+            "d_energy_in_wh",
+            this.basename,
+            ids
+        );
+    }
+
+    static pds_energy_out(ids: number[]): Field {
+        return new DeltaSumProxyField(
+            this.energy_out.alias,
+            "d_energy_out_wh",
             this.basename,
             ids
         );
@@ -74,6 +83,26 @@ export class BatterySeries extends Timeseries {
 
     public charge(alias: string | null): this {
         this.fields_.push(BatterySeries.charge.with_alias(alias));
+        return this;
+    }
+
+    public energy_in(alias: string | null): this {
+        this.fields_.push(BatterySeries.energy_in.with_alias(alias));
+        return this;
+    }
+
+    public energy_out(alias: string | null): this {
+        this.fields_.push(BatterySeries.energy_out.with_alias(alias));
+        return this;
+    }
+
+    public d_energy_in(alias: string | null): this {
+        this.fields_.push(BatterySeries.d_energy_in.with_alias(alias));
+        return this;
+    }
+
+    public d_energy_out(alias: string | null): this {
+        this.fields_.push(BatterySeries.d_energy_out.with_alias(alias));
         return this;
     }
 }
@@ -241,6 +270,37 @@ export class Battery {
                 )
                 .time_not_null()
                 .ordered();
+        }
+    }
+
+    static query_energy_in_out_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            return new BatterySeries(ids[0])
+                .d_energy_in(null)
+                .d_energy_out(null)
+                .time_filter();
+        } else {
+            return new Query()
+                .subqueries(
+                    ids.map((id) =>
+                        new BatterySeries(id)
+                            .time()
+                            .energy_in(null)
+                            .energy_out(null)
+                            .time_filter()
+                    )
+                )
+                .fields([
+                    BatterySeries.pds_energy_in(ids),
+                    BatterySeries.pds_energy_out(ids),
+                ])
+                .from(new Fragment(`${BatterySeries.basename}${ids[0]}`))
+                .joins(
+                    BatterySeries.time_join(
+                        `${BatterySeries.basename}${ids[0]}`,
+                        ids.slice(1)
+                    )
+                );
         }
     }
 }

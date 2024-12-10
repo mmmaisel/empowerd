@@ -23,7 +23,7 @@ export const PowerScene = (
         $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
         body: new SceneCSSGridLayout({
             templateColumns: "minmax(1fr, 1fr)",
-            templateRows: "5fr 5fr 1fr",
+            templateRows: "5fr 5fr 2fr",
             children: [
                 new PowerProductionPlot(
                     config.backend,

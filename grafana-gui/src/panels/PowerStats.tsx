@@ -4,6 +4,7 @@ import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 import { BackendConfig } from "../AppConfig";
 import { EmpPanelBuilder } from "./Common";
 import { Color } from "./Color";
+import { Battery } from "../queries/Battery";
 import { Generator } from "../queries/Generator";
 import { Solar } from "../queries/Solar";
 
@@ -29,6 +30,7 @@ export class PowerStats extends EmpPanelBuilder {
             .setNoValue("No Data")
             .setOption("graphMode", "none" as any)
             .setOption("textMode", "value_and_name" as any)
+            .setOption("wideLayout", true)
             .setOverrides((override: any) => {
                 override
                     .matchFieldsByQuery("Solar")
@@ -45,6 +47,20 @@ export class PowerStats extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName("Generator");
+                override
+                    .matchFieldsWithName("d_energy_in_wh")
+                    .overrideColor({
+                        fixedColor: Color.blue(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName("Battery Charged");
+                override
+                    .matchFieldsWithName("d_energy_out_wh")
+                    .overrideColor({
+                        fixedColor: Color.blue(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName("Battery Discharged");
             })
             .build();
     }
@@ -60,6 +76,13 @@ export class PowerStats extends EmpPanelBuilder {
                 refId: "Generator",
                 rawSql: Generator.query_energy_sum(
                     this.config.generators
+                ).sql(),
+                format: "table",
+            },
+            {
+                refId: "Battery",
+                rawSql: Battery.query_energy_in_out_sum(
+                    this.config.batteries
                 ).sql(),
                 format: "table",
             },
