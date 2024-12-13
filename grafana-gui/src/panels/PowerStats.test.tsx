@@ -5,7 +5,13 @@ import { PowerStats } from "./PowerStats";
 
 test("Query for single sources", () => {
     const queries = new PowerStats(
-        { ...BackendConfigDefault, solars: [1], generators: [2], batteries: [3] },
+        {
+            ...BackendConfigDefault,
+            solars: [1],
+            generators: [2],
+            batteries: [3],
+            meters: [4],
+        },
         undefined,
         undefined as any
     ).queries();
@@ -26,15 +32,25 @@ test("Query for single sources", () => {
     // prettier-ignore
     const battery_sql =
         "SELECT MAX(energy_in_wh)-MIN(energy_in_wh) " +
-                "AS d_energy_in_wh, " +
+                `AS \"battery.d_energy_in_wh\", ` +
             "MAX(energy_out_wh)-MIN(energy_out_wh) " +
-                "AS d_energy_out_wh " +
+                `AS \"battery.d_energy_out_wh\" ` +
         "FROM batteries " +
         "WHERE series_id = 3 AND $__timeFilter(time)";
+
+    // prettier-ignore
+    const meter_sql =
+        "SELECT MAX(energy_in_wh)-MIN(energy_in_wh) " +
+                `AS \"meter.d_energy_in_wh\", ` +
+            "MAX(energy_out_wh)-MIN(energy_out_wh) " +
+                `AS \"meter.d_energy_out_wh\" ` +
+        "FROM bidir_meters " +
+        "WHERE series_id = 4 AND $__timeFilter(time)";
 
     expect(queries[0].rawSql).toBe(solar_sql);
     expect(queries[1].rawSql).toBe(generator_sql);
     expect(queries[2].rawSql).toBe(battery_sql);
+    expect(queries[3].rawSql).toBe(meter_sql);
 });
 
 test("Query for dual sources", () => {
@@ -44,6 +60,7 @@ test("Query for dual sources", () => {
             solars: [1, 2],
             generators: [3, 4],
             batteries: [5, 6],
+            meters: [7, 8],
         },
         undefined,
         undefined as any
@@ -95,16 +112,40 @@ test("Query for dual sources", () => {
                 "MAX(battery5.energy_in_wh)-MIN(battery5.energy_in_wh), 0)+" +
             "COALESCE(" +
                 "MAX(battery6.energy_in_wh)-MIN(battery6.energy_in_wh), 0) " +
-                "AS d_energy_in_wh, " +
+                `AS \"battery.d_energy_in_wh\", ` +
             "COALESCE(" +
                 "MAX(battery5.energy_out_wh)-MIN(battery5.energy_out_wh), 0)+" +
             "COALESCE(" +
                 "MAX(battery6.energy_out_wh)-MIN(battery6.energy_out_wh), 0) " +
-                "AS d_energy_out_wh " +
+                `AS \"battery.d_energy_out_wh\" ` +
         "FROM battery5 " +
         "FULL OUTER JOIN battery6 ON battery5.time = battery6.time";
+
+    // prettier-ignore
+    const meter_sql =
+        "WITH meter7 AS (" +
+            "SELECT time, energy_in_wh, energy_out_wh FROM bidir_meters " +
+            "WHERE series_id = 7 AND $__timeFilter(time)" +
+        "), meter8 AS (" +
+            "SELECT time, energy_in_wh, energy_out_wh FROM bidir_meters " +
+            "WHERE series_id = 8 AND $__timeFilter(time)" +
+        ") " +
+        "SELECT " +
+            "COALESCE(" +
+                "MAX(meter7.energy_in_wh)-MIN(meter7.energy_in_wh), 0)+" +
+            "COALESCE(" +
+                "MAX(meter8.energy_in_wh)-MIN(meter8.energy_in_wh), 0) " +
+                `AS \"meter.d_energy_in_wh\", ` +
+            "COALESCE(" +
+                "MAX(meter7.energy_out_wh)-MIN(meter7.energy_out_wh), 0)+" +
+            "COALESCE(" +
+                "MAX(meter8.energy_out_wh)-MIN(meter8.energy_out_wh), 0) " +
+                `AS \"meter.d_energy_out_wh\" ` +
+        "FROM meter7 " +
+        "FULL OUTER JOIN meter8 ON meter7.time = meter8.time";
 
     expect(queries[0].rawSql).toBe(solar_sql);
     expect(queries[1].rawSql).toBe(generator_sql);
     expect(queries[2].rawSql).toBe(battery_sql);
+    expect(queries[3].rawSql).toBe(meter_sql);
 });

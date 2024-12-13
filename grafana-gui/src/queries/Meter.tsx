@@ -1,16 +1,49 @@
 import { Field, Fragment, Query, Timeseries } from "./Query";
-import { AggregateProxy, SumProxyField, TimeseriesProxy } from "./Proxy";
+import {
+    AggregateProxy,
+    DeltaSumProxyField,
+    SumProxyField,
+    TimeseriesProxy,
+} from "./Proxy";
 
+// TODO: BidirMeter class
 export class MeterSeries extends Timeseries {
     static basename = "meter";
     static time = new Field("time", null);
     static power = new Field("power_w", null);
-    // TODO: energy_in_wh, energy_out_wh
+    static energy_in = new Field("energy_in_wh", null);
+    static energy_out = new Field("energy_out_wh", null);
+    static d_energy_in = new Field(
+        "MAX(energy_in_wh)-MIN(energy_in_wh)",
+        "d_energy_in_wh"
+    );
+    static d_energy_out = new Field(
+        "MAX(energy_out_wh)-MIN(energy_out_wh)",
+        "d_energy_out_wh"
+    );
 
     static ps_power(ids: number[]): Field {
         return new SumProxyField(
             this.power.alias,
             "s_power_w",
+            this.basename,
+            ids
+        );
+    }
+
+    static pds_energy_in(ids: number[], alias = "d_energy_wh_in"): Field {
+        return new DeltaSumProxyField(
+            this.energy_in.alias,
+            alias,
+            this.basename,
+            ids
+        );
+    }
+
+    static pds_energy_out(ids: number[], alias = "d_energy_out_wh"): Field {
+        return new DeltaSumProxyField(
+            this.energy_out.alias,
+            alias,
             this.basename,
             ids
         );
@@ -30,6 +63,26 @@ export class MeterSeries extends Timeseries {
 
     public power(alias: string | null): this {
         this.fields_.push(MeterSeries.power.with_alias(alias));
+        return this;
+    }
+
+    public energy_in(alias: string | null): this {
+        this.fields_.push(MeterSeries.energy_in.with_alias(alias));
+        return this;
+    }
+
+    public energy_out(alias: string | null): this {
+        this.fields_.push(MeterSeries.energy_out.with_alias(alias));
+        return this;
+    }
+
+    public d_energy_in(alias: string | null): this {
+        this.fields_.push(MeterSeries.d_energy_in.with_alias(alias));
+        return this;
+    }
+
+    public d_energy_out(alias: string | null): this {
+        this.fields_.push(MeterSeries.d_energy_out.with_alias(alias));
         return this;
     }
 }
@@ -96,6 +149,40 @@ export class Meter {
                 )
                 .time_not_null()
                 .ordered();
+        }
+    }
+
+    static query_energy_in_out_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            return new MeterSeries(ids[0])
+                .d_energy_in(`\"meter.d_energy_in_wh\"`)
+                .d_energy_out(`\"meter.d_energy_out_wh\"`)
+                .time_filter();
+        } else {
+            return new Query()
+                .subqueries(
+                    ids.map((id) =>
+                        new MeterSeries(id)
+                            .time()
+                            .energy_in(null)
+                            .energy_out(null)
+                            .time_filter()
+                    )
+                )
+                .fields([
+                    MeterSeries.pds_energy_in(ids, `\"meter.d_energy_in_wh\"`),
+                    MeterSeries.pds_energy_out(
+                        ids,
+                        `\"meter.d_energy_out_wh\"`
+                    ),
+                ])
+                .from(new Fragment(`${MeterSeries.basename}${ids[0]}`))
+                .joins(
+                    MeterSeries.time_join(
+                        `${MeterSeries.basename}${ids[0]}`,
+                        ids.slice(1)
+                    )
+                );
         }
     }
 }

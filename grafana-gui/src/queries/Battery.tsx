@@ -6,6 +6,7 @@ import {
     TimeseriesProxy,
 } from "./Proxy";
 
+// TODO: derive from bidir_meter
 export class BatterySeries extends Timeseries {
     static basename = "battery";
     static time = new Field("time", null);
@@ -41,19 +42,19 @@ export class BatterySeries extends Timeseries {
         );
     }
 
-    static pds_energy_in(ids: number[]): Field {
+    static pds_energy_in(ids: number[], alias = "d_energy_in_wh"): Field {
         return new DeltaSumProxyField(
             this.energy_in.alias,
-            "d_energy_in_wh",
+            alias,
             this.basename,
             ids
         );
     }
 
-    static pds_energy_out(ids: number[]): Field {
+    static pds_energy_out(ids: number[], alias = "d_energy_out_wh"): Field {
         return new DeltaSumProxyField(
             this.energy_out.alias,
-            "d_energy_out_wh",
+            alias,
             this.basename,
             ids
         );
@@ -71,6 +72,7 @@ export class BatterySeries extends Timeseries {
         return this;
     }
 
+    // TODO: add default value for this null arg
     public power(alias: string | null): this {
         this.fields_.push(BatterySeries.power.with_alias(alias));
         return this;
@@ -276,8 +278,8 @@ export class Battery {
     static query_energy_in_out_sum(ids: number[]): Query {
         if (ids.length === 1) {
             return new BatterySeries(ids[0])
-                .d_energy_in(null)
-                .d_energy_out(null)
+                .d_energy_in(`\"battery.d_energy_in_wh\"`)
+                .d_energy_out(`\"battery.d_energy_out_wh\"`)
                 .time_filter();
         } else {
             return new Query()
@@ -291,8 +293,14 @@ export class Battery {
                     )
                 )
                 .fields([
-                    BatterySeries.pds_energy_in(ids),
-                    BatterySeries.pds_energy_out(ids),
+                    BatterySeries.pds_energy_in(
+                        ids,
+                        `\"battery.d_energy_in_wh\"`
+                    ),
+                    BatterySeries.pds_energy_out(
+                        ids,
+                        `\"battery.d_energy_out_wh\"`
+                    ),
                 ])
                 .from(new Fragment(`${BatterySeries.basename}${ids[0]}`))
                 .joins(

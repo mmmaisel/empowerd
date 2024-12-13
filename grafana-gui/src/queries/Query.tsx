@@ -13,6 +13,7 @@ export class Fragment {
 export class Field extends Fragment {
     public alias: string;
 
+    // TODO: make alias optional
     constructor(expr: string, alias: string | null) {
         super(expr);
         if (alias === null) {

@@ -6,6 +6,7 @@ import { EmpPanelBuilder } from "./Common";
 import { Color } from "./Color";
 import { Battery } from "../queries/Battery";
 import { Generator } from "../queries/Generator";
+import { Meter } from "../queries/Meter";
 import { Solar } from "../queries/Solar";
 
 export type DrilldownConfig = {
@@ -43,24 +44,38 @@ export class PowerStats extends EmpPanelBuilder {
                 override
                     .matchFieldsByQuery("Generator")
                     .overrideColor({
-                        fixedColor: Color.red(0).to_rgb(),
+                        fixedColor: Color.green(0).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName("Generator");
                 override
-                    .matchFieldsWithName("d_energy_in_wh")
+                    .matchFieldsWithName("battery.d_energy_in_wh")
                     .overrideColor({
                         fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName("Battery Charged");
                 override
-                    .matchFieldsWithName("d_energy_out_wh")
+                    .matchFieldsWithName("battery.d_energy_out_wh")
                     .overrideColor({
                         fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName("Battery Discharged");
+                override
+                    .matchFieldsWithName("meter.d_energy_in_wh")
+                    .overrideColor({
+                        fixedColor: Color.red(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName("Meter In");
+                override
+                    .matchFieldsWithName("meter.d_energy_out_wh")
+                    .overrideColor({
+                        fixedColor: Color.red(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName("Meter Out");
             })
             .build();
     }
@@ -84,6 +99,11 @@ export class PowerStats extends EmpPanelBuilder {
                 rawSql: Battery.query_energy_in_out_sum(
                     this.config.batteries
                 ).sql(),
+                format: "table",
+            },
+            {
+                refId: "Meter",
+                rawSql: Meter.query_energy_in_out_sum(this.config.meters).sql(),
                 format: "table",
             },
         ];
