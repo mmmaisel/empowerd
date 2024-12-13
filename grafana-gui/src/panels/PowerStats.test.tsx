@@ -47,10 +47,43 @@ test("Query for single sources", () => {
         "FROM bidir_meters " +
         "WHERE series_id = 4 AND $__timeFilter(time)";
 
+    // prettier-ignore
+    const consumption_sql =
+        "WITH meter4 AS (" +
+            "SELECT time, energy_in_wh, energy_out_wh FROM bidir_meters " +
+            "WHERE series_id = 4 AND $__timeFilter(time)" +
+        "), battery3 AS (" +
+            "SELECT time, energy_in_wh, energy_out_wh FROM batteries " +
+            "WHERE series_id = 3 AND $__timeFilter(time)" +
+        "), generator2 AS (" +
+            "SELECT time, runtime_s * 0.222222 AS energy_wh FROM generators " +
+            "WHERE series_id = 2 AND $__timeFilter(time)" +
+        "), solar1 AS (" +
+            "SELECT time, energy_wh FROM simple_meters " +
+            "WHERE series_id = 1 AND $__timeFilter(time)" +
+        ") " +
+        "SELECT " +
+            "COALESCE(" +
+                "MAX(meter4.energy_in_wh)-MIN(meter4.energy_in_wh)" +
+                "-MAX(meter4.energy_out_wh)+MIN(meter4.energy_out_wh)" +
+            ", 0)+" +
+            "COALESCE(" +
+                "MAX(battery3.energy_out_wh)-MIN(battery3.energy_out_wh)" +
+                "-MAX(battery3.energy_in_wh)+MIN(battery3.energy_in_wh)" +
+            ", 0)+" +
+            "COALESCE(MAX(generator2.energy_wh)-MIN(generator2.energy_wh), 0)+" +
+            "COALESCE(MAX(solar1.energy_wh)-MIN(solar1.energy_wh), 0) " +
+            "AS d_energy_wh " +
+        "FROM meter4 " +
+        "FULL OUTER JOIN battery3 ON meter4.time = battery3.time " +
+        "FULL OUTER JOIN generator2 ON meter4.time = generator2.time " +
+        "FULL OUTER JOIN solar1 ON meter4.time = solar1.time";
+
     expect(queries[0].rawSql).toBe(solar_sql);
     expect(queries[1].rawSql).toBe(generator_sql);
     expect(queries[2].rawSql).toBe(battery_sql);
     expect(queries[3].rawSql).toBe(meter_sql);
+    expect(queries[4].rawSql).toBe(consumption_sql);
 });
 
 test("Query for dual sources", () => {
@@ -144,8 +177,67 @@ test("Query for dual sources", () => {
         "FROM meter7 " +
         "FULL OUTER JOIN meter8 ON meter7.time = meter8.time";
 
+    // prettier-ignore
+    const consumption_sql =
+        "WITH meter7 AS (" +
+            "SELECT time, energy_in_wh, energy_out_wh FROM bidir_meters " +
+            "WHERE series_id = 7 AND $__timeFilter(time)" +
+        "), meter8 AS (" +
+            "SELECT time, energy_in_wh, energy_out_wh FROM bidir_meters " +
+            "WHERE series_id = 8 AND $__timeFilter(time)" +
+        "), battery5 AS (" +
+            "SELECT time, energy_in_wh, energy_out_wh FROM batteries " +
+            "WHERE series_id = 5 AND $__timeFilter(time)" +
+        "), battery6 AS (" +
+            "SELECT time, energy_in_wh, energy_out_wh FROM batteries " +
+            "WHERE series_id = 6 AND $__timeFilter(time)" +
+        "), generator3 AS (" +
+            "SELECT time, runtime_s * 0.222222 AS energy_wh FROM generators " +
+            "WHERE series_id = 3 AND $__timeFilter(time)" +
+        "), generator4 AS (" +
+            "SELECT time, runtime_s * 0.222222 AS energy_wh FROM generators " +
+            "WHERE series_id = 4 AND $__timeFilter(time)" +
+        "), solar1 AS (" +
+            "SELECT time, energy_wh FROM simple_meters " +
+            "WHERE series_id = 1 AND $__timeFilter(time)" +
+        "), solar2 AS (" +
+            "SELECT time, energy_wh FROM simple_meters " +
+            "WHERE series_id = 2 AND $__timeFilter(time)" +
+        ") " +
+        "SELECT " +
+            "COALESCE(" +
+                "MAX(meter7.energy_in_wh)-MIN(meter7.energy_in_wh)" +
+                "-MAX(meter7.energy_out_wh)+MIN(meter7.energy_out_wh)" +
+            ", 0)+" +
+            "COALESCE(" +
+                "MAX(meter8.energy_in_wh)-MIN(meter8.energy_in_wh)" +
+                "-MAX(meter8.energy_out_wh)+MIN(meter8.energy_out_wh)" +
+            ", 0)+" +
+            "COALESCE(" +
+                "MAX(battery5.energy_out_wh)-MIN(battery5.energy_out_wh)" +
+                "-MAX(battery5.energy_in_wh)+MIN(battery5.energy_in_wh)" +
+            ", 0)+" +
+            "COALESCE(" +
+                "MAX(battery6.energy_out_wh)-MIN(battery6.energy_out_wh)" +
+                "-MAX(battery6.energy_in_wh)+MIN(battery6.energy_in_wh)" +
+            ", 0)+" +
+            "COALESCE(MAX(generator3.energy_wh)-MIN(generator3.energy_wh), 0)+" +
+            "COALESCE(MAX(generator4.energy_wh)-MIN(generator4.energy_wh), 0)+" +
+            "COALESCE(MAX(solar1.energy_wh)-MIN(solar1.energy_wh), 0)+" +
+            "COALESCE(MAX(solar2.energy_wh)-MIN(solar2.energy_wh), 0) " +
+            "AS d_energy_wh " +
+        "FROM meter7 " +
+        "FULL OUTER JOIN meter8 ON meter7.time = meter8.time " +
+        "FULL OUTER JOIN battery5 ON meter7.time = battery5.time " +
+        "FULL OUTER JOIN battery6 ON meter7.time = battery6.time " +
+        "FULL OUTER JOIN generator3 ON meter7.time = generator3.time " +
+        "FULL OUTER JOIN generator4 ON meter7.time = generator4.time " +
+        "FULL OUTER JOIN solar1 ON meter7.time = solar1.time " +
+        "FULL OUTER JOIN solar2 ON meter7.time = solar2.time";
+
     expect(queries[0].rawSql).toBe(solar_sql);
     expect(queries[1].rawSql).toBe(generator_sql);
     expect(queries[2].rawSql).toBe(battery_sql);
     expect(queries[3].rawSql).toBe(meter_sql);
+    expect(queries[4].rawSql).toBe(consumption_sql);
 });

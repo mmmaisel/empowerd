@@ -5,6 +5,7 @@ import { BackendConfig } from "../AppConfig";
 import { EmpPanelBuilder } from "./Common";
 import { Color } from "./Color";
 import { Battery } from "../queries/Battery";
+import { Consumption } from "../queries/Consumption";
 import { Generator } from "../queries/Generator";
 import { Meter } from "../queries/Meter";
 import { Solar } from "../queries/Solar";
@@ -76,6 +77,13 @@ export class PowerStats extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName("Meter Out");
+                override
+                    .matchFieldsByQuery("Consumption")
+                    .overrideColor({
+                        fixedColor: Color.cyan(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName("Other Consumption");
             })
             .build();
     }
@@ -104,6 +112,11 @@ export class PowerStats extends EmpPanelBuilder {
             {
                 refId: "Meter",
                 rawSql: Meter.query_energy_in_out_sum(this.config.meters).sql(),
+                format: "table",
+            },
+            {
+                refId: "Consumption",
+                rawSql: Consumption.query_denergy_sum(this.config).sql(),
                 format: "table",
             },
         ];

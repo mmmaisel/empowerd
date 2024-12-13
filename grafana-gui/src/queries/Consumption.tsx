@@ -41,6 +41,41 @@ export class ConsumptionSeries extends Timeseries {
             `s_power`
         );
     }
+
+    static pds_energy(config: ConsumptionConfig): Field {
+        if (config.meters.length === 0) {
+            return new Field("NULL", "s_power");
+        }
+
+        // TODO: reuse pds_energy proxies
+        let meters = config.meters.map(
+            (id) =>
+                `COALESCE(` +
+                `MAX(meter${id}.energy_in_wh)-MIN(meter${id}.energy_in_wh)` +
+                `-MAX(meter${id}.energy_out_wh)+MIN(meter${id}.energy_out_wh)` +
+                `, 0)`
+        );
+        let batteries = config.batteries.map(
+            (id) =>
+                `COALESCE(` +
+                `MAX(battery${id}.energy_out_wh)-MIN(battery${id}.energy_out_wh)` +
+                `-MAX(battery${id}.energy_in_wh)+MIN(battery${id}.energy_in_wh)` +
+                `, 0)`
+        );
+        let generators = config.generators.map(
+            (id) =>
+                `COALESCE(MAX(generator${id}.energy_wh)-MIN(generator${id}.energy_wh), 0)`
+        );
+        let solars = config.solars.map(
+            (id) =>
+                `COALESCE(MAX(solar${id}.energy_wh)-MIN(solar${id}.energy_wh), 0)`
+        );
+
+        return new Field(
+            [...meters, ...batteries, ...generators, ...solars].join("+"),
+            `d_energy_wh`
+        );
+    }
 }
 
 export class Consumption {
@@ -100,5 +135,52 @@ export class Consumption {
             )
             .time_not_null()
             .ordered();
+    }
+
+    static query_denergy_sum(config: ConsumptionConfig): Query {
+        if (config.meters.length === 0) {
+            return new Timeseries().fields([
+                new Field("NULL", `\"consumption.d_energy_wh\"`),
+            ]);
+        }
+
+        const meters = config.meters.map((id) =>
+            new MeterSeries(id)
+                .time()
+                .energy_in(null)
+                .energy_out(null)
+                .time_filter()
+        );
+        const batteries = config.batteries.map((id) =>
+            new BatterySeries(id)
+                .time()
+                .energy_in(null)
+                .energy_out(null)
+                .time_filter()
+        );
+        const generators = config.generators.map((id) =>
+            new GeneratorSeries(id).time().energy(null).time_filter()
+        );
+        const solars = config.solars.map((id) =>
+            new SolarSeries(id).time().energy(null).time_filter()
+        );
+
+        let first = "";
+        let meter_ids = [...config.meters];
+        first = `meter${meter_ids[0]}`;
+        meter_ids.shift();
+
+        return new Timeseries()
+            .subqueries([...meters, ...batteries, ...generators, ...solars])
+            .fields([ConsumptionSeries.pds_energy(config)])
+            .from(new Fragment(first))
+            .joins(
+                [
+                    MeterSeries.time_join(first, meter_ids),
+                    BatterySeries.time_join(first, config.batteries),
+                    GeneratorSeries.time_join(first, config.generators),
+                    SolarSeries.time_join(first, config.solars),
+                ].flat()
+            );
     }
 }
