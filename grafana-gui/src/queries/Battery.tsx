@@ -9,12 +9,12 @@ import {
 // TODO: derive from bidir_meter
 export class BatterySeries extends Timeseries {
     static basename = "battery";
-    static time = new Field("time", null);
-    static power = new Field("power_w", null);
+    static time = new Field("time");
+    static power = new Field("power_w");
     static npower = new Field("-power_w", "npower_w");
-    static charge = new Field("charge_wh", null);
-    static energy_in = new Field("energy_in_wh", null);
-    static energy_out = new Field("energy_out_wh", null);
+    static charge = new Field("charge_wh");
+    static energy_in = new Field("energy_in_wh");
+    static energy_out = new Field("energy_out_wh");
     static d_energy_in = new Field(
         "MAX(energy_in_wh)-MIN(energy_in_wh)",
         "d_energy_in_wh"
@@ -62,7 +62,7 @@ export class BatterySeries extends Timeseries {
 
     constructor(id: number) {
         super();
-        this.name_ = `battery${id}`;
+        this.name_ = `${BatterySeries.basename}${id}`;
         this.from_ = new Fragment("batteries");
         this.wheres_ = [`series_id = ${id}`];
     }
@@ -72,38 +72,37 @@ export class BatterySeries extends Timeseries {
         return this;
     }
 
-    // TODO: add default value for this null arg
-    public power(alias: string | null): this {
+    public power(alias: string | null = null): this {
         this.fields_.push(BatterySeries.power.with_alias(alias));
         return this;
     }
 
-    public npower(alias: string | null): this {
+    public npower(alias: string | null = null): this {
         this.fields_.push(BatterySeries.npower.with_alias(alias));
         return this;
     }
 
-    public charge(alias: string | null): this {
+    public charge(alias: string | null = null): this {
         this.fields_.push(BatterySeries.charge.with_alias(alias));
         return this;
     }
 
-    public energy_in(alias: string | null): this {
+    public energy_in(alias: string | null = null): this {
         this.fields_.push(BatterySeries.energy_in.with_alias(alias));
         return this;
     }
 
-    public energy_out(alias: string | null): this {
+    public energy_out(alias: string | null = null): this {
         this.fields_.push(BatterySeries.energy_out.with_alias(alias));
         return this;
     }
 
-    public d_energy_in(alias: string | null): this {
+    public d_energy_in(alias: string | null = null): this {
         this.fields_.push(BatterySeries.d_energy_in.with_alias(alias));
         return this;
     }
 
-    public d_energy_out(alias: string | null): this {
+    public d_energy_out(alias: string | null = null): this {
         this.fields_.push(BatterySeries.d_energy_out.with_alias(alias));
         return this;
     }
@@ -116,25 +115,30 @@ export class BatteryProxy extends TimeseriesProxy {
 }
 
 export class Battery {
+    protected static series = BatterySeries;
+
     static query_power(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
             return new BatterySeries(id)
                 .time()
-                .power(`"battery${id}.power_w"`)
+                .power(`\"${this.series.basename}${id}.power_w\"`)
                 .time_filter()
                 .ordered();
         } else {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new BatterySeries(id).time().power(null).time_filter()
+                        new BatterySeries(id).time().power().time_filter()
                     )
                 )
                 .fields([
                     BatterySeries.time,
                     ...ids.map(
-                        (id) => new Field(`\"battery${id}.power_w\"`, null)
+                        (id) =>
+                            new Field(
+                                `\"${this.series.basename}${id}.power_w\"`
+                            )
                     ),
                 ])
                 .from(new BatteryProxy(ids, [BatterySeries.power]))
@@ -148,24 +152,24 @@ export class Battery {
             let id = ids[0];
             return new BatterySeries(id)
                 .time()
-                .power(`"battery.power_w"`)
+                .power(`\"${this.series.basename}.power_w\"`)
                 .time_filter()
                 .ordered();
         } else {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new BatterySeries(id).time().power(null).time_filter()
+                        new BatterySeries(id).time().power().time_filter()
                     )
                 )
                 .fields([
                     BatterySeries.time,
-                    new Field(`\"battery.power_w\"`, null),
+                    new Field(`\"${this.series.basename}.power_w\"`),
                 ])
                 .from(
                     new AggregateProxy(BatterySeries, ids, [
                         BatterySeries.ps_power(ids).with_alias(
-                            `\"battery.power_w\"`
+                            `\"${this.series.basename}.power_w\"`
                         ),
                     ])
                 )
@@ -179,20 +183,23 @@ export class Battery {
             let id = ids[0];
             return new BatterySeries(id)
                 .time()
-                .charge(`"battery${id}.charge_wh"`)
+                .charge(`\"${this.series.basename}${id}.charge_wh\"`)
                 .time_filter()
                 .ordered();
         } else {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new BatterySeries(id).time().charge(null).time_filter()
+                        new BatterySeries(id).time().charge().time_filter()
                     )
                 )
                 .fields([
                     BatterySeries.time,
                     ...ids.map(
-                        (id) => new Field(`\"battery${id}.charge_wh\"`, null)
+                        (id) =>
+                            new Field(
+                                `\"${this.series.basename}${id}.charge_wh\"`
+                            )
                     ),
                 ])
                 .from(new BatteryProxy(ids, [BatterySeries.charge]))
@@ -206,24 +213,24 @@ export class Battery {
             let id = ids[0];
             return new BatterySeries(id)
                 .time()
-                .charge(`"battery.charge_wh"`)
+                .charge(`\"${this.series.basename}.charge_wh\"`)
                 .time_filter()
                 .ordered();
         } else {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new BatterySeries(id).time().charge(null).time_filter()
+                        new BatterySeries(id).time().charge().time_filter()
                     )
                 )
                 .fields([
                     BatterySeries.time,
-                    new Field(`\"battery.charge_wh\"`, null),
+                    new Field(`\"${this.series.basename}.charge_wh\"`),
                 ])
                 .from(
                     new AggregateProxy(BatterySeries, ids, [
                         BatterySeries.ps_charge(ids).with_alias(
-                            `\"battery.charge_wh\"`
+                            `\"${this.series.basename}.charge_wh\"`
                         ),
                     ])
                 )
@@ -239,8 +246,8 @@ export class Battery {
                 new BatterySeries(id)
                     .time()
                     // TODO: get rid of aliases
-                    .charge(`"battery.charge_wh"`)
-                    .npower(`"battery.power_w"`)
+                    .charge(`\"${this.series.basename}.charge_wh\"`)
+                    .npower(`\"${this.series.basename}.power_w\"`)
                     .time_filter()
                     .ordered()
             );
@@ -250,23 +257,23 @@ export class Battery {
                     ids.map((id) =>
                         new BatterySeries(id)
                             .time()
-                            .charge(null)
-                            .power(null)
+                            .charge()
+                            .power()
                             .time_filter()
                     )
                 )
                 .fields([
                     BatterySeries.time,
-                    new Field(`\"battery.charge_wh\"`, null),
-                    new Field(`\"battery.power_w\"`, null),
+                    new Field(`\"${this.series.basename}.charge_wh\"`),
+                    new Field(`\"${this.series.basename}.power_w\"`),
                 ])
                 .from(
                     new AggregateProxy(BatterySeries, ids, [
                         BatterySeries.ps_charge(ids).with_alias(
-                            `\"battery.charge_wh\"`
+                            `\"${this.series.basename}.charge_wh\"`
                         ),
                         BatterySeries.ps_power(ids).with_alias(
-                            `\"battery.power_w\"`
+                            `\"${this.series.basename}.power_w\"`
                         ),
                     ])
                 )
@@ -278,8 +285,8 @@ export class Battery {
     static query_energy_in_out_sum(ids: number[]): Query {
         if (ids.length === 1) {
             return new BatterySeries(ids[0])
-                .d_energy_in(`\"battery.d_energy_in_wh\"`)
-                .d_energy_out(`\"battery.d_energy_out_wh\"`)
+                .d_energy_in(`\"${this.series.basename}.d_energy_in_wh\"`)
+                .d_energy_out(`\"${this.series.basename}.d_energy_out_wh\"`)
                 .time_filter();
         } else {
             return new Query()
@@ -287,25 +294,25 @@ export class Battery {
                     ids.map((id) =>
                         new BatterySeries(id)
                             .time()
-                            .energy_in(null)
-                            .energy_out(null)
+                            .energy_in()
+                            .energy_out()
                             .time_filter()
                     )
                 )
                 .fields([
                     BatterySeries.pds_energy_in(
                         ids,
-                        `\"battery.d_energy_in_wh\"`
+                        `\"${this.series.basename}.d_energy_in_wh\"`
                     ),
                     BatterySeries.pds_energy_out(
                         ids,
-                        `\"battery.d_energy_out_wh\"`
+                        `\"${this.series.basename}.d_energy_out_wh\"`
                     ),
                 ])
-                .from(new Fragment(`${BatterySeries.basename}${ids[0]}`))
+                .from(new Fragment(`${this.series.basename}${ids[0]}`))
                 .joins(
                     BatterySeries.time_join(
-                        `${BatterySeries.basename}${ids[0]}`,
+                        `${this.series.basename}${ids[0]}`,
                         ids.slice(1)
                     )
                 );

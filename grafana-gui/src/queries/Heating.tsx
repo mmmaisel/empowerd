@@ -10,7 +10,7 @@ export type HeatingConfig = {
 
 export class HeatingSeries extends Timeseries {
     static basename = "heating";
-    static time = new Field("time", null);
+    static time = new Field("time");
 
     static ps_heat(config: HeatingConfig): Field {
         if (config.generators.length === 0) {
@@ -42,10 +42,10 @@ export class Heating {
         }
 
         const generators = config.generators.map((id) =>
-            new GeneratorSeries(id).time().heat(null).time_filter()
+            new GeneratorSeries(id).time().heat().time_filter()
         );
         const heatpumps = config.heatpumps.map((id) =>
-            new HeatpumpSeries(id).time().heat(null).time_filter()
+            new HeatpumpSeries(id).time().heat().time_filter()
         );
 
         let first = "";
@@ -61,7 +61,7 @@ export class Heating {
 
         return new Timeseries()
             .subqueries([...generators, ...heatpumps])
-            .fields([new Field(`time`, null), new Field(`s_heat`, null)])
+            .fields([new Field(`time`), new Field(`s_heat`)])
             .from(
                 new ProxyQuery()
                     .fields([

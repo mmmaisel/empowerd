@@ -10,9 +10,9 @@ import { Samples } from "./Samples";
 
 export class SolarSeries extends Timeseries {
     static basename = "solar";
-    static time = new Field("time", null);
-    static power = new Field("power_w", null);
-    static energy = new Field("energy_wh", null);
+    static time = new Field("time");
+    static power = new Field("power_w");
+    static energy = new Field("energy_wh");
     static d_energy = new Field("MAX(energy_wh)-MIN(energy_wh)", "d_energy_wh");
 
     static ps_energy(ids: number[]): Field {
@@ -44,7 +44,7 @@ export class SolarSeries extends Timeseries {
 
     constructor(id: number) {
         super();
-        this.name_ = `solar${id}`;
+        this.name_ = `${SolarSeries.basename}${id}`;
         this.from_ = new Fragment("simple_meters");
         this.wheres_ = [`series_id = ${id}`];
     }
@@ -54,17 +54,17 @@ export class SolarSeries extends Timeseries {
         return this;
     }
 
-    public power(alias: string | null): this {
+    public power(alias: string | null = null): this {
         this.fields_.push(SolarSeries.power.with_alias(alias));
         return this;
     }
 
-    public energy(alias: string | null): this {
+    public energy(alias: string | null = null): this {
         this.fields_.push(SolarSeries.energy.with_alias(alias));
         return this;
     }
 
-    public d_energy(alias: string | null): this {
+    public d_energy(alias: string | null = null): this {
         this.fields_.push(SolarSeries.d_energy.with_alias(alias));
         return this;
     }
@@ -77,25 +77,30 @@ export class SolarProxy extends TimeseriesProxy {
 }
 
 export class Solar {
+    protected static series = SolarSeries;
+
     static query_power(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
             return new SolarSeries(id)
                 .time()
-                .power(`"solar${id}.power_w"`)
+                .power(`\"${this.series.basename}${id}.power_w\"`)
                 .time_filter()
                 .ordered();
         } else {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new SolarSeries(id).time().power(null).time_filter()
+                        new SolarSeries(id).time().power().time_filter()
                     )
                 )
                 .fields([
                     SolarSeries.time,
                     ...ids.map(
-                        (id) => new Field(`\"solar${id}.power_w\"`, null)
+                        (id) =>
+                            new Field(
+                                `\"${this.series.basename}${id}.power_w\"`
+                            )
                     ),
                 ])
                 .from(new SolarProxy(ids, [SolarSeries.power]))
@@ -109,24 +114,24 @@ export class Solar {
             let id = ids[0];
             return new SolarSeries(id)
                 .time()
-                .power(`"solar.power_w"`)
+                .power(`\"${this.series.basename}.power_w\"`)
                 .time_filter()
                 .ordered();
         } else {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new SolarSeries(id).time().power(null).time_filter()
+                        new SolarSeries(id).time().power().time_filter()
                     )
                 )
                 .fields([
                     SolarSeries.time,
-                    new Field(`\"solar.power_w\"`, null),
+                    new Field(`\"${this.series.basename}.power_w\"`),
                 ])
                 .from(
                     new AggregateProxy(SolarSeries, ids, [
                         SolarSeries.ps_power(ids).with_alias(
-                            `\"solar.power_w\"`
+                            `\"${this.series.basename}.power_w\"`
                         ),
                     ])
                 )
@@ -137,29 +142,34 @@ export class Solar {
 
     static query_energy(id: number): Query {
         return new SolarSeries(id)
-            .d_energy(`\"solar${id}.energy_wh\"`)
+            .d_energy(`\"${this.series.basename}${id}.energy_wh\"`)
             .time_filter();
     }
 
     static query_energy_sum(ids: number[]): Query {
         if (ids.length === 1) {
             return new SolarSeries(ids[0])
-                .d_energy(`\"solar.energy_wh\"`)
+                .d_energy(`\"${this.series.basename}.energy_wh\"`)
                 .time_filter();
         } else {
             return new Query()
                 .subqueries(
                     ids.map((id) =>
-                        new SolarSeries(id).time().energy(null).time_filter()
+                        new SolarSeries(id).time().energy().time_filter()
                     )
                 )
                 .fields([
                     SolarSeries.pds_energy(ids).with_alias(
-                        `\"solar.energy_wh\"`
+                        `\"${this.series.basename}.energy_wh\"`
                     ),
                 ])
-                .from(new Fragment(`solar${ids[0]}`))
-                .joins(SolarSeries.time_join(`solar${ids[0]}`, ids.slice(1)));
+                .from(new Fragment(`${this.series.basename}${ids[0]}`))
+                .joins(
+                    SolarSeries.time_join(
+                        `${this.series.basename}${ids[0]}`,
+                        ids.slice(1)
+                    )
+                );
         }
     }
 
@@ -167,18 +177,23 @@ export class Solar {
         let solar_query = null;
         if (ids.length === 1) {
             let id = ids[0];
-            solar_query = new SolarSeries(id).time().energy(null);
+            solar_query = new SolarSeries(id).time().energy();
         } else {
             solar_query = new Query()
                 .subqueries(
-                    ids.map((id) => new SolarSeries(id).time().energy(null))
+                    ids.map((id) => new SolarSeries(id).time().energy())
                 )
                 .fields([
-                    new TimeProxy([`solar${ids[0]}.time`]),
+                    new TimeProxy([`${this.series.basename}${ids[0]}.time`]),
                     SolarSeries.ps_energy(ids).with_alias("energy_wh"),
                 ])
-                .joins(SolarSeries.time_join(`solar${ids[0]}`, ids.slice(1)))
-                .from(new Fragment(`solar${ids[0]}`));
+                .joins(
+                    SolarSeries.time_join(
+                        `${this.series.basename}${ids[0]}`,
+                        ids.slice(1)
+                    )
+                )
+                .from(new Fragment(`${this.series.basename}${ids[0]}`));
         }
 
         return (

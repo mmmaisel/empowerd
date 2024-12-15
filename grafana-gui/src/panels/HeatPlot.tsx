@@ -63,15 +63,10 @@ export class HeatPlot extends EmpPanelBuilder {
             query = Generator.query_heat(this.config.generators);
         } else {
             const heatpumps = this.config.heatpumps.map((id) =>
-                new HeatpumpSeries(id)
-                    .time()
-                    .heat(null)
-                    .power(null)
-                    .cop(null)
-                    .time_filter()
+                new HeatpumpSeries(id).time().heat().power().cop().time_filter()
             );
             const generators = this.config.generators.map((id) =>
-                new GeneratorSeries(id).time().heat(null).time_filter()
+                new GeneratorSeries(id).time().heat().time_filter()
             );
 
             let first = "";
@@ -104,11 +99,11 @@ export class HeatPlot extends EmpPanelBuilder {
             query = new Timeseries()
                 .subqueries([...heatpumps, ...generators])
                 .fields([
-                    new Field(`time`, null),
-                    new Field(`\"heatpump.heat_w\"`, null),
-                    new Field(`\"heatpump.power_w\"`, null),
-                    new Field(`\"heatpump.cop\"`, null),
-                    new Field(`\"generator.heat_w\"`, null),
+                    new Field(`time`),
+                    new Field(`\"heatpump.heat_w\"`),
+                    new Field(`\"heatpump.power_w\"`),
+                    new Field(`\"heatpump.cop\"`),
+                    new Field(`\"generator.heat_w\"`),
                 ])
                 .from(
                     new ProxyQuery()

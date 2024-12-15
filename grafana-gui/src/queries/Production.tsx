@@ -10,7 +10,7 @@ export type ProductionConfig = {
 
 export class ProductionSeries extends Timeseries {
     static basename = "production";
-    static time = new Field("time", null);
+    static time = new Field("time");
 
     static ps_power(config: ProductionConfig): Field {
         if (config.solars.length === 0) {
@@ -32,6 +32,8 @@ export class ProductionSeries extends Timeseries {
 }
 
 export class Production {
+    protected static series = ProductionSeries;
+
     static query_power_sum(config: ProductionConfig): Query {
         if (config.solars.length === 0) {
             return Generator.query_power_sum(config.generators);
@@ -40,10 +42,10 @@ export class Production {
         }
 
         const solars = config.solars.map((id) =>
-            new SolarSeries(id).time().power(null).time_filter()
+            new SolarSeries(id).time().power().time_filter()
         );
         const generators = config.generators.map((id) =>
-            new GeneratorSeries(id).time().power(null).time_filter()
+            new GeneratorSeries(id).time().power().time_filter()
         );
 
         let first = "";
@@ -60,15 +62,15 @@ export class Production {
         const fields = [
             TimeProxy.from_series([...generators, ...solars]),
             ProductionSeries.ps_power(config).with_alias(
-                `\"production.power_w\"`
+                `\"${this.series.basename}.power_w\"`
             ),
         ];
 
         return new Timeseries()
             .subqueries([...solars, ...generators])
             .fields([
-                new Field(`time`, null),
-                new Field(`\"production.power_w\"`, null),
+                new Field(`time`),
+                new Field(`\"${this.series.basename}.power_w\"`),
             ])
             .from(
                 new ProxyQuery()

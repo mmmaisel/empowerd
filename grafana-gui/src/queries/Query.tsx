@@ -13,8 +13,7 @@ export class Fragment {
 export class Field extends Fragment {
     public alias: string;
 
-    // TODO: make alias optional
-    constructor(expr: string, alias: string | null) {
+    constructor(expr: string, alias: string | null = null) {
         super(expr);
         if (alias === null) {
             this.alias = expr;
@@ -31,7 +30,7 @@ export class Field extends Fragment {
         }
     }
 
-    public with_alias(alias: string | null): Field {
+    public with_alias(alias: string | null = null): Field {
         if (alias === null) {
             return this;
         } else {

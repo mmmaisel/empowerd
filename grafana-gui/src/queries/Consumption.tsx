@@ -14,7 +14,7 @@ export type ConsumptionConfig = {
 
 export class ConsumptionSeries extends Timeseries {
     static basename = "consumption";
-    static time = new Field("time", null);
+    static time = new Field("time");
 
     static ps_power(config: ConsumptionConfig): Field {
         if (config.meters.length === 0) {
@@ -79,22 +79,24 @@ export class ConsumptionSeries extends Timeseries {
 }
 
 export class Consumption {
+    protected static series = ConsumptionSeries;
+
     static query_power_sum(config: ConsumptionConfig): Query {
         if (config.meters.length === 0) {
             return new Timeseries().fields([new Field("NULL", "s_power")]);
         }
 
         const meters = config.meters.map((id) =>
-            new MeterSeries(id).time().power(null).time_filter()
+            new MeterSeries(id).time().power().time_filter()
         );
         const batteries = config.batteries.map((id) =>
-            new BatterySeries(id).time().npower(null).time_filter()
+            new BatterySeries(id).time().npower().time_filter()
         );
         const generators = config.generators.map((id) =>
-            new GeneratorSeries(id).time().power(null).time_filter()
+            new GeneratorSeries(id).time().power().time_filter()
         );
         const solars = config.solars.map((id) =>
-            new SolarSeries(id).time().power(null).time_filter()
+            new SolarSeries(id).time().power().time_filter()
         );
 
         let first = "";
@@ -110,15 +112,15 @@ export class Consumption {
                 ...solars,
             ]),
             ConsumptionSeries.ps_power(config).with_alias(
-                `\"consumption.power_w\"`
+                `\"${this.series.basename}.power_w\"`
             ),
         ];
 
         return new Timeseries()
             .subqueries([...meters, ...batteries, ...generators, ...solars])
             .fields([
-                new Field(`time`, null),
-                new Field(`\"consumption.power_w\"`, null),
+                new Field(`time`),
+                new Field(`\"${this.series.basename}.power_w\"`),
             ])
             .from(
                 new ProxyQuery()
@@ -140,29 +142,21 @@ export class Consumption {
     static query_denergy_sum(config: ConsumptionConfig): Query {
         if (config.meters.length === 0) {
             return new Timeseries().fields([
-                new Field("NULL", `\"consumption.d_energy_wh\"`),
+                new Field("NULL", `\"${this.series.basename}.d_energy_wh\"`),
             ]);
         }
 
         const meters = config.meters.map((id) =>
-            new MeterSeries(id)
-                .time()
-                .energy_in(null)
-                .energy_out(null)
-                .time_filter()
+            new MeterSeries(id).time().energy_in().energy_out().time_filter()
         );
         const batteries = config.batteries.map((id) =>
-            new BatterySeries(id)
-                .time()
-                .energy_in(null)
-                .energy_out(null)
-                .time_filter()
+            new BatterySeries(id).time().energy_in().energy_out().time_filter()
         );
         const generators = config.generators.map((id) =>
-            new GeneratorSeries(id).time().energy(null).time_filter()
+            new GeneratorSeries(id).time().energy().time_filter()
         );
         const solars = config.solars.map((id) =>
-            new SolarSeries(id).time().energy(null).time_filter()
+            new SolarSeries(id).time().energy().time_filter()
         );
 
         let first = "";
