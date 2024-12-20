@@ -32,7 +32,7 @@ export class SolarStats extends EmpPanelBuilder {
         for (let id of this.config.solars) {
             queries.push({
                 refId: `solar${id}`,
-                rawSql: Solar.query_energy(id).sql(),
+                rawSql: Solar.query_denergy(id).sql(),
                 format: "table",
             });
         }

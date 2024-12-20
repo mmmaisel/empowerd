@@ -92,7 +92,7 @@ export class PowerStats extends EmpPanelBuilder {
         return [
             {
                 refId: "Solar",
-                rawSql: Solar.query_energy_sum(this.config.solars).sql(),
+                rawSql: Solar.query_denergy_sum(this.config.solars).sql(),
                 format: "table",
             },
             {
