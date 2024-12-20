@@ -4,7 +4,7 @@ import { Color } from "./Color";
 import { Consumption } from "../queries/Consumption";
 import { EmpPanelBuilder } from "./Common";
 import { Heatpump } from "../queries/Heatpump";
-//import { Wallbox } from "../queries/Wallbox";
+import { Wallbox } from "../queries/Wallbox";
 
 export class PowerConsumptionPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
@@ -26,7 +26,7 @@ export class PowerConsumptionPlot extends EmpPanelBuilder {
                 override
                     .matchFieldsWithName("wallbox.power_w")
                     .overrideColor({
-                        fixedColor: Color.green(0).to_rgb(),
+                        fixedColor: Color.orange(0).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName("Wallbox Power");
@@ -49,11 +49,11 @@ export class PowerConsumptionPlot extends EmpPanelBuilder {
                 rawSql: Heatpump.query_power_sum(this.config.heatpumps).sql(),
                 format: "table",
             },
-            /*{
+            {
                 refId: "B",
                 rawSql: Wallbox.query_power_sum(this.config.wallboxes).sql(),
                 format: "table",
-            },*/
+            },
             {
                 refId: "C",
                 rawSql: Consumption.query_power_sum(this.config).sql(),

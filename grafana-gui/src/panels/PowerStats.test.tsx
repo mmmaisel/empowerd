@@ -11,6 +11,7 @@ test("Query for single sources", () => {
             generators: [2],
             batteries: [3],
             meters: [4],
+            wallboxes: [5],
         },
         undefined,
         undefined as any
@@ -48,6 +49,12 @@ test("Query for single sources", () => {
         "WHERE series_id = 4 AND $__timeFilter(time)";
 
     // prettier-ignore
+    const wallbox_sql =
+        "SELECT MAX(energy_wh)-MIN(energy_wh) AS \"wallbox.energy_wh\" " +
+        "FROM simple_meters " +
+        "WHERE series_id = 5 AND $__timeFilter(time)";
+
+    // prettier-ignore
     const consumption_sql =
         "WITH meter4 AS (" +
             "SELECT time, energy_in_wh, energy_out_wh FROM bidir_meters " +
@@ -83,7 +90,8 @@ test("Query for single sources", () => {
     expect(queries[1].rawSql).toBe(generator_sql);
     expect(queries[2].rawSql).toBe(battery_sql);
     expect(queries[3].rawSql).toBe(meter_sql);
-    expect(queries[4].rawSql).toBe(consumption_sql);
+    expect(queries[4].rawSql).toBe(wallbox_sql);
+    expect(queries[5].rawSql).toBe(consumption_sql);
 });
 
 test("Query for dual sources", () => {
@@ -94,6 +102,7 @@ test("Query for dual sources", () => {
             generators: [3, 4],
             batteries: [5, 6],
             meters: [7, 8],
+            wallboxes: [9, 10],
         },
         undefined,
         undefined as any
@@ -178,6 +187,22 @@ test("Query for dual sources", () => {
         "FULL OUTER JOIN meter8 ON meter7.time = meter8.time";
 
     // prettier-ignore
+    const wallbox_sql =
+        "WITH wallbox9 AS (" +
+            "SELECT time, energy_wh FROM simple_meters " +
+            "WHERE series_id = 9 AND $__timeFilter(time)" +
+        "), wallbox10 AS (" +
+            "SELECT time, energy_wh FROM simple_meters " +
+            "WHERE series_id = 10 AND $__timeFilter(time)" +
+        ") " +
+        "SELECT " +
+            "COALESCE(MAX(wallbox9.energy_wh)-MIN(wallbox9.energy_wh), 0)+" +
+            "COALESCE(MAX(wallbox10.energy_wh)-MIN(wallbox10.energy_wh), 0) " +
+            "AS \"wallbox.energy_wh\" " +
+        "FROM wallbox9 " +
+        "FULL OUTER JOIN wallbox10 ON wallbox9.time = wallbox10.time";
+
+    // prettier-ignore
     const consumption_sql =
         "WITH meter7 AS (" +
             "SELECT time, energy_in_wh, energy_out_wh FROM bidir_meters " +
@@ -239,5 +264,6 @@ test("Query for dual sources", () => {
     expect(queries[1].rawSql).toBe(generator_sql);
     expect(queries[2].rawSql).toBe(battery_sql);
     expect(queries[3].rawSql).toBe(meter_sql);
-    expect(queries[4].rawSql).toBe(consumption_sql);
+    expect(queries[4].rawSql).toBe(wallbox_sql);
+    expect(queries[5].rawSql).toBe(consumption_sql);
 });

@@ -9,6 +9,7 @@ import { Consumption } from "../queries/Consumption";
 import { Generator } from "../queries/Generator";
 import { Meter } from "../queries/Meter";
 import { Solar } from "../queries/Solar";
+import { Wallbox } from "../queries/Wallbox";
 
 export type DrilldownConfig = {
     solar: DataLink[];
@@ -78,6 +79,13 @@ export class PowerStats extends EmpPanelBuilder {
                     })
                     .overrideDisplayName("Meter Out");
                 override
+                    .matchFieldsByQuery("Wallbox")
+                    .overrideColor({
+                        fixedColor: Color.orange(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName("Wallbox");
+                override
                     .matchFieldsByQuery("Consumption")
                     .overrideColor({
                         fixedColor: Color.cyan(0).to_rgb(),
@@ -112,6 +120,11 @@ export class PowerStats extends EmpPanelBuilder {
             {
                 refId: "Meter",
                 rawSql: Meter.query_energy_in_out_sum(this.config.meters).sql(),
+                format: "table",
+            },
+            {
+                refId: "Wallbox",
+                rawSql: Wallbox.query_denergy_sum(this.config.wallboxes).sql(),
                 format: "table",
             },
             {

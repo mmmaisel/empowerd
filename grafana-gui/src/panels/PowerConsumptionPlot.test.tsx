@@ -90,5 +90,5 @@ test("Query consumption", () => {
             "OFFSET 0" +
         ") AS proxy WHERE time IS NOT NULL ORDER BY time";
 
-    expect(queries[1].rawSql).toBe(expected_sql);
+    expect(queries[2].rawSql).toBe(expected_sql);
 });

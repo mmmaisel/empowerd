@@ -50,6 +50,7 @@ export class Routes extends Component<RoutesProps, RoutesState> {
             heatpumps: [7],
             meters: [3],
             solars: [1, 8],
+            wallboxes: [6],
             weathers: [5],
         };
 
