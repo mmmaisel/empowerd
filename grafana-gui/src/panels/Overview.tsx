@@ -143,7 +143,14 @@ export class Overview extends EmpPanelBuilder {
         });
         queries.push({
             refId: "Consumption",
-            rawSql: Consumption.query_power_sum(this.config).sql(),
+            rawSql: Consumption.query_power_sum({
+                batteries: this.config.batteries,
+                generators: this.config.generators,
+                heatpumps: [],
+                meters: this.config.meters,
+                solars: this.config.solars,
+                wallboxes: [],
+            }).sql(),
             format: "table",
         });
         queries.push({

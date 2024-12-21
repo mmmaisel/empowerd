@@ -9,10 +9,12 @@ import {
 export class HeatpumpSeries extends Timeseries {
     static basename = "heatpump";
     static time = new Field("time");
+    static energy = new Field("energy_wh");
     static heat = new Field("power_w * cop_pct / 100.0", "heat_w");
     static heat_wh = new Field("heat_wh");
     static power = new Field("power_w");
     static cop = new Field("cop_pct / 100.0", "cop");
+    static d_energy = new Field("MAX(energy_wh)-MIN(energy_wh)", "d_energy");
     static d_heat_wh = new Field("MAX(heat_wh)-MIN(heat_wh)", "d_heat_wh");
     static a_cop = new Field("AVG(cop_pct) / 100.0", "cop");
 
@@ -70,6 +72,11 @@ export class HeatpumpSeries extends Timeseries {
 
     public time(): this {
         this.fields_.push(HeatpumpSeries.time);
+        return this;
+    }
+
+    public energy(alias: string | null = null): this {
+        this.fields_.push(HeatpumpSeries.energy.with_alias(alias));
         return this;
     }
 

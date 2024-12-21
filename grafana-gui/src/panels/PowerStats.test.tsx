@@ -68,6 +68,9 @@ test("Query for single sources", () => {
         "), solar1 AS (" +
             "SELECT time, energy_wh FROM simple_meters " +
             "WHERE series_id = 1 AND $__timeFilter(time)" +
+        "), wallbox5 AS (" +
+            "SELECT time, energy_wh FROM simple_meters " +
+            "WHERE series_id = 5 AND $__timeFilter(time)" +
         ") " +
         "SELECT " +
             "COALESCE(" +
@@ -79,12 +82,14 @@ test("Query for single sources", () => {
                 "-MAX(battery3.energy_in_wh)+MIN(battery3.energy_in_wh)" +
             ", 0)+" +
             "COALESCE(MAX(generator2.energy_wh)-MIN(generator2.energy_wh), 0)+" +
-            "COALESCE(MAX(solar1.energy_wh)-MIN(solar1.energy_wh), 0) " +
+            "COALESCE(MAX(solar1.energy_wh)-MIN(solar1.energy_wh), 0)-" +
+            "COALESCE(MAX(wallbox5.energy_wh)-MIN(wallbox5.energy_wh), 0) " +
             "AS d_energy_wh " +
         "FROM meter4 " +
         "FULL OUTER JOIN battery3 ON meter4.time = battery3.time " +
         "FULL OUTER JOIN generator2 ON meter4.time = generator2.time " +
-        "FULL OUTER JOIN solar1 ON meter4.time = solar1.time";
+        "FULL OUTER JOIN solar1 ON meter4.time = solar1.time " +
+        "FULL OUTER JOIN wallbox5 ON meter4.time = wallbox5.time";
 
     expect(queries[0].rawSql).toBe(solar_sql);
     expect(queries[1].rawSql).toBe(generator_sql);
@@ -228,6 +233,12 @@ test("Query for dual sources", () => {
         "), solar2 AS (" +
             "SELECT time, energy_wh FROM simple_meters " +
             "WHERE series_id = 2 AND $__timeFilter(time)" +
+        "), wallbox9 AS (" +
+            "SELECT time, energy_wh FROM simple_meters " +
+            "WHERE series_id = 9 AND $__timeFilter(time)" +
+        "), wallbox10 AS (" +
+            "SELECT time, energy_wh FROM simple_meters " +
+            "WHERE series_id = 10 AND $__timeFilter(time)" +
         ") " +
         "SELECT " +
             "COALESCE(" +
@@ -249,7 +260,9 @@ test("Query for dual sources", () => {
             "COALESCE(MAX(generator3.energy_wh)-MIN(generator3.energy_wh), 0)+" +
             "COALESCE(MAX(generator4.energy_wh)-MIN(generator4.energy_wh), 0)+" +
             "COALESCE(MAX(solar1.energy_wh)-MIN(solar1.energy_wh), 0)+" +
-            "COALESCE(MAX(solar2.energy_wh)-MIN(solar2.energy_wh), 0) " +
+            "COALESCE(MAX(solar2.energy_wh)-MIN(solar2.energy_wh), 0)" +
+            "-COALESCE(MAX(wallbox9.energy_wh)-MIN(wallbox9.energy_wh), 0)" +
+            "-COALESCE(MAX(wallbox10.energy_wh)-MIN(wallbox10.energy_wh), 0) " +
             "AS d_energy_wh " +
         "FROM meter7 " +
         "FULL OUTER JOIN meter8 ON meter7.time = meter8.time " +
@@ -258,7 +271,9 @@ test("Query for dual sources", () => {
         "FULL OUTER JOIN generator3 ON meter7.time = generator3.time " +
         "FULL OUTER JOIN generator4 ON meter7.time = generator4.time " +
         "FULL OUTER JOIN solar1 ON meter7.time = solar1.time " +
-        "FULL OUTER JOIN solar2 ON meter7.time = solar2.time";
+        "FULL OUTER JOIN solar2 ON meter7.time = solar2.time " +
+        "FULL OUTER JOIN wallbox9 ON meter7.time = wallbox9.time " +
+        "FULL OUTER JOIN wallbox10 ON meter7.time = wallbox10.time";
 
     expect(queries[0].rawSql).toBe(solar_sql);
     expect(queries[1].rawSql).toBe(generator_sql);

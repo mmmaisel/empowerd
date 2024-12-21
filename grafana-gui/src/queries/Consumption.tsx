@@ -2,14 +2,18 @@ import { Field, Fragment, Query, Timeseries } from "./Query";
 import { TimeProxy, ProxyQuery } from "./Proxy";
 import { BatterySeries } from "./Battery";
 import { GeneratorSeries } from "./Generator";
+import { HeatpumpSeries } from "./Heatpump";
 import { MeterSeries } from "./Meter";
 import { SolarSeries } from "./Solar";
+import { WallboxSeries } from "./Wallbox";
 
 export type ConsumptionConfig = {
     batteries: number[];
     generators: number[];
+    heatpumps: number[];
     meters: number[];
     solars: number[];
+    wallboxes: number[];
 };
 
 export class ConsumptionSeries extends Timeseries {
@@ -32,12 +36,23 @@ export class ConsumptionSeries extends Timeseries {
         let generators = config.generators.map(
             (id) => `COALESCE(generator${id}.power_w, 0)`
         );
+        let heatpumps = config.heatpumps.map(
+            (id) => `COALESCE(heatpump${id}.power_w, 0)`
+        );
         let solars = config.solars.map(
             (id) => `COALESCE(solar${id}.power_w, 0)`
         );
+        let wallboxes = config.wallboxes.map(
+            (id) => `COALESCE(wallbox${id}.power_w, 0)`
+        );
 
         return new Field(
-            [...meters, ...batteries, ...generators, ...solars].join("+"),
+            [
+                [...meters, ...batteries, ...generators, ...solars].join("+"),
+                [...heatpumps, ...wallboxes].join("-"),
+            ]
+                .filter((str) => str.length != 0)
+                .join("-"),
             `s_power`
         );
     }
@@ -66,13 +81,26 @@ export class ConsumptionSeries extends Timeseries {
             (id) =>
                 `COALESCE(MAX(generator${id}.energy_wh)-MIN(generator${id}.energy_wh), 0)`
         );
+        let heatpumps = config.heatpumps.map(
+            (id) =>
+                `COALESCE(MAX(heatpump${id}.energy_wh)-MIN(heatpump${id}.energy_wh), 0)`
+        );
         let solars = config.solars.map(
             (id) =>
                 `COALESCE(MAX(solar${id}.energy_wh)-MIN(solar${id}.energy_wh), 0)`
         );
+        let wallboxes = config.wallboxes.map(
+            (id) =>
+                `COALESCE(MAX(wallbox${id}.energy_wh)-MIN(wallbox${id}.energy_wh), 0)`
+        );
 
         return new Field(
-            [...meters, ...batteries, ...generators, ...solars].join("+"),
+            [
+                [...meters, ...batteries, ...generators, ...solars].join("+"),
+                [...heatpumps, ...wallboxes].join("-"),
+            ]
+                .filter((str) => str.length != 0)
+                .join("-"),
             `d_energy_wh`
         );
     }
@@ -95,8 +123,14 @@ export class Consumption {
         const generators = config.generators.map((id) =>
             new GeneratorSeries(id).time().power().time_filter()
         );
+        const heatpumps = config.heatpumps.map((id) =>
+            new HeatpumpSeries(id).time().power().time_filter()
+        );
         const solars = config.solars.map((id) =>
             new SolarSeries(id).time().power().time_filter()
+        );
+        const wallboxes = config.wallboxes.map((id) =>
+            new WallboxSeries(id).time().power().time_filter()
         );
 
         let first = "";
@@ -109,7 +143,9 @@ export class Consumption {
                 ...meters,
                 ...batteries,
                 ...generators,
+                ...heatpumps,
                 ...solars,
+                ...wallboxes,
             ]),
             ConsumptionSeries.ps_power(config).with_alias(
                 `\"${this.series.basename}.power_w\"`
@@ -117,7 +153,14 @@ export class Consumption {
         ];
 
         return new Timeseries()
-            .subqueries([...meters, ...batteries, ...generators, ...solars])
+            .subqueries([
+                ...meters,
+                ...batteries,
+                ...generators,
+                ...heatpumps,
+                ...solars,
+                ...wallboxes,
+            ])
             .fields([
                 new Field(`time`),
                 new Field(`\"${this.series.basename}.power_w\"`),
@@ -131,7 +174,9 @@ export class Consumption {
                             MeterSeries.time_join(first, meter_ids),
                             BatterySeries.time_join(first, config.batteries),
                             GeneratorSeries.time_join(first, config.generators),
+                            HeatpumpSeries.time_join(first, config.heatpumps),
                             SolarSeries.time_join(first, config.solars),
+                            WallboxSeries.time_join(first, config.wallboxes),
                         ].flat()
                     )
             )
@@ -155,8 +200,14 @@ export class Consumption {
         const generators = config.generators.map((id) =>
             new GeneratorSeries(id).time().energy().time_filter()
         );
+        const heatpumps = config.heatpumps.map((id) =>
+            new HeatpumpSeries(id).time().energy().time_filter()
+        );
         const solars = config.solars.map((id) =>
             new SolarSeries(id).time().energy().time_filter()
+        );
+        const wallboxes = config.wallboxes.map((id) =>
+            new WallboxSeries(id).time().energy().time_filter()
         );
 
         let first = "";
@@ -165,7 +216,14 @@ export class Consumption {
         meter_ids.shift();
 
         return new Timeseries()
-            .subqueries([...meters, ...batteries, ...generators, ...solars])
+            .subqueries([
+                ...meters,
+                ...batteries,
+                ...generators,
+                ...heatpumps,
+                ...solars,
+                ...wallboxes,
+            ])
             .fields([ConsumptionSeries.pds_energy(config)])
             .from(new Fragment(first))
             .joins(
@@ -173,7 +231,9 @@ export class Consumption {
                     MeterSeries.time_join(first, meter_ids),
                     BatterySeries.time_join(first, config.batteries),
                     GeneratorSeries.time_join(first, config.generators),
+                    HeatpumpSeries.time_join(first, config.heatpumps),
                     SolarSeries.time_join(first, config.solars),
+                    WallboxSeries.time_join(first, config.wallboxes),
                 ].flat()
             );
     }

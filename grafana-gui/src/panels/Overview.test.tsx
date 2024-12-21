@@ -83,6 +83,7 @@ test("Query for single sources", () => {
             heatpumps: [3],
             meters: [4],
             solars: [1],
+            wallboxes: [5],
         },
         undefined,
         undefined as any
@@ -180,6 +181,7 @@ test("Query for dual", () => {
             heatpumps: [5, 6],
             meters: [7, 8],
             solars: [1, 2],
+            wallboxes: [11, 12],
         },
         undefined,
         undefined as any
