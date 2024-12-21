@@ -7,6 +7,7 @@ import { Color } from "./Color";
 import { Battery } from "../queries/Battery";
 import { Consumption } from "../queries/Consumption";
 import { Generator } from "../queries/Generator";
+import { Heatpump } from "../queries/Heatpump";
 import { Meter } from "../queries/Meter";
 import { Solar } from "../queries/Solar";
 import { Wallbox } from "../queries/Wallbox";
@@ -79,6 +80,13 @@ export class PowerStats extends EmpPanelBuilder {
                     })
                     .overrideDisplayName("Meter Out");
                 override
+                    .matchFieldsByQuery("Heatpump")
+                    .overrideColor({
+                        fixedColor: Color.purple(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName("Heatpump");
+                override
                     .matchFieldsByQuery("Wallbox")
                     .overrideColor({
                         fixedColor: Color.orange(0).to_rgb(),
@@ -120,6 +128,11 @@ export class PowerStats extends EmpPanelBuilder {
             {
                 refId: "Meter",
                 rawSql: Meter.query_energy_in_out_sum(this.config.meters).sql(),
+                format: "table",
+            },
+            {
+                refId: "Heatpump",
+                rawSql: Heatpump.query_denergy_sum(this.config.heatpumps).sql(),
                 format: "table",
             },
             {

@@ -45,6 +45,15 @@ export class HeatpumpSeries extends Timeseries {
         );
     }
 
+    static pds_energy(ids: number[]): Field {
+        return new DeltaSumProxyField(
+            this.energy.alias,
+            "ds_energy_wh",
+            this.basename,
+            ids
+        );
+    }
+
     static pds_heat_wh(ids: number[]): Field {
         return new DeltaSumProxyField(
             this.heat_wh.alias,
@@ -87,6 +96,11 @@ export class HeatpumpSeries extends Timeseries {
 
     public heat_wh(alias: string | null = null): this {
         this.fields_.push(HeatpumpSeries.heat_wh.with_alias(alias));
+        return this;
+    }
+
+    public d_energy(alias: string | null = null): this {
+        this.fields_.push(HeatpumpSeries.d_energy.with_alias(alias));
         return this;
     }
 
@@ -189,6 +203,27 @@ export class Heatpump {
                 )
                 .time_not_null()
                 .ordered();
+        }
+    }
+
+    static query_denergy_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            return new HeatpumpSeries(ids[0]).d_energy().time_filter();
+        } else {
+            return new Timeseries()
+                .subqueries(
+                    ids.map((id) =>
+                        new HeatpumpSeries(id).time().energy().time_filter()
+                    )
+                )
+                .fields([HeatpumpSeries.pds_energy(ids)])
+                .from(new Fragment(`${this.series.basename}${ids[0]}`))
+                .joins(
+                    HeatpumpSeries.time_join(
+                        `${this.series.basename}${ids[0]}`,
+                        ids.slice(1)
+                    )
+                );
         }
     }
 

@@ -12,6 +12,7 @@ test("Query for single sources", () => {
             batteries: [3],
             meters: [4],
             wallboxes: [5],
+            heatpumps: [6],
         },
         undefined,
         undefined as any
@@ -49,6 +50,12 @@ test("Query for single sources", () => {
         "WHERE series_id = 4 AND $__timeFilter(time)";
 
     // prettier-ignore
+    const heatpump_sql =
+        "SELECT MAX(energy_wh)-MIN(energy_wh) AS d_energy " +
+        "FROM heatpumps " +
+        "WHERE series_id = 6 AND $__timeFilter(time)";
+
+    // prettier-ignore
     const wallbox_sql =
         "SELECT MAX(energy_wh)-MIN(energy_wh) AS \"wallbox.energy_wh\" " +
         "FROM simple_meters " +
@@ -65,6 +72,9 @@ test("Query for single sources", () => {
         "), generator2 AS (" +
             "SELECT time, runtime_s * 0.222222 AS energy_wh FROM generators " +
             "WHERE series_id = 2 AND $__timeFilter(time)" +
+        "), heatpump6 AS (" +
+            "SELECT time, energy_wh FROM heatpumps " +
+            "WHERE series_id = 6 AND $__timeFilter(time)" +
         "), solar1 AS (" +
             "SELECT time, energy_wh FROM simple_meters " +
             "WHERE series_id = 1 AND $__timeFilter(time)" +
@@ -82,12 +92,14 @@ test("Query for single sources", () => {
                 "-MAX(battery3.energy_in_wh)+MIN(battery3.energy_in_wh)" +
             ", 0)+" +
             "COALESCE(MAX(generator2.energy_wh)-MIN(generator2.energy_wh), 0)+" +
-            "COALESCE(MAX(solar1.energy_wh)-MIN(solar1.energy_wh), 0)-" +
-            "COALESCE(MAX(wallbox5.energy_wh)-MIN(wallbox5.energy_wh), 0) " +
+            "COALESCE(MAX(solar1.energy_wh)-MIN(solar1.energy_wh), 0)" +
+            "-COALESCE(MAX(heatpump6.energy_wh)-MIN(heatpump6.energy_wh), 0)" +
+            "-COALESCE(MAX(wallbox5.energy_wh)-MIN(wallbox5.energy_wh), 0) " +
             "AS d_energy_wh " +
         "FROM meter4 " +
         "FULL OUTER JOIN battery3 ON meter4.time = battery3.time " +
         "FULL OUTER JOIN generator2 ON meter4.time = generator2.time " +
+        "FULL OUTER JOIN heatpump6 ON meter4.time = heatpump6.time " +
         "FULL OUTER JOIN solar1 ON meter4.time = solar1.time " +
         "FULL OUTER JOIN wallbox5 ON meter4.time = wallbox5.time";
 
@@ -95,8 +107,9 @@ test("Query for single sources", () => {
     expect(queries[1].rawSql).toBe(generator_sql);
     expect(queries[2].rawSql).toBe(battery_sql);
     expect(queries[3].rawSql).toBe(meter_sql);
-    expect(queries[4].rawSql).toBe(wallbox_sql);
-    expect(queries[5].rawSql).toBe(consumption_sql);
+    expect(queries[4].rawSql).toBe(heatpump_sql);
+    expect(queries[5].rawSql).toBe(wallbox_sql);
+    expect(queries[6].rawSql).toBe(consumption_sql);
 });
 
 test("Query for dual sources", () => {
@@ -108,6 +121,7 @@ test("Query for dual sources", () => {
             batteries: [5, 6],
             meters: [7, 8],
             wallboxes: [9, 10],
+            heatpumps: [11, 12],
         },
         undefined,
         undefined as any
@@ -192,6 +206,22 @@ test("Query for dual sources", () => {
         "FULL OUTER JOIN meter8 ON meter7.time = meter8.time";
 
     // prettier-ignore
+    const heatpump_sql =
+        "WITH heatpump11 AS (" +
+            "SELECT time, energy_wh FROM heatpumps " +
+            "WHERE series_id = 11 AND $__timeFilter(time)" +
+        "), heatpump12 AS (" +
+            "SELECT time, energy_wh FROM heatpumps " +
+            "WHERE series_id = 12 AND $__timeFilter(time)" +
+        ") " +
+        "SELECT " +
+            "COALESCE(MAX(heatpump11.energy_wh)-MIN(heatpump11.energy_wh), 0)+" +
+            "COALESCE(MAX(heatpump12.energy_wh)-MIN(heatpump12.energy_wh), 0) " +
+            "AS ds_energy_wh " +
+        "FROM heatpump11 " +
+        "FULL OUTER JOIN heatpump12 ON heatpump11.time = heatpump12.time";
+
+    // prettier-ignore
     const wallbox_sql =
         "WITH wallbox9 AS (" +
             "SELECT time, energy_wh FROM simple_meters " +
@@ -227,6 +257,12 @@ test("Query for dual sources", () => {
         "), generator4 AS (" +
             "SELECT time, runtime_s * 0.222222 AS energy_wh FROM generators " +
             "WHERE series_id = 4 AND $__timeFilter(time)" +
+        "), heatpump11 AS (" +
+            "SELECT time, energy_wh FROM heatpumps " +
+            "WHERE series_id = 11 AND $__timeFilter(time)" +
+        "), heatpump12 AS (" +
+            "SELECT time, energy_wh FROM heatpumps " +
+            "WHERE series_id = 12 AND $__timeFilter(time)" +
         "), solar1 AS (" +
             "SELECT time, energy_wh FROM simple_meters " +
             "WHERE series_id = 1 AND $__timeFilter(time)" +
@@ -261,6 +297,8 @@ test("Query for dual sources", () => {
             "COALESCE(MAX(generator4.energy_wh)-MIN(generator4.energy_wh), 0)+" +
             "COALESCE(MAX(solar1.energy_wh)-MIN(solar1.energy_wh), 0)+" +
             "COALESCE(MAX(solar2.energy_wh)-MIN(solar2.energy_wh), 0)" +
+            "-COALESCE(MAX(heatpump11.energy_wh)-MIN(heatpump11.energy_wh), 0)" +
+            "-COALESCE(MAX(heatpump12.energy_wh)-MIN(heatpump12.energy_wh), 0)" +
             "-COALESCE(MAX(wallbox9.energy_wh)-MIN(wallbox9.energy_wh), 0)" +
             "-COALESCE(MAX(wallbox10.energy_wh)-MIN(wallbox10.energy_wh), 0) " +
             "AS d_energy_wh " +
@@ -270,6 +308,8 @@ test("Query for dual sources", () => {
         "FULL OUTER JOIN battery6 ON meter7.time = battery6.time " +
         "FULL OUTER JOIN generator3 ON meter7.time = generator3.time " +
         "FULL OUTER JOIN generator4 ON meter7.time = generator4.time " +
+        "FULL OUTER JOIN heatpump11 ON meter7.time = heatpump11.time " +
+        "FULL OUTER JOIN heatpump12 ON meter7.time = heatpump12.time " +
         "FULL OUTER JOIN solar1 ON meter7.time = solar1.time " +
         "FULL OUTER JOIN solar2 ON meter7.time = solar2.time " +
         "FULL OUTER JOIN wallbox9 ON meter7.time = wallbox9.time " +
@@ -279,6 +319,7 @@ test("Query for dual sources", () => {
     expect(queries[1].rawSql).toBe(generator_sql);
     expect(queries[2].rawSql).toBe(battery_sql);
     expect(queries[3].rawSql).toBe(meter_sql);
-    expect(queries[4].rawSql).toBe(wallbox_sql);
-    expect(queries[5].rawSql).toBe(consumption_sql);
+    expect(queries[4].rawSql).toBe(heatpump_sql);
+    expect(queries[5].rawSql).toBe(wallbox_sql);
+    expect(queries[6].rawSql).toBe(consumption_sql);
 });

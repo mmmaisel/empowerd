@@ -33,7 +33,7 @@ export class PowerConsumptionPlot extends EmpPanelBuilder {
                 override
                     .matchFieldsWithName("consumption.power_w")
                     .overrideColor({
-                        fixedColor: Color.red(0).to_rgb(),
+                        fixedColor: Color.cyan(0).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName("Other Consumption");

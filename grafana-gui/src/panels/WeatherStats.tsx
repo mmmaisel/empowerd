@@ -15,7 +15,7 @@ export class WeatherStats extends EmpPanelBuilder {
                 override
                     .matchFieldsByQuery("rain_int")
                     .overrideColor({
-                        fixedColor: Color.cyan(0).to_rgb(),
+                        fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
                     .overrideDisplayName("Rain Interval");
