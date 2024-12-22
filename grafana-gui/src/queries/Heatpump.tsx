@@ -5,16 +5,13 @@ import {
     SumProxyField,
     TimeseriesProxy,
 } from "./Proxy";
+import { SimpleMeter, SimpleMeterSeries } from "./SimpleMeter";
 
-export class HeatpumpSeries extends Timeseries {
+export class HeatpumpSeries extends SimpleMeterSeries {
     static basename = "heatpump";
-    static time = new Field("time");
-    static energy = new Field("energy_wh");
     static heat = new Field("power_w * cop_pct / 100.0", "heat_w");
     static heat_wh = new Field("heat_wh");
-    static power = new Field("power_w");
     static cop = new Field("cop_pct / 100.0", "cop");
-    static d_energy = new Field("MAX(energy_wh)-MIN(energy_wh)", "d_energy");
     static d_heat_wh = new Field("MAX(heat_wh)-MIN(heat_wh)", "d_heat_wh");
     static a_cop = new Field("AVG(cop_pct) / 100.0", "cop");
 
@@ -45,15 +42,6 @@ export class HeatpumpSeries extends Timeseries {
         );
     }
 
-    static pds_energy(ids: number[]): Field {
-        return new DeltaSumProxyField(
-            this.energy.alias,
-            "ds_energy_wh",
-            this.basename,
-            ids
-        );
-    }
-
     static pds_heat_wh(ids: number[]): Field {
         return new DeltaSumProxyField(
             this.heat_wh.alias,
@@ -63,30 +51,10 @@ export class HeatpumpSeries extends Timeseries {
         );
     }
 
-    static ps_power(ids: number[]): Field {
-        return new SumProxyField(
-            this.power.alias,
-            "s_power_w",
-            this.basename,
-            ids
-        );
-    }
-
     constructor(id: number) {
-        super();
+        super(id);
         this.name_ = `${HeatpumpSeries.basename}${id}`;
         this.from_ = new Fragment("heatpumps");
-        this.wheres_ = [`series_id = ${id}`];
-    }
-
-    public time(): this {
-        this.fields_.push(HeatpumpSeries.time);
-        return this;
-    }
-
-    public energy(alias: string | null = null): this {
-        this.fields_.push(HeatpumpSeries.energy.with_alias(alias));
-        return this;
     }
 
     public heat(alias: string | null = null): this {
@@ -99,18 +67,8 @@ export class HeatpumpSeries extends Timeseries {
         return this;
     }
 
-    public d_energy(alias: string | null = null): this {
-        this.fields_.push(HeatpumpSeries.d_energy.with_alias(alias));
-        return this;
-    }
-
     public d_heat_wh(alias: string | null = null): this {
         this.fields_.push(HeatpumpSeries.d_heat_wh.with_alias(alias));
-        return this;
-    }
-
-    public power(alias: string | null = null): this {
-        this.fields_.push(HeatpumpSeries.power.with_alias(alias));
         return this;
     }
 
@@ -132,7 +90,7 @@ export class HeatpumpProxy extends TimeseriesProxy {
     }
 }
 
-export class Heatpump {
+export class Heatpump extends SimpleMeter {
     protected static series = HeatpumpSeries;
     protected static proxy = HeatpumpProxy;
 
@@ -207,27 +165,6 @@ export class Heatpump {
         }
     }
 
-    static query_denergy_sum(ids: number[]): Query {
-        if (ids.length === 1) {
-            return new this.series(ids[0]).d_energy().time_filter();
-        } else {
-            return new Timeseries()
-                .subqueries(
-                    ids.map((id) =>
-                        new this.series(id).time().energy().time_filter()
-                    )
-                )
-                .fields([this.series.pds_energy(ids)])
-                .from(new Fragment(`${this.series.basename}${ids[0]}`))
-                .joins(
-                    this.series.time_join(
-                        `${this.series.basename}${ids[0]}`,
-                        ids.slice(1)
-                    )
-                );
-        }
-    }
-
     static query_dheat_wh_sum(ids: number[]): Query {
         if (ids.length === 1) {
             return new this.series(ids[0]).d_heat_wh().time_filter();
@@ -278,37 +215,6 @@ export class Heatpump {
                         ids.slice(1)
                     )
                 );
-        }
-    }
-
-    static query_power_sum(ids: number[]): Query {
-        if (ids.length === 1) {
-            let id = ids[0];
-            return new this.series(id)
-                .time()
-                .power(`\"${this.series.basename}.power_w\"`)
-                .time_filter()
-                .ordered();
-        } else {
-            return new Timeseries()
-                .subqueries(
-                    ids.map((id) =>
-                        new this.series(id).time().power().time_filter()
-                    )
-                )
-                .fields([
-                    this.series.time,
-                    new Field(`\"${this.series.basename}.power_w\"`),
-                ])
-                .from(
-                    new AggregateProxy(this.series, ids, [
-                        this.series
-                            .ps_power(ids)
-                            .with_alias(`\"${this.series.basename}.power_w\"`),
-                    ])
-                )
-                .time_not_null()
-                .ordered();
         }
     }
 }

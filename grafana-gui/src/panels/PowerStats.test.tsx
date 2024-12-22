@@ -51,7 +51,7 @@ test("Query for single sources", () => {
 
     // prettier-ignore
     const heatpump_sql =
-        "SELECT MAX(energy_wh)-MIN(energy_wh) AS d_energy " +
+        "SELECT MAX(energy_wh)-MIN(energy_wh) AS \"heatpump.energy_wh\" " +
         "FROM heatpumps " +
         "WHERE series_id = 6 AND $__timeFilter(time)";
 
@@ -217,7 +217,7 @@ test("Query for dual sources", () => {
         "SELECT " +
             "COALESCE(MAX(heatpump11.energy_wh)-MIN(heatpump11.energy_wh), 0)+" +
             "COALESCE(MAX(heatpump12.energy_wh)-MIN(heatpump12.energy_wh), 0) " +
-            "AS ds_energy_wh " +
+            "AS \"heatpump.energy_wh\" " +
         "FROM heatpump11 " +
         "FULL OUTER JOIN heatpump12 ON heatpump11.time = heatpump12.time";
 
