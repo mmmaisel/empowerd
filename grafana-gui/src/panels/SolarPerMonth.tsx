@@ -4,6 +4,7 @@ import {
     SceneObject,
     SceneObjectState,
     SceneDataTransformer,
+    SceneTimeRange,
 } from "@grafana/scenes";
 
 import { Color } from "./Color";
@@ -39,6 +40,7 @@ export class SolarPerMonth extends EmpPanelBuilder {
 
         return new SceneDataTransformer({
             $data: queryRunner,
+            $timeRange: new SceneTimeRange({ from: "now-3y", to: "now" }),
             transformations: [
                 GroupByMonthTrafo.bind(null, "Solar", "watth", Color.yellow),
             ],

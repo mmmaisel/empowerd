@@ -9,6 +9,7 @@ export class SolarStats extends EmpPanelBuilder {
         return PanelBuilders.stat()
             .setHoverHeader(true)
             .setUnit("watth")
+            .setNoValue("No Data")
             .setOption("graphMode", "none" as any)
             .setOption("textMode", "value_and_name" as any)
             .setOverrides((override: any) => {
