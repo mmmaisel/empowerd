@@ -30,11 +30,11 @@ export class PowerStats extends EmpPanelBuilder {
 
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.stat()
+            .setHoverHeader(true)
             .setUnit("watth")
             .setNoValue("No Data")
             .setOption("graphMode", "none" as any)
             .setOption("textMode", "value_and_name" as any)
-            .setOption("wideLayout", true)
             .setOverrides((override: any) => {
                 override
                     .matchFieldsByQuery("Solar")

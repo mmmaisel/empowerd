@@ -9,7 +9,7 @@ import { Wallbox } from "../queries/Wallbox";
 export class PowerConsumptionPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.timeseries()
-            .setTitle("Power consumption")
+            .setHoverHeader(true)
             .setUnit("watt")
             .setCustomFieldConfig("fillOpacity", 10)
             .setCustomFieldConfig("showPoints", "always" as any)

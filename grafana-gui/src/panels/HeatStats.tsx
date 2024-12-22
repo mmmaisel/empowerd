@@ -8,6 +8,7 @@ import { HeatpumpSeries } from "../queries/Heatpump";
 export class HeatStats extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.stat()
+            .setHoverHeader(true)
             .setUnit("watth")
             .setOption("graphMode", "none" as any)
             .setOption("textMode", "value_and_name" as any)

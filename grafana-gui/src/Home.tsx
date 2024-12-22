@@ -36,7 +36,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         this.scene = new SceneApp({
             pages: [
                 new SceneAppPage({
-                    title: "Empowerd",
+                    title: "Overview",
                     url: prefixRoute(ROUTES.Home),
                     getScene: this.mkscene.bind(this),
                     drilldowns: [
@@ -71,7 +71,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                         {
                             power: [
                                 {
-                                    title: "Power",
+                                    title: "Power Production and Consumption",
                                     url: `\${__url.path}/${ROUTES.Power}`,
                                 },
                             ],
@@ -103,7 +103,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         let props = this.props;
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Power),
-            title: `Power`,
+            title: `Power Production and Consumption`,
             getParentPage: () => parent,
             getScene: (_routeMatch: SceneRouteMatch<{}>) =>
                 PowerScene(props.config, props.backCb),

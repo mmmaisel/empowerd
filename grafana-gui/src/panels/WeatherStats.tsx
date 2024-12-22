@@ -7,6 +7,7 @@ import { Weather } from "../queries/Weather";
 export class WeatherStats extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.stat()
+            .setHoverHeader(true)
             .setUnit("lengthmm")
             .setNoValue("No Data")
             .setOption("graphMode", "none" as any)

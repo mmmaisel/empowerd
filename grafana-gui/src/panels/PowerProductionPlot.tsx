@@ -10,7 +10,7 @@ import { Solar } from "../queries/Solar";
 export class PowerProductionPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.timeseries()
-            .setTitle("Power production")
+            .setHoverHeader(true)
             .setUnit("watt")
             .setCustomFieldConfig("fillOpacity", 10)
             .setCustomFieldConfig("showPoints", "always" as any)

@@ -7,7 +7,7 @@ import { Boiler } from "../queries/Boiler";
 export class BoilerPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.timeseries()
-            .setTitle("Boiler stats")
+            .setHoverHeader(true)
             .setUnit("celsius")
             .setCustomFieldConfig("fillOpacity", 0)
             .setCustomFieldConfig("showPoints", "always" as any)

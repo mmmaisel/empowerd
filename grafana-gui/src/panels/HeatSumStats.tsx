@@ -15,6 +15,7 @@ import { Heatpump } from "../queries/Heatpump";
 export class HeatSumStats extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.stat()
+            .setHoverHeader(true)
             .setUnit("watth")
             .setNoValue("No Data")
             .setOption("graphMode", "none" as any)

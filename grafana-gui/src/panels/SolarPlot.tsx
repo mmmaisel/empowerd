@@ -7,7 +7,7 @@ import { Solar } from "../queries/Solar";
 export class SolarPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.timeseries()
-            .setTitle("Solar stats")
+            .setHoverHeader(true)
             .setUnit("watt")
             .setMin(0)
             .setMax(10000)

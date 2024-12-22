@@ -14,6 +14,7 @@ import { Solar } from "../queries/Solar";
 export class SolarPerMonth extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.barchart()
+            .setHoverHeader(true)
             .setOption("xTickLabelRotation", -90)
             .build();
     }

@@ -10,7 +10,7 @@ import { Heatpump, HeatpumpSeries } from "../queries/Heatpump";
 export class HeatPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.timeseries()
-            .setTitle("Heat stats")
+            .setHoverHeader(true)
             .setUnit("watt")
             .setMin(0)
             .setMax(10000)

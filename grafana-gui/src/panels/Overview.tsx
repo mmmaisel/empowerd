@@ -38,6 +38,7 @@ export class Overview extends EmpPanelBuilder {
 
     public scene(): SceneObject<SceneObjectState> {
         let panel = PanelBuilders.stat()
+            .setHoverHeader(true)
             .setUnit("watt")
             .setNoValue("No Data")
             .setOption("graphMode", "area" as any)
