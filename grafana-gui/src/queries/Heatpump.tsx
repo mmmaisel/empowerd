@@ -134,11 +134,12 @@ export class HeatpumpProxy extends TimeseriesProxy {
 
 export class Heatpump {
     protected static series = HeatpumpSeries;
+    protected static proxy = HeatpumpProxy;
 
     static query_all(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new HeatpumpSeries(id)
+            return new this.series(id)
                 .time()
                 .heat(`"${this.series.basename}.heat_w"`)
                 .power(`"${this.series.basename}.power_w"`)
@@ -149,7 +150,7 @@ export class Heatpump {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new HeatpumpSeries(id)
+                        new this.series(id)
                             .time()
                             .heat()
                             .power()
@@ -158,16 +159,16 @@ export class Heatpump {
                     )
                 )
                 .fields([
-                    HeatpumpSeries.time,
+                    this.series.time,
                     new Field(`"${this.series.basename}.heat_w`),
                     new Field(`"${this.series.basename}.power_w`),
                     new Field(`"${this.series.basename}.cop`),
                 ])
                 .from(
-                    new HeatpumpProxy(ids, [
-                        HeatpumpSeries.heat,
-                        HeatpumpSeries.power,
-                        HeatpumpSeries.cop,
+                    new this.proxy(ids, [
+                        this.series.heat,
+                        this.series.power,
+                        this.series.cop,
                     ])
                 )
                 .time_not_null()
@@ -178,7 +179,7 @@ export class Heatpump {
     static query_heat_sum(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new HeatpumpSeries(id)
+            return new this.series(id)
                 .time()
                 .heat(`\"${this.series.basename}.heat_w\"`)
                 .time_filter()
@@ -187,18 +188,18 @@ export class Heatpump {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new HeatpumpSeries(id).time().heat().time_filter()
+                        new this.series(id).time().heat().time_filter()
                     )
                 )
                 .fields([
-                    HeatpumpSeries.time,
+                    this.series.time,
                     new Field(`\"${this.series.basename}.heat_w\"`),
                 ])
                 .from(
-                    new AggregateProxy(HeatpumpSeries, ids, [
-                        HeatpumpSeries.ps_heat(ids).with_alias(
-                            `\"${this.series.basename}.heat_w\"`
-                        ),
+                    new AggregateProxy(this.series, ids, [
+                        this.series
+                            .ps_heat(ids)
+                            .with_alias(`\"${this.series.basename}.heat_w\"`),
                     ])
                 )
                 .time_not_null()
@@ -208,18 +209,18 @@ export class Heatpump {
 
     static query_denergy_sum(ids: number[]): Query {
         if (ids.length === 1) {
-            return new HeatpumpSeries(ids[0]).d_energy().time_filter();
+            return new this.series(ids[0]).d_energy().time_filter();
         } else {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new HeatpumpSeries(id).time().energy().time_filter()
+                        new this.series(id).time().energy().time_filter()
                     )
                 )
-                .fields([HeatpumpSeries.pds_energy(ids)])
+                .fields([this.series.pds_energy(ids)])
                 .from(new Fragment(`${this.series.basename}${ids[0]}`))
                 .joins(
-                    HeatpumpSeries.time_join(
+                    this.series.time_join(
                         `${this.series.basename}${ids[0]}`,
                         ids.slice(1)
                     )
@@ -229,22 +230,22 @@ export class Heatpump {
 
     static query_dheat_wh_sum(ids: number[]): Query {
         if (ids.length === 1) {
-            return new HeatpumpSeries(ids[0]).d_heat_wh().time_filter();
+            return new this.series(ids[0]).d_heat_wh().time_filter();
         } else {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new HeatpumpSeries(id).time().heat_wh().time_filter()
+                        new this.series(id).time().heat_wh().time_filter()
                     )
                 )
                 .fields([
-                    HeatpumpSeries.pds_heat_wh(ids).with_alias(
-                        `\"${this.series.basename}.heat_wh\"`
-                    ),
+                    this.series
+                        .pds_heat_wh(ids)
+                        .with_alias(`\"${this.series.basename}.heat_wh\"`),
                 ])
                 .from(new Fragment(`${this.series.basename}${ids[0]}`))
                 .joins(
-                    HeatpumpSeries.time_join(
+                    this.series.time_join(
                         `${this.series.basename}${ids[0]}`,
                         ids.slice(1)
                     )
@@ -255,24 +256,24 @@ export class Heatpump {
     static query_acop_sum(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new HeatpumpSeries(id)
+            return new this.series(id)
                 .a_cop(`\"${this.series.basename}.cop\"`)
                 .time_filter();
         } else {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new HeatpumpSeries(id).time().cop().time_filter()
+                        new this.series(id).time().cop().time_filter()
                     )
                 )
                 .fields([
-                    HeatpumpSeries.pa_cop(ids).with_alias(
-                        `\"${this.series.basename}.cop\"`
-                    ),
+                    this.series
+                        .pa_cop(ids)
+                        .with_alias(`\"${this.series.basename}.cop\"`),
                 ])
                 .from(new Fragment(`${this.series.basename}${ids[0]}`))
                 .joins(
-                    HeatpumpSeries.time_join(
+                    this.series.time_join(
                         `${this.series.basename}${ids[0]}`,
                         ids.slice(1)
                     )
@@ -283,7 +284,7 @@ export class Heatpump {
     static query_power_sum(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new HeatpumpSeries(id)
+            return new this.series(id)
                 .time()
                 .power(`\"${this.series.basename}.power_w\"`)
                 .time_filter()
@@ -292,18 +293,18 @@ export class Heatpump {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new HeatpumpSeries(id).time().power().time_filter()
+                        new this.series(id).time().power().time_filter()
                     )
                 )
                 .fields([
-                    HeatpumpSeries.time,
+                    this.series.time,
                     new Field(`\"${this.series.basename}.power_w\"`),
                 ])
                 .from(
-                    new AggregateProxy(HeatpumpSeries, ids, [
-                        HeatpumpSeries.ps_power(ids).with_alias(
-                            `\"${this.series.basename}.power_w\"`
-                        ),
+                    new AggregateProxy(this.series, ids, [
+                        this.series
+                            .ps_power(ids)
+                            .with_alias(`\"${this.series.basename}.power_w\"`),
                     ])
                 )
                 .time_not_null()

@@ -120,11 +120,12 @@ export class GeneratorProxy extends TimeseriesProxy {
 
 export class Generator {
     protected static series = GeneratorSeries;
+    protected static proxy = GeneratorProxy;
 
     static query_heat(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new GeneratorSeries(id)
+            return new this.series(id)
                 .time()
                 .heat(`\"${this.series.basename}.heat_w\"`)
                 .time_filter()
@@ -133,14 +134,14 @@ export class Generator {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new GeneratorSeries(id).time().heat().time_filter()
+                        new this.series(id).time().heat().time_filter()
                     )
                 )
                 .fields([
-                    GeneratorSeries.time,
+                    this.series.time,
                     new Field(`\"${this.series.basename}.heat_w\"`),
                 ])
-                .from(new GeneratorProxy(ids, [GeneratorSeries.heat]))
+                .from(new this.proxy(ids, [this.series.heat]))
                 .time_not_null()
                 .ordered();
         }
@@ -149,7 +150,7 @@ export class Generator {
     static query_heat_sum(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new GeneratorSeries(id)
+            return new this.series(id)
                 .time()
                 .heat(`\"${this.series.basename}.heat_w\"`)
                 .time_filter()
@@ -158,18 +159,18 @@ export class Generator {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new GeneratorSeries(id).time().heat().time_filter()
+                        new this.series(id).time().heat().time_filter()
                     )
                 )
                 .fields([
-                    GeneratorSeries.time,
+                    this.series.time,
                     new Field(`\"${this.series.basename}.heat_w\"`),
                 ])
                 .from(
-                    new AggregateProxy(GeneratorSeries, ids, [
-                        GeneratorSeries.ps_heat(ids).with_alias(
-                            `\"${this.series.basename}.heat_w\"`
-                        ),
+                    new AggregateProxy(this.series, ids, [
+                        this.series
+                            .ps_heat(ids)
+                            .with_alias(`\"${this.series.basename}.heat_w\"`),
                     ])
                 )
                 .time_not_null()
@@ -180,7 +181,7 @@ export class Generator {
     static query_power_sum(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new GeneratorSeries(id)
+            return new this.series(id)
                 .time()
                 .power(`\"${this.series.basename}.power_w\"`)
                 .time_filter()
@@ -189,18 +190,18 @@ export class Generator {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new GeneratorSeries(id).time().power().time_filter()
+                        new this.series(id).time().power().time_filter()
                     )
                 )
                 .fields([
-                    GeneratorSeries.time,
+                    this.series.time,
                     new Field(`\"${this.series.basename}.power_w\"`),
                 ])
                 .from(
-                    new AggregateProxy(GeneratorSeries, ids, [
-                        GeneratorSeries.ps_power(ids).with_alias(
-                            `\"${this.series.basename}.power_w\"`
-                        ),
+                    new AggregateProxy(this.series, ids, [
+                        this.series
+                            .ps_power(ids)
+                            .with_alias(`\"${this.series.basename}.power_w\"`),
                     ])
                 )
                 .time_not_null()
@@ -210,24 +211,24 @@ export class Generator {
 
     static query_energy_sum(ids: number[]): Query {
         if (ids.length === 1) {
-            return new GeneratorSeries(ids[0])
+            return new this.series(ids[0])
                 .d_energy(`\"${this.series.basename}.energy_wh\"`)
                 .time_filter();
         } else {
             return new Query()
                 .subqueries(
                     ids.map((id) =>
-                        new GeneratorSeries(id).time().energy().time_filter()
+                        new this.series(id).time().energy().time_filter()
                     )
                 )
                 .fields([
-                    GeneratorSeries.pds_energy(ids).with_alias(
-                        `\"${this.series.basename}.energy_wh\"`
-                    ),
+                    this.series
+                        .pds_energy(ids)
+                        .with_alias(`\"${this.series.basename}.energy_wh\"`),
                 ])
                 .from(new Fragment(`${this.series.basename}${ids[0]}`))
                 .joins(
-                    GeneratorSeries.time_join(
+                    this.series.time_join(
                         `${this.series.basename}${ids[0]}`,
                         ids.slice(1)
                     )
@@ -237,24 +238,24 @@ export class Generator {
 
     static query_dheat_wh_sum(ids: number[]): Query {
         if (ids.length === 1) {
-            return new GeneratorSeries(ids[0])
+            return new this.series(ids[0])
                 .d_heat_wh(`\"${this.series.basename}.heat_wh\"`)
                 .time_filter();
         } else {
             return new Query()
                 .subqueries(
                     ids.map((id) =>
-                        new GeneratorSeries(id).time().heat_wh().time_filter()
+                        new this.series(id).time().heat_wh().time_filter()
                     )
                 )
                 .fields([
-                    GeneratorSeries.pds_heat(ids).with_alias(
-                        `\"${this.series.basename}.heat_wh\"`
-                    ),
+                    this.series
+                        .pds_heat(ids)
+                        .with_alias(`\"${this.series.basename}.heat_wh\"`),
                 ])
                 .from(new Fragment(`${this.series.basename}${ids[0]}`))
                 .joins(
-                    GeneratorSeries.time_join(
+                    this.series.time_join(
                         `${this.series.basename}${ids[0]}`,
                         ids.slice(1)
                     )

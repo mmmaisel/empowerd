@@ -147,9 +147,9 @@ export class Consumption {
                 ...solars,
                 ...wallboxes,
             ]),
-            ConsumptionSeries.ps_power(config).with_alias(
-                `\"${this.series.basename}.power_w\"`
-            ),
+            this.series
+                .ps_power(config)
+                .with_alias(`\"${this.series.basename}.power_w\"`),
         ];
 
         return new Timeseries()
@@ -224,7 +224,7 @@ export class Consumption {
                 ...solars,
                 ...wallboxes,
             ])
-            .fields([ConsumptionSeries.pds_energy(config)])
+            .fields([this.series.pds_energy(config)])
             .from(new Fragment(first))
             .joins(
                 [

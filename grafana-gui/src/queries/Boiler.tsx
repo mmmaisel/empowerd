@@ -44,11 +44,12 @@ export class BoilerProxy extends TimeseriesProxy {
 
 export class Boiler {
     protected static series = BoilerSeries;
+    protected static proxy = BoilerProxy;
 
     static query_temps(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new BoilerSeries(id)
+            return new this.series(id)
                 .time()
                 .top(`\"${this.series.basename}${id}.top\"`)
                 .mid(`\"${this.series.basename}${id}.mid\"`)
@@ -59,7 +60,7 @@ export class Boiler {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new BoilerSeries(id)
+                        new this.series(id)
                             .time()
                             .top()
                             .mid()
@@ -69,7 +70,7 @@ export class Boiler {
                 )
                 .fields(
                     [
-                        BoilerSeries.time,
+                        this.series.time,
                         ids
                             .map((id) => [
                                 new Field(
@@ -86,10 +87,10 @@ export class Boiler {
                     ].flat()
                 )
                 .from(
-                    new BoilerProxy(ids, [
-                        BoilerSeries.top,
-                        BoilerSeries.mid,
-                        BoilerSeries.bot,
+                    new this.proxy(ids, [
+                        this.series.top,
+                        this.series.mid,
+                        this.series.bot,
                     ])
                 )
                 .time_not_null()

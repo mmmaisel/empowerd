@@ -95,11 +95,12 @@ export class MeterProxy extends TimeseriesProxy {
 
 export class Meter {
     protected static series = MeterSeries;
+    protected static proxy = MeterProxy;
 
     static query_power(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new MeterSeries(id)
+            return new this.series(id)
                 .time()
                 .power(`"${this.series.basename}${id}.power_w"`)
                 .time_filter()
@@ -108,11 +109,11 @@ export class Meter {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new MeterSeries(id).time().power().time_filter()
+                        new this.series(id).time().power().time_filter()
                     )
                 )
                 .fields([
-                    MeterSeries.time,
+                    this.series.time,
                     ...ids.map(
                         (id) =>
                             new Field(
@@ -120,7 +121,7 @@ export class Meter {
                             )
                     ),
                 ])
-                .from(new MeterProxy(ids, [MeterSeries.power]))
+                .from(new this.proxy(ids, [this.series.power]))
                 .time_not_null()
                 .ordered();
         }
@@ -129,7 +130,7 @@ export class Meter {
     static query_power_sum(ids: number[]): Query {
         if (ids.length === 1) {
             let id = ids[0];
-            return new MeterSeries(id)
+            return new this.series(id)
                 .time()
                 .power(`"${this.series.basename}.power_w"`)
                 .time_filter()
@@ -138,18 +139,18 @@ export class Meter {
             return new Timeseries()
                 .subqueries(
                     ids.map((id) =>
-                        new MeterSeries(id).time().power().time_filter()
+                        new this.series(id).time().power().time_filter()
                     )
                 )
                 .fields([
-                    MeterSeries.time,
+                    this.series.time,
                     new Field(`\"${this.series.basename}.power_w\"`),
                 ])
                 .from(
-                    new AggregateProxy(MeterSeries, ids, [
-                        MeterSeries.ps_power(ids).with_alias(
-                            `\"${this.series.basename}.power_w\"`
-                        ),
+                    new AggregateProxy(this.series, ids, [
+                        this.series
+                            .ps_power(ids)
+                            .with_alias(`\"${this.series.basename}.power_w\"`),
                     ])
                 )
                 .time_not_null()
@@ -159,7 +160,7 @@ export class Meter {
 
     static query_energy_in_out_sum(ids: number[]): Query {
         if (ids.length === 1) {
-            return new MeterSeries(ids[0])
+            return new this.series(ids[0])
                 .d_energy_in(`\"${this.series.basename}.d_energy_in_wh\"`)
                 .d_energy_out(`\"${this.series.basename}.d_energy_out_wh\"`)
                 .time_filter();
@@ -167,7 +168,7 @@ export class Meter {
             return new Query()
                 .subqueries(
                     ids.map((id) =>
-                        new MeterSeries(id)
+                        new this.series(id)
                             .time()
                             .energy_in()
                             .energy_out()
@@ -175,18 +176,18 @@ export class Meter {
                     )
                 )
                 .fields([
-                    MeterSeries.pds_energy_in(
+                    this.series.pds_energy_in(
                         ids,
                         `\"${this.series.basename}.d_energy_in_wh\"`
                     ),
-                    MeterSeries.pds_energy_out(
+                    this.series.pds_energy_out(
                         ids,
                         `\"${this.series.basename}.d_energy_out_wh\"`
                     ),
                 ])
                 .from(new Fragment(`${this.series.basename}${ids[0]}`))
                 .joins(
-                    MeterSeries.time_join(
+                    this.series.time_join(
                         `${this.series.basename}${ids[0]}`,
                         ids.slice(1)
                     )

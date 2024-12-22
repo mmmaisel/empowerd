@@ -130,7 +130,7 @@ export class Weather {
     protected static series = WeatherSeries;
 
     static query_temp_rain(ids: number[]): Query {
-        return new WeatherSeries(ids[0])
+        return new this.series(ids[0])
             .time()
             .temp_out()
             .rain_act()
@@ -139,7 +139,7 @@ export class Weather {
     }
 
     static query_temps(ids: number[]): Query {
-        return new WeatherSeries(ids[0])
+        return new this.series(ids[0])
             .time()
             .temp_in()
             .temp_out()
@@ -152,7 +152,7 @@ export class Weather {
     }
 
     static query_hums(ids: number[]): Query {
-        return new WeatherSeries(ids[0])
+        return new this.series(ids[0])
             .time()
             .hum_in()
             .hum_out()
@@ -164,7 +164,7 @@ export class Weather {
     }
 
     static query_rain(ids: number[]): Query {
-        return new WeatherSeries(ids[0])
+        return new this.series(ids[0])
             .time()
             .rain_act()
             .rain_day()
@@ -173,7 +173,7 @@ export class Weather {
     }
 
     static query_baro(ids: number[]): Query {
-        return new WeatherSeries(ids[0])
+        return new this.series(ids[0])
             .time()
             .baro_abs()
             .baro_sea()
@@ -182,7 +182,7 @@ export class Weather {
     }
 
     static query_wind(ids: number[]): Query {
-        return new WeatherSeries(ids[0])
+        return new this.series(ids[0])
             .time()
             .wind_act()
             .wind_gust()
@@ -193,7 +193,7 @@ export class Weather {
 
     static query_rain_int(ids: number[]): Query {
         let id = ids[0];
-        let rain_query = new WeatherSeries(id).time().rain_day();
+        let rain_query = new this.series(id).time().rain_day();
 
         return new Query()
             .subqueries([
