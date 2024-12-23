@@ -14,6 +14,7 @@ import {
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
+import { Control } from "./control/Control";
 import { ROUTES, prefixRoute } from "./Routes";
 import { Overview } from "./panels/Overview";
 import { PowerScene } from "./Power";
@@ -63,7 +64,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
             $timeRange: new SceneTimeRange({ from: "now-1h", to: "now" }),
             body: new SceneCSSGridLayout({
                 templateColumns: "minmax(1fr, 1fr)",
-                templateRows: "5fr 1fr",
+                templateRows: "1fr 1fr",
                 children: [
                     new Overview(
                         this.props.config.backend,
@@ -89,6 +90,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                             ],
                         }
                     ).build(),
+                    new Control(),
                 ],
             }),
             controls: [
