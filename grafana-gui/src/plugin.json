@@ -22,6 +22,76 @@
       "role": "Viewer",
       "addToNav": true,
       "defaultNav": true
+    },
+    {
+        "type": "image",
+        "name": "power-switch.auto.svg",
+        "path": "img/power-switch.auto.svg"
+    },
+    {
+        "type": "image",
+        "name": "power-switch.on.svg",
+        "path": "img/power-switch.on.svg"
+    },
+    {
+        "type": "image",
+        "name": "power-switch.off.svg",
+        "path": "img/power-switch.off.svg"
+    },
+    {
+        "type": "image",
+        "name": "power-switch.tile-auto.svg",
+        "path": "img/power-switch.tile-auto.svg"
+    },
+    {
+        "type": "image",
+        "name": "power-switch.tile-end.svg",
+        "path": "img/power-switch.tile-end.svg"
+    },
+    {
+        "type": "image",
+        "name": "power-switch.tile-off.svg",
+        "path": "img/power-switch.tile-off.svg"
+    },
+    {
+        "type": "image",
+        "name": "power-switch.tile-on.svg",
+        "path": "img/power-switch.tile-on.svg"
+    },
+    {
+        "type": "image",
+        "name": "power-switch.tile-start.svg",
+        "path": "img/power-switch.tile-start.svg"
+    },
+    {
+        "type": "image",
+        "name": "water-switch.off.svg",
+        "path": "img/water-switch.off.svg"
+    },
+    {
+        "type": "image",
+        "name": "water-switch.on.svg",
+        "path": "img/water-switch.on.svg"
+    },
+    {
+        "type": "image",
+        "name": "water-switch.tile-end.svg",
+        "path": "img/water-switch.tile-end.svg"
+    },
+    {
+        "type": "image",
+        "name": "water-switch.tile-off.svg",
+        "path": "img/water-switch.tile-off.svg"
+    },
+    {
+        "type": "image",
+        "name": "water-switch.tile-on.svg",
+        "path": "img/water-switch.tile-on.svg"
+    },
+    {
+        "type": "image",
+        "name": "water-switch.tile-start.svg",
+        "path": "img/water-switch.tile-start.svg"
     }
   ],
   "dependencies": {

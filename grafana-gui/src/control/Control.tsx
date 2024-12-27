@@ -2,6 +2,7 @@ import React, { Component, ReactNode } from "react";
 import { SceneObjectBase, SceneObjectState } from "@grafana/scenes";
 import { EmpowerdApi, GraphQlError } from "./EmpowerdApi";
 import { LoginForm } from "./LoginForm";
+import { SwitchesPanel } from "./SwitchesPanel";
 import "./Control.scss";
 
 type ControlImplProps = {};
@@ -46,15 +47,17 @@ class ControlImpl extends Component<ControlImplProps, ControlImplState> {
         let content = null;
 
         if (this.state.logged_in) {
-            //content = <Status api={this.api} />;
             content = (
-                <button
-                    className="dialogButton"
-                    style={{ height: "2.5em" }}
-                    onClick={this.onLogout.bind(this)}
-                >
-                    Logout
-                </button>
+                <>
+                    <SwitchesPanel api={this.api} />
+                    <button
+                        className="dialogButton"
+                        style={{ height: "2.5em" }}
+                        onClick={this.onLogout.bind(this)}
+                    >
+                        Logout
+                    </button>
+                </>
             );
         } else {
             content = (

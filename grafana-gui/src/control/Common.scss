@@ -1,0 +1,5 @@
+@mixin textWithGlow {
+    color: black;
+    text-shadow: 0 0 2px white, 0 0 6px white, 0 0 18px white;
+    font-size: 16pt;
+}

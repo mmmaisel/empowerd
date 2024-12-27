@@ -1,0 +1,25 @@
+<svg height="190.5" viewBox="0 0 71.966659 190.5" width="71.96666" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <clipPath id="a">
+    <path d="m56.587301 0h19.5679v50.396823h-19.5679z"/>
+  </clipPath>
+  <linearGradient id="b" gradientUnits="userSpaceOnUse" x1="129.016119" x2="129.016119" y1="29.003639" y2="69.008634">
+    <stop offset="0" stop-color="#4a4a4a"/>
+    <stop offset=".38524058" stop-color="#c3c3c3"/>
+    <stop offset=".63556564" stop-color="#989898"/>
+    <stop offset="1" stop-color="#393939"/>
+  </linearGradient>
+  <linearGradient id="c" gradientUnits="userSpaceOnUse" x1="277.034624" x2="277.034624" y1="33.004134" y2="65.008139">
+    <stop offset="0" stop-color="#4a4a4a"/>
+    <stop offset=".25000006" stop-color="#c3c3c3"/>
+    <stop offset=".5" stop-color="#989898"/>
+    <stop offset="1" stop-color="#393939"/>
+  </linearGradient>
+  <filter id="d" color-interpolation-filters="sRGB" height="3.986199" width="1.416602" x="-.208301" y="-1.4931">
+    <feGaussianBlur stdDeviation="2.0902082"/>
+  </filter>
+  <g clip-path="url(#a)" transform="matrix(3.78 0 0 3.78 -215.89999 -.000002)">
+    <path d="m47.59256 30.557272h24.082926v3.359789h-24.082926z" filter="url(#d)" stroke-linecap="round" stroke-linejoin="round" stroke-width=".1" transform="translate(0 -13.758331)"/>
+    <path d="m214.90012 29.003633h58.134v39.73h-58.134z" fill="url(#b)" transform="matrix(.26455026 0 0 .26455026 -.264583 -.264585)"/>
+    <path d="m273.03412 33.004131h4.000506v32.004002h-4.000506z" fill="url(#c)" stroke="#4a4a4a" stroke-linecap="round" stroke-linejoin="round" stroke-width=".378" transform="matrix(.26455026 0 0 .26455026 -.264583 -.264585)"/>
+  </g>
+</svg>

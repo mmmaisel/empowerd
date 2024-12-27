@@ -64,7 +64,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
             $timeRange: new SceneTimeRange({ from: "now-1h", to: "now" }),
             body: new SceneCSSGridLayout({
                 templateColumns: "minmax(1fr, 1fr)",
-                templateRows: "1fr 1fr",
+                templateRows: "1fr 2fr",
                 children: [
                     new Overview(
                         this.props.config.backend,
