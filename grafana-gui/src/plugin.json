@@ -25,6 +25,11 @@
     },
     {
         "type": "image",
+        "name": "config.svg",
+        "path": "img/config.svg"
+    },
+    {
+        "type": "image",
         "name": "power-switch.auto.svg",
         "path": "img/power-switch.auto.svg"
     },

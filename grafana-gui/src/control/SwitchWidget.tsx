@@ -39,12 +39,15 @@ export abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
             let config_node = null;
             if (sw.configHandle !== null) {
                 config_node = (
-                    <div style={{ gridArea: `1/${i + 2}/1/${i + 2}` }}>
+                    <div
+                        className="btnContainer"
+                        style={{ gridArea: `1/${i + 2}/1/${i + 2}` }}
+                    >
                         <div
                             className="btn"
                             onClick={this.props.onConfigure.bind(this, key)}
                         >
-                            <img alt="configure" src="config.svg" />
+                            <img alt="configure" src={`${PREFIX}config.svg`} />
                         </div>
                     </div>
                 );

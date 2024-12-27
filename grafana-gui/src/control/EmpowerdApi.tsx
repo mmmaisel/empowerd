@@ -16,6 +16,12 @@ export type Appliance = {
     forceOnOff: TriState;
 };
 
+export type PoweroffTimer = {
+    id: number;
+    onTime: number;
+    switchId: number;
+};
+
 export type Switch = {
     id: number;
     icon: string;
@@ -73,6 +79,37 @@ export class EmpowerdApi {
     ): void {
         on_success({ id, forceOnOff: force_on_off } as Appliance);
     }
+
+    public poweroffTimers(
+        on_success: (timers: PoweroffTimer[]) => void,
+        on_error: (error: GraphQlError[]) => void
+    ): void {
+        on_success([
+            {
+                id: 1,
+                onTime: 60,
+                switchId: 1,
+            },
+            {
+                id: 2,
+                onTime: 60,
+                switchId: 3,
+            },
+        ]);
+    }
+
+    setPoweroffTimer = (
+        id: number,
+        on_time: number,
+        on_success: (timer: PoweroffTimer) => void,
+        on_error: (error: GraphQlError[]) => void
+    ): void => {
+        on_success({
+            id,
+            onTime: on_time,
+            switchId: id,
+        });
+    };
 
     public switches(
         on_success: (switches: Switch[]) => void,
