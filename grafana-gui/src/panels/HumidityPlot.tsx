@@ -34,21 +34,21 @@ export class HumidityPlot extends EmpPanelBuilder {
                         fixedColor: Color.red(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`X1`);
+                    .overrideDisplayName(this.config.labels.x1);
                 override
                     .matchFieldsWithName(`hum_x2_pct`)
                     .overrideColor({
                         fixedColor: Color.green(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`X2`);
+                    .overrideDisplayName(this.config.labels.x2);
                 override
                     .matchFieldsWithName(`hum_x3_pct`)
                     .overrideColor({
                         fixedColor: Color.orange(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`X3`);
+                    .overrideDisplayName(this.config.labels.x3);
             })
             .build();
     }

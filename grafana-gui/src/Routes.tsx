@@ -52,6 +52,11 @@ export class Routes extends Component<RoutesProps, RoutesState> {
             solars: [1, 8],
             wallboxes: [6],
             weathers: [5],
+            labels: {
+                x1: "x1",
+                x2: "x2",
+                x3: "x3",
+            }
         };
 
         if (this.state.back) {

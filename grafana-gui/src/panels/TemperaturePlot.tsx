@@ -41,21 +41,21 @@ export class TemperaturePlot extends EmpPanelBuilder {
                         fixedColor: Color.red(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`X1`);
+                    .overrideDisplayName(this.config.labels.x1);
                 override
                     .matchFieldsWithName(`temp_x2_degc`)
                     .overrideColor({
                         fixedColor: Color.green(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`X2`);
+                    .overrideDisplayName(this.config.labels.x2);
                 override
                     .matchFieldsWithName(`temp_x3_degc`)
                     .overrideColor({
                         fixedColor: Color.orange(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`X3`);
+                    .overrideDisplayName(this.config.labels.x3);
             })
             .build();
     }

@@ -11,6 +11,18 @@ import { getBackendSrv, locationService } from "@grafana/runtime";
 import { css } from "@emotion/css";
 import { lastValueFrom } from "rxjs";
 
+export type WeatherLabels = {
+    x1: string;
+    x2: string;
+    x3: string;
+};
+
+export const WeatherLabelsDefault = {
+    x1: "X1",
+    x2: "X2",
+    x3: "X3",
+};
+
 export type BackendConfig = {
     batteries: number[];
     generators: number[];
@@ -19,6 +31,7 @@ export type BackendConfig = {
     solars: number[];
     wallboxes: number[];
     weathers: number[];
+    labels: WeatherLabels;
 };
 
 export const BackendConfigDefault = {
@@ -29,6 +42,7 @@ export const BackendConfigDefault = {
     solars: [],
     wallboxes: [],
     weathers: [],
+    labels: WeatherLabelsDefault,
 };
 
 export type ConfigJson = {
