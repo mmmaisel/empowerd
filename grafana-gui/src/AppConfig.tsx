@@ -75,6 +75,7 @@ type AppConfigState = {
     apiUrl: string;
     datasource: SelectableValue<PsqlDatasource>;
     backend: BackendConfig;
+    backend_str: string;
 };
 
 export class AppConfig extends Component<AppConfigProps, AppConfigState> {
@@ -91,7 +92,10 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                 label: jsonData?.datasource?.name || "",
                 value: jsonData?.datasource || { name: "", uid: "" },
             },
-            backend: BackendConfigDefault,
+            backend: jsonData?.backend || BackendConfigDefault,
+            backend_str: JSON.stringify(
+                jsonData?.backend || BackendConfigDefault
+            ),
         };
     }
 
@@ -125,6 +129,13 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
         });
     }
 
+    public onChangeConfig(event: ChangeEvent<HTMLInputElement>) {
+        this.setState({
+            ...this.state,
+            backend_str: event.target.value.trim(),
+        });
+    }
+
     public onEnable(_event: MouseEvent<HTMLButtonElement>) {
         this.updatePluginAndReload(this.props.plugin.meta.id, {
             enabled: true,
@@ -150,9 +161,42 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
             jsonData: {
                 apiUrl: this.state.apiUrl,
                 datasource: this.state.datasource.value,
-                backend: this.state.backend,
+                // Validated before submit is allowed
+                backend: JSON.parse(this.state.backend_str),
             },
         });
+    }
+
+    private backendCfgValid(): Boolean {
+        try {
+            const cfg = JSON.parse(this.state.backend_str);
+            for (let key in BackendConfigDefault) {
+                if (key === "labels") {
+                    if (cfg[key].constructor === Object) {
+                        for (let key2 in WeatherLabelsDefault) {
+                            if (cfg[key][key2].constructor !== String) {
+                                return false;
+                            }
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    if (cfg[key].constructor !== Array) {
+                        return false;
+                    }
+                    for (let id of cfg[key]) {
+                        if (isNaN(id)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     private async updatePluginAndReload(
@@ -243,6 +287,8 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
     }
 
     public render(): ReactNode {
+        const cfg_valid = this.backendCfgValid();
+
         return (
             <div>
                 {this.renderEnableDisable()}
@@ -269,18 +315,32 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                     >
                         <Input
                             width={60}
-                            id="api-url"
                             label={`API Url`}
                             value={this.state?.apiUrl}
                             placeholder={`E.g.: http://localhost:3001/`}
                             onChange={this.onChangeApiUrl.bind(this)}
                         />
                     </Field>
+                    <Field
+                        label="Config JSON"
+                        description="Empowerd UI configuration JSON"
+                        className={this.styles.marginTop}
+                    >
+                        <Input
+                            width={60}
+                            label={`Config JSON`}
+                            value={this.state?.backend_str}
+                            required
+                            invalid={!cfg_valid}
+                            placeholder={`E.g.: { solars: [1], meters: [2] }`}
+                            onChange={this.onChangeConfig.bind(this)}
+                        />
+                    </Field>
                     <div className={this.styles.marginTop}>
                         <Button
                             type="submit"
                             onClick={this.onSubmit.bind(this)}
-                            disabled={Boolean(!this.state.apiUrl)}
+                            disabled={Boolean(!this.state.apiUrl || !cfg_valid)}
                         >
                             Save API settings
                         </Button>

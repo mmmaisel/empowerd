@@ -43,22 +43,6 @@ export class Routes extends Component<RoutesProps, RoutesState> {
     };
 
     render(): ReactNode {
-        let cfg = JSON.parse(JSON.stringify(this.props));
-        cfg.backend = {
-            batteries: [4],
-            generators: [2],
-            heatpumps: [7],
-            meters: [3],
-            solars: [1, 8],
-            wallboxes: [6],
-            weathers: [5],
-            labels: {
-                x1: "x1",
-                x2: "x2",
-                x3: "x3",
-            }
-        };
-
         if (this.state.back) {
             this.setState({ back: false });
             return <Redirect to={prefixRoute(ROUTES.Home)} />;
@@ -69,7 +53,7 @@ export class Routes extends Component<RoutesProps, RoutesState> {
                 <Route
                     path={prefixRoute(ROUTES.Home)}
                     render={(props) => (
-                        <HomePage config={cfg} backCb={this.onBack} />
+                        <HomePage config={this.props} backCb={this.onBack} />
                     )}
                 />
                 <Redirect to={prefixRoute(ROUTES.Home)} />
