@@ -136,7 +136,6 @@ export class Overview extends EmpPanelBuilder {
         let queries: any = [];
 
         // TODO: wallbox
-        // TODO: controls
         queries.push({
             refId: "Production",
             rawSql: Production.query_power_sum(this.config).sql(),

@@ -5,6 +5,9 @@ import { LoginForm } from "./LoginForm";
 import { SwitchesPanel } from "./SwitchesPanel";
 import "./Control.scss";
 
+// TODO: load control charge switch
+// TODO: available power sliders
+
 type ControlImplProps = {};
 type ControlImplState = {
     logged_in: boolean;
@@ -16,6 +19,7 @@ class ControlImpl extends Component<ControlImplProps, ControlImplState> {
     constructor(props: {}) {
         super(props);
 
+        // TODO: API url
         /*let location: string = window.location
             .toString()
             .replace(/^https?\/\/[^/]+(?::\d+)?\//, "/")
