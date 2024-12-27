@@ -1,6 +1,6 @@
 export type GraphQlError = {
     message: string;
-    locations: { line: number; column: number }[];
+    locations: Array<{ line: number; column: number }>;
     path: string[];
 };
 

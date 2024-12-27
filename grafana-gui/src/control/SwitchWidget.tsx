@@ -9,21 +9,27 @@ type SwitchWidgetProps = {
     onConfigure: (key: string) => void;
 };
 
-const PREFIX: string = "/public/plugins/empowerd/img/";
+const PREFIX = "/public/plugins/empowerd/img/";
 
 export abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
     protected abstract graphics: string;
     protected abstract templateRows: string;
 
     private stateToImg(state: TriState): string {
-        if (state === TriState.On) return "on";
-        else if (state === TriState.Off) return "off";
-        else return "auto";
+        if (state === TriState.On) {
+            return "on";
+        } else if (state === TriState.Off) {
+            return "off";
+        } else {
+            return "auto";
+        }
     }
 
     public render(): ReactNode {
         const count: number = this.props.switches.size;
-        if (count === 0) return null;
+        if (count === 0) {
+            return null;
+        }
 
         let segments: ReactNode[] = Array<ReactNode>(count);
         let i = 0;
@@ -99,11 +105,11 @@ export abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
 }
 
 export class PowerSwitch extends SwitchWidget {
-    protected graphics: string = "power";
-    protected templateRows: string = "0.35fr 0.55fr 1fr";
+    protected graphics = "power";
+    protected templateRows = "0.35fr 0.55fr 1fr";
 }
 
 export class WaterSwitch extends SwitchWidget {
-    protected graphics: string = "water";
-    protected templateRows: string = "0.3fr 0.45fr 1fr";
+    protected graphics = "water";
+    protected templateRows = "0.3fr 0.45fr 1fr";
 }

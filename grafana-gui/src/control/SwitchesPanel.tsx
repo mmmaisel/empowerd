@@ -53,7 +53,9 @@ export class SwitchesPanel extends Component<StatusProps, StatusState> {
         this.props.api.appliances(
             (response: Appliance[]) => {
                 for (const [k, _v] of items) {
-                    if (k.startsWith("appliance")) items.delete(k);
+                    if (k.startsWith("appliance")) {
+                        items.delete(k);
+                    }
                 }
 
                 for (const appliance of response) {
@@ -74,7 +76,9 @@ export class SwitchesPanel extends Component<StatusProps, StatusState> {
         this.props.api.switches(
             (response: Switch[]) => {
                 for (const [k, _v] of items) {
-                    if (k.startsWith("switch")) items.delete(k);
+                    if (k.startsWith("switch")) {
+                        items.delete(k);
+                    }
                 }
 
                 for (const sw of response) {
