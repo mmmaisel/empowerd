@@ -64,7 +64,7 @@ type AppConfigState = {
 };
 
 export class AppConfig extends Component<AppConfigProps, AppConfigState> {
-    styles: AppConfigStyles;
+    private styles: AppConfigStyles;
 
     constructor(props: AppConfigProps) {
         super(props);
@@ -81,7 +81,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
         };
     }
 
-    getStyles(): AppConfigStyles {
+    private getStyles(): AppConfigStyles {
         let theme = createTheme({ colors: { mode: "dark" } });
 
         return {
@@ -97,37 +97,37 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
         };
     }
 
-    onChangeApiUrl = (event: ChangeEvent<HTMLInputElement>) => {
+    public onChangeApiUrl(event: ChangeEvent<HTMLInputElement>) {
         this.setState({
             ...this.state,
             apiUrl: event.target.value.trim(),
         });
-    };
+    }
 
-    onChangeDatasource = (event: SelectableValue<PsqlDatasource>) => {
+    public onChangeDatasource(event: SelectableValue<PsqlDatasource>) {
         this.setState({
             ...this.state,
             datasource: event,
         });
-    };
+    }
 
-    onEnable = (_event: MouseEvent<HTMLButtonElement>) => {
+    public onEnable(_event: MouseEvent<HTMLButtonElement>) {
         this.updatePluginAndReload(this.props.plugin.meta.id, {
             enabled: true,
             pinned: true,
             jsonData: this.props.plugin.meta.jsonData,
         });
-    };
+    }
 
-    onDisable = (_event: MouseEvent<HTMLButtonElement>) => {
+    public onDisable(_event: MouseEvent<HTMLButtonElement>) {
         this.updatePluginAndReload(this.props.plugin.meta.id, {
             enabled: false,
             pinned: false,
             jsonData: this.props.plugin.meta.jsonData,
         });
-    };
+    }
 
-    onSubmit = (_event: MouseEvent<HTMLButtonElement>) => {
+    public onSubmit(_event: MouseEvent<HTMLButtonElement>) {
         const { enabled, id, pinned } = this.props.plugin.meta;
 
         this.updatePluginAndReload(id, {
@@ -139,12 +139,12 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                 backend: this.state.backend,
             },
         });
-    };
+    }
 
-    updatePluginAndReload = async (
+    private async updatePluginAndReload(
         pluginId: string,
         data: Partial<PluginMeta<ConfigJson>>
-    ) => {
+    ) {
         try {
             await this.updatePlugin(pluginId, data);
 
@@ -156,9 +156,9 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
         } catch (e) {
             console.error("Error while updating the plugin", e);
         }
-    };
+    }
 
-    updatePlugin = async (pluginId: string, data: Partial<PluginMeta>) => {
+    private async updatePlugin(pluginId: string, data: Partial<PluginMeta>) {
         const request = getBackendSrv().fetch({
             url: `/api/plugins/${pluginId}/settings`,
             method: "POST",
@@ -167,11 +167,11 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
         const response = await lastValueFrom(request);
 
         return response.data;
-    };
+    }
 
-    fetchDatasources = async (): Promise<
+    private async fetchDatasources(): Promise<
         Array<SelectableValue<PsqlDatasource>>
-    > => {
+    > {
         const request = getBackendSrv().fetch({
             url: "/api/datasources",
             method: "GET",
@@ -188,9 +188,9 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                     label: item.name,
                 };
             });
-    };
+    }
 
-    renderEnableDisable(): ReactNode {
+    private renderEnableDisable(): ReactNode {
         let inner = null;
 
         if (this.props.plugin.meta.enabled) {
@@ -202,7 +202,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                     <Button
                         className={this.styles.marginTop}
                         variant="destructive"
-                        onClick={this.onEnable}
+                        onClick={this.onEnable.bind(this)}
                     >
                         Disable plugin
                     </Button>
@@ -217,7 +217,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                     <Button
                         className={this.styles.marginTop}
                         variant="primary"
-                        onClick={this.onDisable}
+                        onClick={this.onDisable.bind(this)}
                     >
                         Enable plugin
                     </Button>
@@ -228,7 +228,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
         return <FieldSet label="Enable / Disable">{inner}</FieldSet>;
     }
 
-    render(): ReactNode {
+    public render(): ReactNode {
         return (
             <div>
                 {this.renderEnableDisable()}
@@ -245,7 +245,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                             loadOptions={this.fetchDatasources}
                             defaultOptions
                             value={this.state.datasource}
-                            onChange={this.onChangeDatasource}
+                            onChange={this.onChangeDatasource.bind(this)}
                         />
                     </Field>
                     <Field
@@ -259,13 +259,13 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                             label={`API Url`}
                             value={this.state?.apiUrl}
                             placeholder={`E.g.: http://localhost:3001/`}
-                            onChange={this.onChangeApiUrl}
+                            onChange={this.onChangeApiUrl.bind(this)}
                         />
                     </Field>
                     <div className={this.styles.marginTop}>
                         <Button
                             type="submit"
-                            onClick={this.onSubmit}
+                            onClick={this.onSubmit.bind(this)}
                             disabled={Boolean(!this.state.apiUrl)}
                         >
                             Save API settings
