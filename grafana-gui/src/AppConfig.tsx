@@ -8,6 +8,7 @@ import {
     createTheme,
 } from "@grafana/data";
 import { getBackendSrv, locationService } from "@grafana/runtime";
+import { Ajv, JSONSchemaType } from "ajv";
 import { css } from "@emotion/css";
 import { lastValueFrom } from "rxjs";
 
@@ -78,16 +79,69 @@ type AppConfigState = {
     backend_str: string;
 };
 
+const BackendSchema: JSONSchemaType<BackendConfig> = {
+    type: "object",
+    definitions: {
+        idArray: {
+            type: "array",
+            items: {
+                type: "number",
+            },
+        },
+        weatherLabels: {
+            type: "object",
+            properties: {
+                x1: {
+                    type: "string",
+                },
+                x2: {
+                    type: "string",
+                },
+                x3: {
+                    type: "string",
+                },
+            },
+            required: ["x1", "x2", "x3"],
+            additionalProperties: false,
+        },
+    },
+    properties: {
+        batteries: { $ref: "#/definitions/idArray" },
+        generators: { $ref: "#/definitions/idArray" },
+        heatpumps: { $ref: "#/definitions/idArray" },
+        meters: { $ref: "#/definitions/idArray" },
+        solars: { $ref: "#/definitions/idArray" },
+        wallboxes: { $ref: "#/definitions/idArray" },
+        weathers: { $ref: "#/definitions/idArray" },
+        labels: { $ref: "#/definitions/weatherLabels" },
+    },
+    required: [
+        "batteries",
+        "generators",
+        "heatpumps",
+        "meters",
+        "solars",
+        "wallboxes",
+        "weathers",
+        "labels",
+    ],
+    additionalProperties: false,
+};
+
 // TODO: auto-config API call
 // TODO: i18n
 export class AppConfig extends Component<AppConfigProps, AppConfigState> {
     private styles: AppConfigStyles;
+    private backend_cfg_validator;
 
     constructor(props: AppConfigProps) {
         super(props);
         const { jsonData } = props.plugin.meta;
 
         this.styles = this.getStyles();
+        this.backend_cfg_validator = new Ajv({ allErrors: true }).compile(
+            BackendSchema
+        );
         this.state = {
             apiLocation: jsonData?.apiLocation || "",
             datasource: {
@@ -172,29 +226,12 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
     private backendCfgValid(): Boolean {
         try {
             const cfg = JSON.parse(this.state.backend_str);
-            for (let key in BackendConfigDefault) {
-                if (key === "labels") {
-                    if (cfg[key].constructor === Object) {
-                        for (let key2 in WeatherLabelsDefault) {
-                            if (cfg[key][key2].constructor !== String) {
-                                return false;
-                            }
-                        }
-                    } else {
-                        return false;
-                    }
-                } else {
-                    if (cfg[key].constructor !== Array) {
-                        return false;
-                    }
-                    for (let id of cfg[key]) {
-                        if (isNaN(id)) {
-                            return false;
-                        }
-                    }
-                }
+            if (!this.backend_cfg_validator(cfg)) {
+                console.log(
+                    `Validation failed: ${this.backend_cfg_validator.errors}`
+                );
+                return false;
             }
-
             return true;
         } catch {
             return false;
