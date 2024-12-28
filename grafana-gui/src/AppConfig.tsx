@@ -26,6 +26,7 @@ export const WeatherLabelsDefault = {
 
 export type BackendConfig = {
     batteries: number[];
+    controls: boolean;
     generators: number[];
     heatpumps: number[];
     meters: number[];
@@ -37,6 +38,7 @@ export type BackendConfig = {
 
 export const BackendConfigDefault = {
     batteries: [],
+    controls: true,
     generators: [],
     heatpumps: [],
     meters: [],
@@ -107,6 +109,7 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
     },
     properties: {
         batteries: { $ref: "#/definitions/idArray" },
+        controls: { type: "boolean" },
         generators: { $ref: "#/definitions/idArray" },
         heatpumps: { $ref: "#/definitions/idArray" },
         meters: { $ref: "#/definitions/idArray" },
@@ -117,6 +120,7 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
     },
     required: [
         "batteries",
+        "controls",
         "generators",
         "heatpumps",
         "meters",

@@ -58,39 +58,47 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
     }
 
     mkscene(): EmbeddedScene {
+        let templateRows = "1fr";
+        let children: any = [
+            new Overview(
+                this.props.config.backend,
+                this.props.config.datasource,
+                {
+                    power: [
+                        {
+                            title: "Power Production and Consumption",
+                            url: `\${__url.path}/${ROUTES.Power}`,
+                        },
+                    ],
+                    heatpump: [
+                        {
+                            title: "Heating",
+                            url: `\${__url.path}/${ROUTES.Heating}`,
+                        },
+                    ],
+                    weather: [
+                        {
+                            title: "Weather",
+                            url: `\${__url.path}/${ROUTES.Weather}`,
+                        },
+                    ],
+                }
+            ).build(),
+        ];
+
+        if (this.props.config.backend?.controls) {
+            templateRows = "1fr 2fr";
+            children.push(
+                new Control({ apiLocation: this.props.config.apiLocation })
+            );
+        }
+
         return new EmbeddedScene({
             $timeRange: new SceneTimeRange({ from: "now-1h", to: "now" }),
             body: new SceneCSSGridLayout({
                 templateColumns: "minmax(1fr, 1fr)",
-                templateRows: "1fr 2fr",
-                children: [
-                    new Overview(
-                        this.props.config.backend,
-                        this.props.config.datasource,
-                        {
-                            power: [
-                                {
-                                    title: "Power Production and Consumption",
-                                    url: `\${__url.path}/${ROUTES.Power}`,
-                                },
-                            ],
-                            heatpump: [
-                                {
-                                    title: "Heating",
-                                    url: `\${__url.path}/${ROUTES.Heating}`,
-                                },
-                            ],
-                            weather: [
-                                {
-                                    title: "Weather",
-                                    url: `\${__url.path}/${ROUTES.Weather}`,
-                                },
-                            ],
-                        }
-                    ).build(),
-                    // TODO: conditionally show controls
-                    new Control({ apiLocation: this.props.config.apiLocation }),
-                ],
+                templateRows,
+                children,
             }),
             controls: MainControls(),
         });
