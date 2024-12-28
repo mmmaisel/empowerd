@@ -20,6 +20,7 @@ type LoginFormState = {
     password: string;
 };
 
+// TODO: add message, e.g. "please log in" or "session timed out"
 export class LoginForm extends Component<LoginFormProps, LoginFormState> {
     constructor(props: LoginFormProps) {
         super(props);

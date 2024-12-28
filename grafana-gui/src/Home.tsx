@@ -90,7 +90,8 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                             ],
                         }
                     ).build(),
-                    new Control(),
+                    // TODO: conditionally show controls
+                    new Control({ apiLocation: this.props.config.apiLocation }),
                 ],
             }),
             controls: [

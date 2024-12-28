@@ -64,6 +64,8 @@ export const GroupByMonthTrafo =
                     ] = data[0].fields[1].values[i];
                 }
 
+                // TODO: always move Jan to front
+
                 return [
                     {
                         fields: [months, ...years],

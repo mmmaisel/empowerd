@@ -46,7 +46,7 @@ export const BackendConfigDefault = {
 };
 
 export type ConfigJson = {
-    apiUrl?: string;
+    apiLocation?: string;
     datasource?: PsqlDatasource;
     backend?: BackendConfig;
 };
@@ -72,12 +72,14 @@ interface AppConfigProps
     extends PluginConfigPageProps<AppPluginMeta<ConfigJson>> {}
 
 type AppConfigState = {
-    apiUrl: string;
+    apiLocation: string;
     datasource: SelectableValue<PsqlDatasource>;
     backend: BackendConfig;
     backend_str: string;
 };
 
+// TODO: auto-config API call
+// TODO: i18n
 export class AppConfig extends Component<AppConfigProps, AppConfigState> {
     private styles: AppConfigStyles;
 
@@ -87,7 +89,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
 
         this.styles = this.getStyles();
         this.state = {
-            apiUrl: jsonData?.apiUrl || "",
+            apiLocation: jsonData?.apiLocation || "",
             datasource: {
                 label: jsonData?.datasource?.name || "",
                 value: jsonData?.datasource || { name: "", uid: "" },
@@ -115,10 +117,10 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
         };
     }
 
-    public onChangeApiUrl(event: ChangeEvent<HTMLInputElement>) {
+    public onChangeApiLocation(event: ChangeEvent<HTMLInputElement>) {
         this.setState({
             ...this.state,
-            apiUrl: event.target.value.trim(),
+            apiLocation: event.target.value.trim(),
         });
     }
 
@@ -159,7 +161,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
             enabled,
             pinned,
             jsonData: {
-                apiUrl: this.state.apiUrl,
+                apiLocation: this.state.apiLocation,
                 datasource: this.state.datasource.value,
                 // Validated before submit is allowed
                 backend: JSON.parse(this.state.backend_str),
@@ -309,16 +311,16 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                         />
                     </Field>
                     <Field
-                        label="API Url"
-                        description="URL of the empowerd API"
+                        label="API Location"
+                        description="Location of the empowerd API on the same server"
                         className={this.styles.marginTop}
                     >
                         <Input
                             width={60}
-                            label={`API Url`}
-                            value={this.state?.apiUrl}
-                            placeholder={`E.g.: http://localhost:3001/`}
-                            onChange={this.onChangeApiUrl.bind(this)}
+                            label={`API Location`}
+                            value={this.state?.apiLocation}
+                            placeholder={`E.g.: /empowerd`}
+                            onChange={this.onChangeApiLocation.bind(this)}
                         />
                     </Field>
                     <Field
@@ -340,7 +342,9 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                         <Button
                             type="submit"
                             onClick={this.onSubmit.bind(this)}
-                            disabled={Boolean(!this.state.apiUrl || !cfg_valid)}
+                            disabled={Boolean(
+                                !this.state.apiLocation || !cfg_valid
+                            )}
                         >
                             Save API settings
                         </Button>

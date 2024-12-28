@@ -54,7 +54,7 @@ export class EmpowerdApi {
 
     constructor(location: string) {
         this.#token = "";
-        this.api_location = location; //;`${location}graphql`;
+        this.api_location = `${location.replace(/\/$/, "")}/graphql`;
     }
 
     private execute(

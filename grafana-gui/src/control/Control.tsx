@@ -1,5 +1,9 @@
 import React, { Component, ReactNode } from "react";
-import { SceneObjectBase, SceneObjectState } from "@grafana/scenes";
+import {
+    SceneComponentProps,
+    SceneObjectBase,
+    SceneObjectState,
+} from "@grafana/scenes";
 import { EmpowerdApi, GraphQlError } from "./EmpowerdApi";
 import { LoginForm } from "./LoginForm";
 import { SwitchesPanel } from "./SwitchesPanel";
@@ -16,16 +20,13 @@ type ControlImplState = {
 class ControlImpl extends Component<ControlImplProps, ControlImplState> {
     private api: EmpowerdApi;
 
-    constructor(props: {}) {
+    constructor(props: SceneComponentProps<Control>) {
         super(props);
 
-        // TODO: API url
-        /*let location: string = window.location
-            .toString()
-            .replace(/^https?\/\/[^/]+(?::\d+)?\//, "/")
-            .replace(/[^/]*$/, "");*/
+        // No real "props" are exposed through interface
+        let scene_state = (props.model as any)._state;
 
-        this.api = new EmpowerdApi("/empowerd/graphql");
+        this.api = new EmpowerdApi(scene_state.apiLocation || "");
         this.state = {
             logged_in: false,
         };
@@ -80,12 +81,14 @@ class ControlImpl extends Component<ControlImplProps, ControlImplState> {
     }
 }
 
-export interface ControlState extends SceneObjectState {}
+export interface ControlState extends SceneObjectState {
+    apiLocation: string | undefined;
+}
 
 export class Control extends SceneObjectBase<ControlState> {
     static Component = ControlImpl;
 
-    constructor(state = {}) {
+    constructor(state: ControlState) {
         super(state);
     }
 }
