@@ -50,21 +50,29 @@ export class HeatSumStats extends EmpPanelBuilder {
     public queries(): any[] {
         let queries: any = [];
 
-        queries.push({
-            refId: `heatpump.heat`,
-            rawSql: Heatpump.query_dheat_wh_sum(this.config.heatpumps).sql(),
-            format: "table",
-        });
-        queries.push({
-            refId: `heatpump.cop`,
-            rawSql: Heatpump.query_acop_sum(this.config.heatpumps).sql(),
-            format: "table",
-        });
-        queries.push({
-            refId: `generator.heat`,
-            rawSql: Generator.query_dheat_wh_sum(this.config.generators).sql(),
-            format: "table",
-        });
+        if (this.config.heatpumps.length !== 0) {
+            queries.push({
+                refId: `heatpump.heat`,
+                rawSql: Heatpump.query_dheat_wh_sum(
+                    this.config.heatpumps
+                ).sql(),
+                format: "table",
+            });
+            queries.push({
+                refId: `heatpump.cop`,
+                rawSql: Heatpump.query_acop_sum(this.config.heatpumps).sql(),
+                format: "table",
+            });
+        }
+        if (this.config.generators.length !== 0) {
+            queries.push({
+                refId: `generator.heat`,
+                rawSql: Generator.query_dheat_wh_sum(
+                    this.config.generators
+                ).sql(),
+                format: "table",
+            });
+        }
 
         return queries;
     }

@@ -105,46 +105,62 @@ export class PowerStats extends EmpPanelBuilder {
     }
 
     public queries(): any[] {
-        return [
-            {
+        let queries: any = [];
+
+        if (this.config.solars.length !== 0) {
+            queries.push({
                 refId: "Solar",
                 rawSql: Solar.query_denergy_sum(this.config.solars).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.generators.length !== 0) {
+            queries.push({
                 refId: "Generator",
                 rawSql: Generator.query_energy_sum(
                     this.config.generators
                 ).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.batteries.length !== 0) {
+            queries.push({
                 refId: "Battery",
                 rawSql: Battery.query_energy_in_out_sum(
                     this.config.batteries
                 ).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.meters.length !== 0) {
+            queries.push({
                 refId: "Meter",
                 rawSql: Meter.query_energy_in_out_sum(this.config.meters).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.heatpumps.length !== 0) {
+            queries.push({
                 refId: "Heatpump",
                 rawSql: Heatpump.query_denergy_sum(this.config.heatpumps).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.wallboxes.length !== 0) {
+            queries.push({
                 refId: "Wallbox",
                 rawSql: Wallbox.query_denergy_sum(this.config.wallboxes).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.meters.length !== 0) {
+            queries.push({
                 refId: "Consumption",
                 rawSql: Consumption.query_denergy_sum(this.config).sql(),
                 format: "table",
-            },
-        ];
+            });
+        }
+
+        return queries;
     }
 }

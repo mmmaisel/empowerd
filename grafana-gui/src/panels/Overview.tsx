@@ -132,42 +132,59 @@ export class Overview extends EmpPanelBuilder {
     }
 
     public queries(): any[] {
-        // TODO: dynamically show items depending on config
         let queries: any = [];
 
-        // TODO: wallbox
-        queries.push({
-            refId: "Production",
-            rawSql: Production.query_power_sum(this.config).sql(),
-            format: "table",
-        });
-        queries.push({
-            refId: "Consumption",
-            rawSql: Consumption.query_power_sum({
-                batteries: this.config.batteries,
-                generators: this.config.generators,
-                heatpumps: [],
-                meters: this.config.meters,
-                solars: this.config.solars,
-                wallboxes: [],
-            }).sql(),
-            format: "table",
-        });
-        queries.push({
-            refId: "Battery",
-            rawSql: Battery.query_power_charge_sum(this.config.batteries).sql(),
-            format: "table",
-        });
-        queries.push({
-            refId: "Heat",
-            rawSql: Heating.query_heat_sum(this.config).sql(),
-            format: "table",
-        });
-        queries.push({
-            refId: "Weather",
-            rawSql: Weather.query_temp_rain(this.config.weathers).sql(),
-            format: "table",
-        });
+        if (
+            this.config.solars.length !== 0 ||
+            this.config.generators.length !== 0
+        ) {
+            queries.push({
+                refId: "Production",
+                rawSql: Production.query_power_sum(this.config).sql(),
+                format: "table",
+            });
+        }
+        // TODO: a wallbox without anything else does not work correctly
+        if (this.config.meters.length !== 0) {
+            queries.push({
+                refId: "Consumption",
+                rawSql: Consumption.query_power_sum({
+                    batteries: this.config.batteries,
+                    generators: this.config.generators,
+                    heatpumps: [],
+                    meters: this.config.meters,
+                    solars: this.config.solars,
+                    wallboxes: [],
+                }).sql(),
+                format: "table",
+            });
+        }
+        if (this.config.batteries.length !== 0) {
+            queries.push({
+                refId: "Battery",
+                rawSql: Battery.query_power_charge_sum(
+                    this.config.batteries
+                ).sql(),
+                format: "table",
+            });
+        }
+        if (
+            this.config.generators.length !== 0 ||
+            this.config.heatpumps.length !== 0
+        ) {
+            queries.push({
+                refId: "Heat",
+                rawSql: Heating.query_heat_sum(this.config).sql(),
+                format: "table",
+            });
+        }
+        if (this.config.weathers.length !== 0) {
+            queries.push({
+                refId: "Weather",
+                rawSql: Weather.query_temp_rain(this.config.weathers).sql(),
+                format: "table",
+            });
+        }
 
         return queries;
     }

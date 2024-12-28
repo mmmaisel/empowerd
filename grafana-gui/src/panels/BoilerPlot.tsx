@@ -44,12 +44,16 @@ export class BoilerPlot extends EmpPanelBuilder {
     }
 
     public queries(): any[] {
-        return [
-            {
-                refId: "A",
-                rawSql: Boiler.query_temps(this.config.heatpumps).sql(),
-                format: "table",
-            },
-        ];
+        if (this.config.heatpumps.length !== 0) {
+            return [
+                {
+                    refId: "A",
+                    rawSql: Boiler.query_temps(this.config.heatpumps).sql(),
+                    format: "table",
+                },
+            ];
+        } else {
+            return [];
+        }
     }
 }

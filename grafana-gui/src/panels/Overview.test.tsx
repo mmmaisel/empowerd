@@ -19,11 +19,7 @@ test("Query for single solar source", () => {
             "WHERE series_id = 1 AND $__timeFilter(time) " +
             "ORDER BY time";
 
-    // prettier-ignore
-    const expected_sql1 = "SELECT NULL AS s_power";
-
     expect(queries[0].rawSql).toBe(expected_sql0);
-    expect(queries[1].rawSql).toBe(expected_sql1);
 });
 
 test("Query for single weather source", () => {
@@ -45,7 +41,7 @@ test("Query for single weather source", () => {
             "WHERE series_id = 1 AND $__timeFilter(time) " +
             "ORDER BY time";
 
-    expect(queries[4].rawSql).toBe(expected_sql0);
+    expect(queries[0].rawSql).toBe(expected_sql0);
 });
 
 test("Query for single generator source", () => {
@@ -71,7 +67,7 @@ test("Query for single generator source", () => {
             "ORDER BY time";
 
     expect(queries[0].rawSql).toBe(expected_sql0);
-    expect(queries[3].rawSql).toBe(expected_sql3);
+    expect(queries[1].rawSql).toBe(expected_sql3);
 });
 
 test("Query for single sources", () => {

@@ -61,29 +61,39 @@ export class PowerProductionPlot extends EmpPanelBuilder {
 
     public queries(): any[] {
         // TODO: use one big query
-        return [
-            {
+        let queries: any = [];
+
+        if (this.config.solars.length !== 0) {
+            queries.push({
                 refId: "A",
                 rawSql: Solar.query_power_sum(this.config.solars).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.generators.length !== 0) {
+            queries.push({
                 refId: "B",
                 rawSql: Generator.query_power_sum(this.config.generators).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.meters.length !== 0) {
+            queries.push({
                 refId: "C",
                 rawSql: Meter.query_power_sum(this.config.meters).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.batteries.length !== 0) {
+            queries.push({
                 refId: "D",
                 rawSql: Battery.query_power_charge_sum(
                     this.config.batteries
                 ).sql(),
                 format: "table",
-            },
-        ];
+            });
+        }
+
+        return queries;
     }
 }

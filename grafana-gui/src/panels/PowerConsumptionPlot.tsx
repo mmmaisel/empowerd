@@ -43,22 +43,30 @@ export class PowerConsumptionPlot extends EmpPanelBuilder {
 
     public queries(): any[] {
         // TODO: use one big query
-        return [
-            {
+        let queries: any = [];
+
+        if (this.config.heatpumps.length !== 0) {
+            queries.push({
                 refId: "A",
                 rawSql: Heatpump.query_power_sum(this.config.heatpumps).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.wallboxes.length !== 0) {
+            queries.push({
                 refId: "B",
                 rawSql: Wallbox.query_power_sum(this.config.wallboxes).sql(),
                 format: "table",
-            },
-            {
+            });
+        }
+        if (this.config.meters.length !== 0) {
+            queries.push({
                 refId: "C",
                 rawSql: Consumption.query_power_sum(this.config).sql(),
                 format: "table",
-            },
-        ];
+            });
+        }
+
+        return queries;
     }
 }
