@@ -5,11 +5,8 @@ import {
     SceneApp,
     SceneAppPage,
     EmbeddedScene,
-    SceneControlsSpacer,
     SceneCSSGridLayout,
-    SceneRefreshPicker,
     SceneRouteMatch,
-    SceneTimePicker,
     SceneTimeRange,
 } from "@grafana/scenes";
 
@@ -20,6 +17,7 @@ import { Overview } from "./panels/Overview";
 import { PowerScene } from "./Power";
 import { HeatingScene } from "./Heating";
 import { SolarDetailsScene } from "./SolarDetails";
+import { MainControls } from "./SceneControls";
 import { WeatherScene } from "./Weather";
 
 type HomePageProps = {
@@ -94,11 +92,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                     new Control({ apiLocation: this.props.config.apiLocation }),
                 ],
             }),
-            controls: [
-                new SceneControlsSpacer(),
-                new SceneTimePicker({ isOnCanvas: true }),
-                new SceneRefreshPicker({ isOnCanvas: true, refresh: "5m" }),
-            ],
+            controls: MainControls(),
         });
     }
 

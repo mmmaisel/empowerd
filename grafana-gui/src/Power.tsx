@@ -1,15 +1,11 @@
-import { IconName } from "@grafana/ui";
 import {
     EmbeddedScene,
-    SceneControlsSpacer,
     SceneCSSGridLayout,
-    SceneRefreshPicker,
-    SceneTimePicker,
     SceneTimeRange,
-    SceneToolbarButton,
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
+import { DrilldownControls } from "./SceneControls";
 import { PowerConsumptionPlot } from "./panels/PowerConsumptionPlot";
 import { PowerProductionPlot } from "./panels/PowerProductionPlot";
 import { PowerStats } from "./panels/PowerStats";
@@ -43,16 +39,8 @@ export const PowerScene = (
                 }).build(),
             ],
         }),
-        controls: [
-            new SceneToolbarButton({
-                icon: "arrow-up" as IconName,
-                onClick: () => {
-                    backCb();
-                },
-            }),
-            new SceneControlsSpacer(),
-            new SceneTimePicker({ isOnCanvas: true }),
-            new SceneRefreshPicker({ isOnCanvas: true, refresh: "5m" }),
-        ],
+        controls: DrilldownControls(() => {
+            backCb();
+        }),
     });
 };

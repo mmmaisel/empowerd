@@ -1,20 +1,15 @@
-import { IconName } from "@grafana/ui";
 import {
     EmbeddedScene,
-    SceneControlsSpacer,
     SceneCSSGridLayout,
-    SceneRefreshPicker,
-    SceneTimePicker,
     SceneTimeRange,
-    SceneToolbarButton,
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
+import { DrilldownControls } from "./SceneControls";
 import { BoilerPlot } from "./panels/BoilerPlot";
 import { HeatSumStats } from "./panels/HeatSumStats";
 import { HeatPlot } from "./panels/HeatPlot";
 
-// TODO: dedup controls and embedded scene
 export const HeatingScene = (
     config: ConfigJson,
     backCb: () => void
@@ -30,16 +25,8 @@ export const HeatingScene = (
                 new HeatSumStats(config.backend, config.datasource).build(),
             ],
         }),
-        controls: [
-            new SceneToolbarButton({
-                icon: "arrow-up" as IconName,
-                onClick: () => {
-                    backCb();
-                },
-            }),
-            new SceneControlsSpacer(),
-            new SceneTimePicker({ isOnCanvas: true }),
-            new SceneRefreshPicker({ isOnCanvas: true, refresh: "5m" }),
-        ],
+        controls: DrilldownControls(() => {
+            backCb();
+        }),
     });
 };

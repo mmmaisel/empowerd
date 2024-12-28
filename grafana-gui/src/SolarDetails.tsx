@@ -1,15 +1,11 @@
-import { IconName } from "@grafana/ui";
 import {
     EmbeddedScene,
-    SceneControlsSpacer,
     SceneCSSGridLayout,
-    SceneRefreshPicker,
-    SceneTimePicker,
     SceneTimeRange,
-    SceneToolbarButton,
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
+import { DrilldownControls } from "./SceneControls";
 import { SolarPlot } from "./panels/SolarPlot";
 import { SolarStats } from "./panels/SolarStats";
 import { SolarPerMonth } from "./panels/SolarPerMonth";
@@ -29,16 +25,8 @@ export const SolarDetailsScene = (
                 new SolarPerMonth(config.backend, config.datasource).build(),
             ],
         }),
-        controls: [
-            new SceneToolbarButton({
-                icon: "arrow-up" as IconName,
-                onClick: () => {
-                    backCb();
-                },
-            }),
-            new SceneControlsSpacer(),
-            new SceneTimePicker({ isOnCanvas: true }),
-            new SceneRefreshPicker({ isOnCanvas: true, refresh: "5m" }),
-        ],
+        controls: DrilldownControls(() => {
+            backCb();
+        }),
     });
 };
