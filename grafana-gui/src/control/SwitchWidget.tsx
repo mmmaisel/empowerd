@@ -1,4 +1,5 @@
 import React, { Component, ReactNode } from "react";
+import { IMG_PATH } from "../App";
 import { SwitchItem } from "./SwitchItem";
 import { TriState } from "./EmpowerdApi";
 import "./SwitchWidget.scss";
@@ -8,8 +9,6 @@ type SwitchWidgetProps = {
     onClick: (key: string) => void;
     onConfigure: (key: string) => void;
 };
-
-const PREFIX = "/public/plugins/empowerd/img/";
 
 export abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
     protected abstract graphics: string;
@@ -47,18 +46,22 @@ export abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
                             className="btn"
                             onClick={this.props.onConfigure.bind(this, key)}
                         >
-                            <img alt="configure" src={`${PREFIX}config.svg`} />
+                            <img
+                                alt="configure"
+                                src={`${IMG_PATH}/config.svg`}
+                            />
                         </div>
                     </div>
                 );
             }
 
+            // TODO: power switch does not center correctly in all sizes
             segments[i] = (
                 <React.Fragment>
                     <img
                         style={{ gridArea: `1/${i + 2}/3/${i + 2}` }}
                         alt=""
-                        src={`${PREFIX}${this.graphics}-switch.tile-${img}.svg`}
+                        src={`${IMG_PATH}/${this.graphics}-switch.tile-${img}.svg`}
                     />
                     {config_node}
                     <div
@@ -70,8 +73,8 @@ export abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
                             onClick={this.props.onClick.bind(this, key)}
                         >
                             <img
-                                alt={`${PREFIX}${this.graphics}-switch-${img}`}
-                                src={`${PREFIX}${this.graphics}-switch.${img}.svg`}
+                                alt={`${IMG_PATH}/${this.graphics}-switch-${img}`}
+                                src={`${IMG_PATH}/${this.graphics}-switch.${img}.svg`}
                             />
                         </div>
                     </div>
@@ -94,12 +97,12 @@ export abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
                 <img
                     style={{ gridArea: "1/1/3/1" }}
                     alt=""
-                    src={`${PREFIX}${this.graphics}-switch.tile-start.svg`}
+                    src={`${IMG_PATH}/${this.graphics}-switch.tile-start.svg`}
                 />
                 <img
                     style={{ gridArea: `1/${count + 2}/3/${count + 2}` }}
                     alt=""
-                    src={`${PREFIX}${this.graphics}-switch.tile-end.svg`}
+                    src={`${IMG_PATH}/${this.graphics}-switch.tile-end.svg`}
                 />
                 {segments}
             </div>

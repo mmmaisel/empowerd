@@ -144,6 +144,7 @@ export class Overview extends EmpPanelBuilder {
                 format: "table",
             });
         }
+        // TODO: live production/consumption is wrong because of missing latest point from solar
         // TODO: a wallbox without anything else does not work correctly
         if (this.config.meters.length !== 0) {
             queries.push({
