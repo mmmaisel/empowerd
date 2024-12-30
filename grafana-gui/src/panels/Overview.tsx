@@ -38,6 +38,7 @@ export class Overview extends EmpPanelBuilder {
 
     public scene(): SceneObject<SceneObjectState> {
         let panel = PanelBuilders.stat()
+            // TODO: setMenu: VizPanelMenu to add zoom menu
             .setHoverHeader(true)
             .setUnit("watt")
             .setNoValue("No Data")

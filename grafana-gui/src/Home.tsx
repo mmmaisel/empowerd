@@ -36,6 +36,9 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
             pages: [
                 new SceneAppPage({
                     title: "Overview",
+                    renderTitle: () => {
+                        return <></>;
+                    },
                     url: prefixRoute(ROUTES.Home),
                     getScene: this.mkscene.bind(this),
                     drilldowns: [
@@ -109,6 +112,9 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Power),
             title: `Power Production and Consumption`,
+            renderTitle: () => {
+                return <></>;
+            },
             getParentPage: () => parent,
             getScene: (_routeMatch: SceneRouteMatch<{}>) =>
                 PowerScene(props.config, props.backCb),
@@ -126,6 +132,9 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Heating),
             title: `Heating`,
+            renderTitle: () => {
+                return <></>;
+            },
             getParentPage: () => parent,
             getScene: (_routeMatch: SceneRouteMatch<{}>) =>
                 HeatingScene(props.config, props.backCb),
@@ -137,6 +146,9 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Weather),
             title: `Weather`,
+            renderTitle: () => {
+                return <></>;
+            },
             getParentPage: () => parent,
             getScene: (_routeMatch: SceneRouteMatch<{}>) =>
                 WeatherScene(props.config, props.backCb),
@@ -148,6 +160,9 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         return new SceneAppPage({
             url: prefixRoute(`${ROUTES.Power}/${ROUTES.Details}`),
             title: `Solar Details`,
+            renderTitle: () => {
+                return <></>;
+            },
             getParentPage: () => parent,
             getScene: (_routeMatch: SceneRouteMatch<{}>) =>
                 SolarDetailsScene(props.config, props.backCb),
