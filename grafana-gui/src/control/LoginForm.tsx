@@ -1,6 +1,7 @@
 import React, { Component, ReactElement, ReactNode } from "react";
 import CSS from "csstype";
 import { EmpowerdApi, GraphQlError } from "./EmpowerdApi";
+import { t } from "../i18n";
 import "./Control.scss";
 
 enum LoginState {
@@ -62,9 +63,9 @@ export class LoginForm extends Component<LoginFormProps, LoginFormState> {
 
     private loginState(): ReactElement {
         if (this.state.login_state === LoginState.BUSY) {
-            return <div>Logging in...</div>;
+            return <div>{t("logging-in")}</div>;
         } else if (this.state.login_state === LoginState.FAILED) {
-            return <div>Login failed...</div>;
+            return <div>{t("login-failed")}</div>;
         } else {
             return <React.Fragment />;
         }
@@ -87,22 +88,20 @@ export class LoginForm extends Component<LoginFormProps, LoginFormState> {
         };
         return (
             <div className="dialogBorder">
-                <div className="dialogTitle">
-                    Please Login to Access Controls
-                </div>
+                <div className="dialogTitle">{t("login-title")}</div>
                 <div className="dialogContent">
                     <div style={grid}>
-                        <span style={labelCol}> Username: </span>
+                        <span style={labelCol}>{t("username")}:</span>
                         <input
                             className="dialogInput"
                             style={inputCol}
                             type="text"
                             value={this.state.username}
-                            placeholder="username"
+                            placeholder={t("username")}
                             onChange={this.onUsernameChanged.bind(this)}
                             onKeyDown={this.onKeyDown.bind(this)}
                         />
-                        <span style={labelCol}> Password: </span>
+                        <span style={labelCol}>{t("password")}:</span>
                         <input
                             className="dialogInput"
                             style={inputCol}
@@ -117,7 +116,7 @@ export class LoginForm extends Component<LoginFormProps, LoginFormState> {
                         className="dialogButton"
                         onClick={this.onLogin.bind(this)}
                     >
-                        Login
+                        {t("login")}
                     </button>
                 </div>
             </div>

@@ -5,6 +5,7 @@ import {
     Switch,
     TriState,
 } from "./EmpowerdApi";
+import { t } from "../i18n";
 
 export abstract class SwitchItem {
     protected id: number;
@@ -75,7 +76,7 @@ export class GpioSwitchItem extends SwitchItem {
             },
             (errors: GraphQlError[]) => {
                 console.log(errors);
-                onError(`Setting switch ${this.name} failed.`);
+                onError(t("switch-failed", { name: this.name }));
             }
         );
     }
@@ -120,7 +121,7 @@ export class ApplianceSwitchItem extends SwitchItem {
             },
             (errors: GraphQlError[]) => {
                 console.log(errors);
-                onError(`Setting Appliance ${this.name} failed.`);
+                onError(t("appliance-failed", { name: this.name }));
             }
         );
     }

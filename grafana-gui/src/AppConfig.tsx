@@ -136,7 +136,6 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
 };
 
 // TODO: auto-config API call
-// TODO: i18n
 export class AppConfig extends Component<AppConfigProps, AppConfigState> {
     private styles: AppConfigStyles;
     private backend_cfg_validator;

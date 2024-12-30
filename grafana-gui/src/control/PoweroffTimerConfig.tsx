@@ -1,6 +1,7 @@
 import React, { Component, ReactNode } from "react";
 import Modal from "react-modal";
 import { PoweroffTimer } from "./EmpowerdApi";
+import { t } from "../i18n";
 import "./Modal.scss";
 
 export type NamedPoweroffTimer = {
@@ -57,11 +58,11 @@ export class PoweroffTimerConfig extends Component<
         return (
             <React.Fragment>
                 <div className="dialogTitle">
-                    Configure Poweroff Timer &apos;{named_timer.name}&apos;
+                    {t("config-pwroff-timer", { name: named_timer.name })}
                 </div>
                 <div className="dialogContent">
                     <div className="modalInputWithLabel">
-                        <div>On Time (seconds):</div>
+                        <div>{t("pwroff-on-time")}:</div>
                         <input
                             className="dialogInput"
                             type="text"
@@ -73,13 +74,13 @@ export class PoweroffTimerConfig extends Component<
                         className="dialogButton"
                         onClick={this.onCancel.bind(this)}
                     >
-                        Cancel
+                        {t("cancel")}
                     </button>
                     <button
                         className="dialogButton"
                         onClick={this.onApply.bind(this)}
                     >
-                        Apply
+                        {t("apply")}
                     </button>
                 </div>
             </React.Fragment>

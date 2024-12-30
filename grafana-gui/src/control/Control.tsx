@@ -7,6 +7,7 @@ import {
 import { EmpowerdApi, GraphQlError } from "./EmpowerdApi";
 import { LoginForm } from "./LoginForm";
 import { SwitchesPanel } from "./SwitchesPanel";
+import { t } from "../i18n";
 import "./Control.scss";
 
 // TODO: load control charge switch
@@ -43,7 +44,7 @@ class ControlImpl extends Component<ControlImplProps, ControlImplState> {
             },
             (errors: GraphQlError[]) => {
                 console.log(errors);
-                alert("Logout failed");
+                alert(t("logout-failed"));
             }
         );
     }
@@ -60,7 +61,7 @@ class ControlImpl extends Component<ControlImplProps, ControlImplState> {
                         style={{ height: "2.5em" }}
                         onClick={this.onLogout.bind(this)}
                     >
-                        Logout
+                        {t("logout")}
                     </button>
                 </>
             );

@@ -2,6 +2,7 @@ import React, { Component, ReactNode } from "react";
 import { PowerSwitch, WaterSwitch } from "./SwitchWidget";
 import { PoweroffTimerConfig, NamedPoweroffTimer } from "./PoweroffTimerConfig";
 import { SwitchItem, SwitchItemFactory } from "./SwitchItem";
+import { t } from "../i18n";
 import {
     EmpowerdApi,
     Appliance,
@@ -107,7 +108,7 @@ export class SwitchesPanel extends Component<StatusProps, StatusState> {
                 });
             },
             (errors: GraphQlError[]) => {
-                alert("Setting poweroff timer failed");
+                alert(t("pwroff-timer-failed"));
                 console.log(errors);
             }
         );

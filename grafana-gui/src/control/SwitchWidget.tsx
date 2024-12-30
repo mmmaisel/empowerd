@@ -2,6 +2,7 @@ import React, { Component, ReactNode } from "react";
 import { IMG_PATH } from "../App";
 import { SwitchItem } from "./SwitchItem";
 import { TriState } from "./EmpowerdApi";
+import { t } from "../i18n";
 import "./SwitchWidget.scss";
 
 type SwitchWidgetProps = {
@@ -47,7 +48,7 @@ export abstract class SwitchWidget extends Component<SwitchWidgetProps, {}> {
                             onClick={this.props.onConfigure.bind(this, key)}
                         >
                             <img
-                                alt="configure"
+                                alt={t("configure")}
                                 src={`${IMG_PATH}/config.svg`}
                             />
                         </div>
