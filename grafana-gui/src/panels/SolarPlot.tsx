@@ -3,6 +3,7 @@ import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 import { Color } from "./Color";
 import { EmpPanelBuilder } from "./Common";
 import { Solar } from "../queries/Solar";
+import { t } from "../i18n";
 
 export class SolarPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
@@ -24,7 +25,7 @@ export class SolarPlot extends EmpPanelBuilder {
                             fixedColor: Color.yellow(i).to_rgb(),
                             mode: "fixed",
                         })
-                        .overrideDisplayName(`Solar ${i + 1}`);
+                        .overrideDisplayName(t("solar-n", { id: i + 1 }));
                     i += 1;
                 }
             })

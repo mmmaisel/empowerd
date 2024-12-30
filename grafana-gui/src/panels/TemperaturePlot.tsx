@@ -2,12 +2,13 @@ import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 
 import { Color } from "./Color";
 import { EmpPanelBuilder } from "./Common";
+import { t } from "../i18n";
 import { Weather } from "../queries/Weather";
 
 export class TemperaturePlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.timeseries()
-            .setTitle("Temperature")
+            .setTitle(t("temperature"))
             .setUnit("celsius")
             .setCustomFieldConfig("fillOpacity", 0)
             .setCustomFieldConfig("showPoints", "always" as any)
@@ -20,21 +21,21 @@ export class TemperaturePlot extends EmpPanelBuilder {
                         fixedColor: Color.yellow(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Inside`);
+                    .overrideDisplayName(t("temp-in"));
                 override
                     .matchFieldsWithName(`temp_out_degc`)
                     .overrideColor({
                         fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Outside`);
+                    .overrideDisplayName(t("temp-out"));
                 override
                     .matchFieldsWithName(`dew_point_degc`)
                     .overrideColor({
                         fixedColor: Color.purple(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Dew Point`);
+                    .overrideDisplayName(t("dew-point"));
                 override
                     .matchFieldsWithName(`temp_x1_degc`)
                     .overrideColor({

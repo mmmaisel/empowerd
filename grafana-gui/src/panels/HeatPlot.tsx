@@ -6,6 +6,7 @@ import { Fragment, Field, Timeseries } from "../queries/Query";
 import { ProxyQuery, TimeProxy } from "../queries/Proxy";
 import { Generator, GeneratorSeries } from "../queries/Generator";
 import { Heatpump, HeatpumpSeries } from "../queries/Heatpump";
+import { t } from "../i18n";
 
 export class HeatPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
@@ -25,7 +26,7 @@ export class HeatPlot extends EmpPanelBuilder {
                         fixedColor: Color.purple(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Heatpump Power")
+                    .overrideDisplayName(t("heatpump-pwr"))
                     .overrideCustomFieldConfig("fillOpacity", 0);
                 override
                     .matchFieldsWithName("heatpump.heat_w")
@@ -33,7 +34,7 @@ export class HeatPlot extends EmpPanelBuilder {
                         fixedColor: Color.green(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Heatpump Heat");
+                    .overrideDisplayName(t("heatpump-heat"));
                 override
                     .matchFieldsWithName("heatpump.cop")
                     .overrideUnit("none")
@@ -42,7 +43,7 @@ export class HeatPlot extends EmpPanelBuilder {
                         fixedColor: Color.yellow(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Heatpump CoP")
+                    .overrideDisplayName(t("heatpump-cop"))
                     .overrideCustomFieldConfig("fillOpacity", 0);
                 override
                     .matchFieldsWithName("generator.heat_w")
@@ -50,7 +51,7 @@ export class HeatPlot extends EmpPanelBuilder {
                         fixedColor: Color.red(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Generator Heat");
+                    .overrideDisplayName(t("generator-heat"));
             })
             .build();
     }

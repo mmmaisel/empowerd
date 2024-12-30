@@ -2,12 +2,13 @@ import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 
 import { Color } from "./Color";
 import { EmpPanelBuilder } from "./Common";
+import { t } from "../i18n";
 import { Weather } from "../queries/Weather";
 
 export class HumidityPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.timeseries()
-            .setTitle("Humidity")
+            .setTitle(t("humidity"))
             .setUnit("humidity")
             .setCustomFieldConfig("fillOpacity", 0)
             .setCustomFieldConfig("showPoints", "always" as any)
@@ -20,14 +21,14 @@ export class HumidityPlot extends EmpPanelBuilder {
                         fixedColor: Color.yellow(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Inside`);
+                    .overrideDisplayName(t("hum-in"));
                 override
                     .matchFieldsWithName(`hum_out_pct`)
                     .overrideColor({
                         fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Outside`);
+                    .overrideDisplayName(t("hum-out"));
                 override
                     .matchFieldsWithName(`hum_x1_pct`)
                     .overrideColor({

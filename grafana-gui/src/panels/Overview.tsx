@@ -16,6 +16,7 @@ import { DefaultValueTrafo } from "../trafos/DefaultValue";
 import { EmpPanelBuilder } from "./Common";
 import { Heating } from "../queries/Heating";
 import { Production } from "../queries/Production";
+import { t } from "../i18n";
 import { Weather } from "../queries/Weather";
 
 export type DrilldownConfig = {
@@ -41,7 +42,7 @@ export class Overview extends EmpPanelBuilder {
             // TODO: setMenu: VizPanelMenu to add zoom menu
             .setHoverHeader(true)
             .setUnit("watt")
-            .setNoValue("No Data")
+            .setNoValue(t("no-data"))
             .setOption("graphMode", "area" as any)
             .setOption("textMode", "value_and_name" as any)
             .setOption("justifyMode", "center" as any)
@@ -52,7 +53,7 @@ export class Overview extends EmpPanelBuilder {
                         fixedColor: Color.green(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Power Production`)
+                    .overrideDisplayName(t("pwr-prod"))
                     .overrideLinks(this.dds.power);
                 override
                     .matchFieldsByQuery("Consumption")
@@ -60,7 +61,7 @@ export class Overview extends EmpPanelBuilder {
                         fixedColor: Color.red(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Power Consumption`)
+                    .overrideDisplayName(t("pwr-cons"))
                     .overrideLinks(this.dds.power);
                 override
                     .matchFieldsByQuery("Battery")
@@ -68,7 +69,7 @@ export class Overview extends EmpPanelBuilder {
                         fixedColor: Color.grey(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Battery`)
+                    .overrideDisplayName(t("battery"))
                     .overrideLinks(this.dds.power);
                 override
                     .matchFieldsWithName("battery.power_w")
@@ -76,7 +77,7 @@ export class Overview extends EmpPanelBuilder {
                         fixedColor: Color.grey(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Battery Power`)
+                    .overrideDisplayName(t("battery-pwr"))
                     .overrideLinks(this.dds.power);
                 override
                     .matchFieldsWithName("battery.charge_wh")
@@ -85,7 +86,7 @@ export class Overview extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideUnit("watth")
-                    .overrideDisplayName(`Battery Charge`)
+                    .overrideDisplayName(t("battery-charge"))
                     .overrideLinks(this.dds.power);
                 override
                     .matchFieldsByQuery("Heat")
@@ -93,7 +94,7 @@ export class Overview extends EmpPanelBuilder {
                         fixedColor: Color.purple(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Heat Production`)
+                    .overrideDisplayName(t("heat-prod"))
                     .overrideLinks(this.dds.heatpump);
                 override
                     .matchFieldsByQuery("Weather")
@@ -101,7 +102,7 @@ export class Overview extends EmpPanelBuilder {
                         fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Weather`)
+                    .overrideDisplayName(t("weather"))
                     .overrideLinks(this.dds.weather);
                 override
                     .matchFieldsWithName("temp_out_degc")
@@ -110,7 +111,7 @@ export class Overview extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideUnit("celsius")
-                    .overrideDisplayName(`Out Temperature`)
+                    .overrideDisplayName(t("out-temp"))
                     .overrideLinks(this.dds.weather);
                 override
                     .matchFieldsWithName("rain_act_mm")
@@ -119,7 +120,7 @@ export class Overview extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideUnit("lengthmm")
-                    .overrideDisplayName(`Rain`)
+                    .overrideDisplayName(t("rain"))
                     .overrideLinks(this.dds.weather);
             });
 

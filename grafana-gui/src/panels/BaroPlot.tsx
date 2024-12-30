@@ -2,12 +2,13 @@ import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 
 import { Color } from "./Color";
 import { EmpPanelBuilder } from "./Common";
+import { t } from "../i18n";
 import { Weather } from "../queries/Weather";
 
 export class BaroPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.timeseries()
-            .setTitle("Barometer")
+            .setTitle(t("barometer"))
             .setUnit("pressurehpa")
             .setCustomFieldConfig("fillOpacity", 0)
             .setCustomFieldConfig("showPoints", "always" as any)
@@ -20,14 +21,14 @@ export class BaroPlot extends EmpPanelBuilder {
                         fixedColor: Color.green(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Absolute Pressure`);
+                    .overrideDisplayName(t("baro-abs"));
                 override
                     .matchFieldsWithName(`baro_sea_hpa`)
                     .overrideColor({
                         fixedColor: Color.green(3).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Sea Level Pressure`);
+                    .overrideDisplayName(t("baro-sea"));
             })
             .build();
     }

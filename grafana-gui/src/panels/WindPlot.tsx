@@ -2,12 +2,13 @@ import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 
 import { Color } from "./Color";
 import { EmpPanelBuilder } from "./Common";
+import { t } from "../i18n";
 import { Weather } from "../queries/Weather";
 
 export class WindPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.timeseries()
-            .setTitle("Wind")
+            .setTitle(t("wind"))
             .setMin(0.1)
             .setUnit("velocityms")
             .setCustomFieldConfig("fillOpacity", 0)
@@ -25,14 +26,14 @@ export class WindPlot extends EmpPanelBuilder {
                         fixedColor: Color.orange(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Average Wind Speed`);
+                    .overrideDisplayName(t("wind-avg"));
                 override
                     .matchFieldsWithName(`wind_gust_ms`)
                     .overrideColor({
                         fixedColor: Color.red(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Gust Wind Speed`);
+                    .overrideDisplayName(t("wind-gust"));
                 override
                     .matchFieldsWithName(`wind_dir_deg`)
                     .overrideMin(0.0)
@@ -45,7 +46,7 @@ export class WindPlot extends EmpPanelBuilder {
                     .overrideCustomFieldConfig("scaleDistribution", {
                         type: "linear" as any,
                     })
-                    .overrideDisplayName(`Wind Direction`);
+                    .overrideDisplayName(t("wind-dir"));
             })
             .build();
     }

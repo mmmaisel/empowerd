@@ -2,6 +2,7 @@ import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 
 import { Color } from "./Color";
 import { EmpPanelBuilder } from "./Common";
+import { t } from "../i18n";
 import { Weather } from "../queries/Weather";
 
 export class WeatherStats extends EmpPanelBuilder {
@@ -9,7 +10,7 @@ export class WeatherStats extends EmpPanelBuilder {
         return PanelBuilders.stat()
             .setHoverHeader(true)
             .setUnit("lengthmm")
-            .setNoValue("No Data")
+            .setNoValue(t("no-data"))
             .setOption("graphMode", "none" as any)
             .setOption("textMode", "value_and_name" as any)
             .setOverrides((override: any) => {
@@ -19,7 +20,7 @@ export class WeatherStats extends EmpPanelBuilder {
                         fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Rain Interval");
+                    .overrideDisplayName(t("rain-interval"));
             })
             .build();
     }

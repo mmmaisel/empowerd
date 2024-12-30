@@ -6,6 +6,7 @@ import { EmpPanelBuilder } from "./Common";
 import { Generator } from "../queries/Generator";
 import { Meter } from "../queries/Meter";
 import { Solar } from "../queries/Solar";
+import { t } from "../i18n";
 
 export class PowerProductionPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
@@ -23,28 +24,28 @@ export class PowerProductionPlot extends EmpPanelBuilder {
                         fixedColor: Color.yellow(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Solar Power");
+                    .overrideDisplayName(t("solar-pwr"));
                 override
                     .matchFieldsWithName("generator.power_w")
                     .overrideColor({
                         fixedColor: Color.green(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Generator Power");
+                    .overrideDisplayName(t("generator-pwr"));
                 override
                     .matchFieldsWithName("meter.power_w")
                     .overrideColor({
                         fixedColor: Color.red(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Meter Power");
+                    .overrideDisplayName(t("meter-pwr"));
                 override
                     .matchFieldsWithName("battery.power_w")
                     .overrideColor({
                         fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Battery Power");
+                    .overrideDisplayName(t("battery-pwr"));
                 override
                     .matchFieldsWithName("battery.charge_wh")
                     .overrideUnit("watth")
@@ -54,7 +55,7 @@ export class PowerProductionPlot extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideCustomFieldConfig("fillOpacity", 0)
-                    .overrideDisplayName("Battery Charge");
+                    .overrideDisplayName(t("battery-charge"));
             })
             .build();
     }

@@ -3,6 +3,7 @@ import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 import { Color } from "./Color";
 import { EmpPanelBuilder } from "./Common";
 import { Boiler } from "../queries/Boiler";
+import { t } from "../i18n";
 
 export class BoilerPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
@@ -22,21 +23,21 @@ export class BoilerPlot extends EmpPanelBuilder {
                             fixedColor: Color.red(i).to_rgb(),
                             mode: "fixed",
                         })
-                        .overrideDisplayName(`Boiler ${i + 1} Top`);
+                        .overrideDisplayName(t("boiler-n-top", { id: i + 1 }));
                     override
                         .matchFieldsWithName(`boiler${id}.mid`)
                         .overrideColor({
                             fixedColor: Color.purple(i).to_rgb(),
                             mode: "fixed",
                         })
-                        .overrideDisplayName(`Boiler ${i + 1} Middle`);
+                        .overrideDisplayName(t("boiler-n-mid", { id: i + 1 }));
                     override
                         .matchFieldsWithName(`boiler${id}.bot`)
                         .overrideColor({
                             fixedColor: Color.blue(i).to_rgb(),
                             mode: "fixed",
                         })
-                        .overrideDisplayName(`Boiler ${i + 1} Bottom`);
+                        .overrideDisplayName(t("boiler-n-bot", { id: i + 1 }));
                     i += 1;
                 }
             })

@@ -10,6 +10,7 @@ import { Generator } from "../queries/Generator";
 import { Heatpump } from "../queries/Heatpump";
 import { Meter } from "../queries/Meter";
 import { Solar } from "../queries/Solar";
+import { t } from "../i18n";
 import { Wallbox } from "../queries/Wallbox";
 
 export type DrilldownConfig = {
@@ -32,7 +33,7 @@ export class PowerStats extends EmpPanelBuilder {
         return PanelBuilders.stat()
             .setHoverHeader(true)
             .setUnit("watth")
-            .setNoValue("No Data")
+            .setNoValue(t("no-data"))
             .setOption("graphMode", "none" as any)
             .setOption("textMode", "value_and_name" as any)
             .setOverrides((override: any) => {
@@ -42,7 +43,7 @@ export class PowerStats extends EmpPanelBuilder {
                         fixedColor: Color.yellow(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Solar")
+                    .overrideDisplayName(t("solar"))
                     .overrideLinks(this.dds.solar);
                 override
                     .matchFieldsByQuery("Generator")
@@ -50,56 +51,56 @@ export class PowerStats extends EmpPanelBuilder {
                         fixedColor: Color.green(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Generator");
+                    .overrideDisplayName(t("generator"));
                 override
                     .matchFieldsWithName("battery.d_energy_in_wh")
                     .overrideColor({
                         fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Battery Charged");
+                    .overrideDisplayName(t("battery-charged"));
                 override
                     .matchFieldsWithName("battery.d_energy_out_wh")
                     .overrideColor({
                         fixedColor: Color.blue(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Battery Discharged");
+                    .overrideDisplayName(t("battery-discharged"));
                 override
                     .matchFieldsWithName("meter.d_energy_in_wh")
                     .overrideColor({
                         fixedColor: Color.red(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Meter In");
+                    .overrideDisplayName(t("meter-in"));
                 override
                     .matchFieldsWithName("meter.d_energy_out_wh")
                     .overrideColor({
                         fixedColor: Color.red(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Meter Out");
+                    .overrideDisplayName(t("meter-out"));
                 override
                     .matchFieldsByQuery("Heatpump")
                     .overrideColor({
                         fixedColor: Color.purple(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Heatpump");
+                    .overrideDisplayName(t("heatpump"));
                 override
                     .matchFieldsByQuery("Wallbox")
                     .overrideColor({
                         fixedColor: Color.orange(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Wallbox");
+                    .overrideDisplayName(t("wallbox"));
                 override
                     .matchFieldsByQuery("Consumption")
                     .overrideColor({
                         fixedColor: Color.cyan(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Other Consumption");
+                    .overrideDisplayName(t("other-cons"));
             })
             .build();
     }

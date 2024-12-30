@@ -4,6 +4,7 @@ import { Color } from "./Color";
 import { EmpPanelBuilder } from "./Common";
 import { GeneratorSeries } from "../queries/Generator";
 import { HeatpumpSeries } from "../queries/Heatpump";
+import { t } from "../i18n";
 
 export class HeatStats extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
@@ -21,7 +22,9 @@ export class HeatStats extends EmpPanelBuilder {
                             fixedColor: Color.green(i).to_rgb(),
                             mode: "fixed",
                         })
-                        .overrideDisplayName(`Heatpump ${i + 1} Heat`);
+                        .overrideDisplayName(
+                            t("heatpump-n-heat", { id: i + 1 })
+                        );
                     override
                         .matchFieldsWithName(`heatpump${id}.cop`)
                         .overrideColor({
@@ -29,7 +32,9 @@ export class HeatStats extends EmpPanelBuilder {
                             mode: "fixed",
                         })
                         .overrideUnit("none")
-                        .overrideDisplayName(`Heatpump ${i + 1} CoP`);
+                        .overrideDisplayName(
+                            t("heatpump-n-cop", { id: i + 1 })
+                        );
                     i += 1;
                 }
 
@@ -41,7 +46,9 @@ export class HeatStats extends EmpPanelBuilder {
                             fixedColor: Color.red(i).to_rgb(),
                             mode: "fixed",
                         })
-                        .overrideDisplayName(`Generator ${i + 1} Heat`);
+                        .overrideDisplayName(
+                            t("generator-n-cop", { id: i + 1 })
+                        );
                     i += 1;
                 }
             })

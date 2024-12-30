@@ -11,13 +11,14 @@ import { EmpPanelBuilder } from "./Common";
 import { Color } from "./Color";
 import { Generator } from "../queries/Generator";
 import { Heatpump } from "../queries/Heatpump";
+import { t } from "../i18n";
 
 export class HeatSumStats extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.stat()
             .setHoverHeader(true)
             .setUnit("watth")
-            .setNoValue("No Data")
+            .setNoValue(t("no-data"))
             .setOption("graphMode", "none" as any)
             .setOption("textMode", "value_and_name" as any)
             .setOverrides((override: any) => {
@@ -27,7 +28,7 @@ export class HeatSumStats extends EmpPanelBuilder {
                         fixedColor: Color.green(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Heatpump Heat`);
+                    .overrideDisplayName(t("heatpump-heat"));
                 override
                     .matchFieldsByQuery(`heatpump.cop`)
                     .overrideColor({
@@ -35,14 +36,14 @@ export class HeatSumStats extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideUnit("none")
-                    .overrideDisplayName(`Heatpump CoP`);
+                    .overrideDisplayName(t("heatpump-cop"));
                 override
                     .matchFieldsByQuery(`generator.heat`)
                     .overrideColor({
                         fixedColor: Color.red(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName(`Generator Heat`);
+                    .overrideDisplayName(t("generator-heat"));
             })
             .build();
     }

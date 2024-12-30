@@ -3,13 +3,14 @@ import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 import { Color } from "./Color";
 import { EmpPanelBuilder } from "./Common";
 import { Solar } from "../queries/Solar";
+import { t } from "../i18n";
 
 export class SolarStats extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
         return PanelBuilders.stat()
             .setHoverHeader(true)
             .setUnit("watth")
-            .setNoValue("No Data")
+            .setNoValue(t("no-data"))
             .setOption("graphMode", "none" as any)
             .setOption("textMode", "value_and_name" as any)
             .setOverrides((override: any) => {
@@ -21,7 +22,9 @@ export class SolarStats extends EmpPanelBuilder {
                             fixedColor: Color.yellow(i).to_rgb(),
                             mode: "fixed",
                         })
-                        .overrideDisplayName(`Solar ${i + 1} Energy`);
+                        .overrideDisplayName(
+                            t("solar-n-energy", { id: i + 1 })
+                        );
                     i += 1;
                 }
             })

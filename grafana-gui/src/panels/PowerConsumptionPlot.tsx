@@ -4,6 +4,7 @@ import { Color } from "./Color";
 import { Consumption } from "../queries/Consumption";
 import { EmpPanelBuilder } from "./Common";
 import { Heatpump } from "../queries/Heatpump";
+import { t } from "../i18n";
 import { Wallbox } from "../queries/Wallbox";
 
 export class PowerConsumptionPlot extends EmpPanelBuilder {
@@ -22,21 +23,21 @@ export class PowerConsumptionPlot extends EmpPanelBuilder {
                         fixedColor: Color.purple(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Heatpump Power");
+                    .overrideDisplayName(t("heatpump-pwr"));
                 override
                     .matchFieldsWithName("wallbox.power_w")
                     .overrideColor({
                         fixedColor: Color.orange(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Wallbox Power");
+                    .overrideDisplayName(t("wallbox-pwr"));
                 override
                     .matchFieldsWithName("consumption.power_w")
                     .overrideColor({
                         fixedColor: Color.cyan(0).to_rgb(),
                         mode: "fixed",
                     })
-                    .overrideDisplayName("Other Consumption");
+                    .overrideDisplayName(t("other-cons"));
             })
             .build();
     }
