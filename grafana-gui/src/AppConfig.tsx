@@ -12,6 +12,9 @@ import { Ajv, JSONSchemaType } from "ajv";
 import { css } from "@emotion/css";
 import { lastValueFrom } from "rxjs";
 
+import { init_i18n, t } from "./i18n";
+init_i18n();
+
 export type WeatherLabels = {
     x1: string;
     x2: string;
@@ -298,14 +301,14 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
             inner = (
                 <>
                     <div className={this.styles.colorWeak}>
-                        The plugin is currently enabled.
+                        {t("currently-enabled")}
                     </div>
                     <Button
                         className={this.styles.marginTop}
                         variant="destructive"
                         onClick={this.onEnable.bind(this)}
                     >
-                        Disable plugin
+                        {t("disable-plugin")}
                     </Button>
                 </>
             );
@@ -313,20 +316,20 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
             inner = (
                 <>
                     <div className={this.styles.colorWeak}>
-                        The plugin is currently not enabled.
+                        {t("currently-disabled")}
                     </div>
                     <Button
                         className={this.styles.marginTop}
                         variant="primary"
                         onClick={this.onDisable.bind(this)}
                     >
-                        Enable plugin
+                        {t("enable-plugin")}
                     </Button>
                 </>
             );
         }
 
-        return <FieldSet label="Enable / Disable">{inner}</FieldSet>;
+        return <FieldSet label={t("enable-disable")}>{inner}</FieldSet>;
     }
 
     public render(): ReactNode {
@@ -337,12 +340,12 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                 {this.renderEnableDisable()}
 
                 <FieldSet
-                    label="API Settings"
+                    label={t("api-settings")}
                     className={this.styles.marginTopXl}
                 >
                     <Field
-                        label="Postgres Datasource"
-                        description="An existing empowerd PostgreSQL datasource"
+                        label={t("psql-source")}
+                        description={t("psql-source-desc")}
                     >
                         <AsyncSelect
                             loadOptions={this.fetchDatasources}
@@ -352,30 +355,29 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                         />
                     </Field>
                     <Field
-                        label="API Location"
-                        description="Location of the empowerd API on the same server"
+                        label={t("api-location")}
+                        description={t("api-location-desc")}
                         className={this.styles.marginTop}
                     >
                         <Input
                             width={60}
-                            label={`API Location`}
+                            label={t("api-location")}
                             value={this.state?.apiLocation}
-                            placeholder={`E.g.: /empowerd`}
+                            placeholder={`${t("eg")}: /empowerd`}
                             onChange={this.onChangeApiLocation.bind(this)}
                         />
                     </Field>
                     <Field
-                        label="Config JSON"
-                        description="Empowerd UI configuration JSON"
+                        label={t("config-json")}
+                        description={t("config-json-desc")}
                         className={this.styles.marginTop}
                     >
                         <Input
                             width={60}
-                            label={`Config JSON`}
+                            label={t("config-json")}
                             value={this.state?.backend_str}
                             required
                             invalid={!cfg_valid}
-                            placeholder={`E.g.: { solars: [1], meters: [2] }`}
                             onChange={this.onChangeConfig.bind(this)}
                         />
                     </Field>
@@ -387,7 +389,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                                 !this.state.apiLocation || !cfg_valid
                             )}
                         >
-                            Save API settings
+                            {t("save-settings")}
                         </Button>
                     </div>
                 </FieldSet>
