@@ -10,6 +10,7 @@ import { PowerConsumptionPlot } from "./panels/PowerConsumptionPlot";
 import { PowerProductionPlot } from "./panels/PowerProductionPlot";
 import { PowerStats } from "./panels/PowerStats";
 import { ROUTES } from "./Routes";
+import { t } from "./i18n";
 
 export const PowerScene = (
     config: ConfigJson,
@@ -32,7 +33,7 @@ export const PowerScene = (
                 new PowerStats(config.backend, config.datasource, {
                     solar: [
                         {
-                            title: "Solar per Month",
+                            title: t("solar-per-mon"),
                             url: `\${__url.path}/${ROUTES.Details}`,
                         },
                     ],

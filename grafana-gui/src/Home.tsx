@@ -17,6 +17,7 @@ import { Overview } from "./panels/Overview";
 import { PowerScene } from "./Power";
 import { HeatingScene } from "./Heating";
 import { SolarDetailsScene } from "./SolarDetails";
+import { t } from "./i18n";
 import { MainControls } from "./SceneControls";
 import { WeatherScene } from "./Weather";
 
@@ -35,7 +36,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         this.scene = new SceneApp({
             pages: [
                 new SceneAppPage({
-                    title: "Overview",
+                    title: t("overview"),
                     renderTitle: () => {
                         return <></>;
                     },
@@ -69,19 +70,19 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                 {
                     power: [
                         {
-                            title: "Power Production and Consumption",
+                            title: t("pwr-prod-and-cons"),
                             url: `\${__url.path}/${ROUTES.Power}`,
                         },
                     ],
                     heatpump: [
                         {
-                            title: "Heating",
+                            title: t("heating"),
                             url: `\${__url.path}/${ROUTES.Heating}`,
                         },
                     ],
                     weather: [
                         {
-                            title: "Weather",
+                            title: t("weather"),
                             url: `\${__url.path}/${ROUTES.Weather}`,
                         },
                     ],
@@ -111,7 +112,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         let props = this.props;
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Power),
-            title: `Power Production and Consumption`,
+            title: t("pwr-prod-and-cons"),
             renderTitle: () => {
                 return <></>;
             },
@@ -131,7 +132,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         let props = this.props;
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Heating),
-            title: `Heating`,
+            title: t("heating"),
             renderTitle: () => {
                 return <></>;
             },
@@ -145,7 +146,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         let props = this.props;
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Weather),
-            title: `Weather`,
+            title: t("weather"),
             renderTitle: () => {
                 return <></>;
             },
@@ -159,7 +160,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         let props = this.props;
         return new SceneAppPage({
             url: prefixRoute(`${ROUTES.Power}/${ROUTES.Details}`),
-            title: `Solar Details`,
+            title: t("solar-details"),
             renderTitle: () => {
                 return <></>;
             },

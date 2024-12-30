@@ -2,19 +2,21 @@ import { DataFrame } from "@grafana/data";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 
+import { t } from "../i18n";
+
 const month_names = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "oct",
+    "nov",
+    "dec",
 ];
 
 export const GroupByMonthTrafo =
@@ -40,7 +42,9 @@ export const GroupByMonthTrafo =
                     name: "month",
                     type: "string" as any,
                     config: {},
-                    values: [...av_months].map((x: number) => month_names[x]),
+                    values: [...av_months].map((x: number) =>
+                        t(month_names[x])
+                    ),
                 };
                 let years: any[] = [...av_years].map((x: number) => {
                     return {

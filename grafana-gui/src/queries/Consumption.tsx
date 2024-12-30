@@ -27,6 +27,7 @@ export class ConsumptionSeries extends Timeseries {
 
         // TODO: optimize for single sources?
         // TODO: move these maps to other classes
+        // TODO: calculate this in frontend and interpolate points
         let meters = config.meters.map(
             (id) => `COALESCE(meter${id}.power_w, 0)`
         );

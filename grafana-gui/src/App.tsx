@@ -2,8 +2,10 @@ import React from "react";
 import { AppRootProps } from "@grafana/data";
 
 import { Routes } from "./Routes";
+import { init_i18n } from "./i18n";
 
 export let IMG_PATH = "";
+init_i18n();
 
 export class App extends React.PureComponent<AppRootProps> {
     constructor(props: AppRootProps) {
