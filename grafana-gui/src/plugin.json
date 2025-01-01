@@ -5,7 +5,10 @@
   "id": "empowerd",
   "info": {
     "keywords": ["app"],
-    "description": "Empowerd",
+    "description": "Empowerd UI",
+    "author": {
+      "name": "mmmaisel"
+    },
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"
