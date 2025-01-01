@@ -74,12 +74,12 @@ impl LambdaContext {
     }
 
     pub async fn get_cop(&mut self) -> Result<i16, String> {
-        let state = self
-            .0
-            .read_holding_registers(1002, 1)
-            .await
-            .map_err(|e| read_err_msg(1002, e))?
-            .map_err(|e| read_err_msg(1002, e))?;
+        let mode = self.get_op_mode().await?;
+
+        if let LambdaMode::Defrosting = mode {
+            return Ok(0);
+        }
+
         let data = self
             .0
             .read_holding_registers(1013, 1)
@@ -87,12 +87,7 @@ impl LambdaContext {
             .map_err(|e| read_err_msg(1013, e))?
             .map_err(|e| read_err_msg(1013, e))?;
 
-        // Defrosting ?
-        if state[0] == 10 {
-            Ok(0)
-        } else {
-            Ok(data[0] as i16)
-        }
+        Ok(data[0] as i16)
     }
 
     pub async fn get_boiler_temps(
