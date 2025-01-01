@@ -90,6 +90,12 @@ impl KeContactSource {
                 }
             };
 
+        if record.power < Power::new::<watt>(0.0) {
+            return Err(Error::Temporary(
+                "Skipping KeContact record because of negative power.".into(),
+            ));
+        }
+
         self.base.notify_processors(&record);
         record.insert(&mut conn, self.base.series_id).await?;
 
