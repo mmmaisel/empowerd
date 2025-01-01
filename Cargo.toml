@@ -20,16 +20,12 @@ assets = [
     ["data/nginx-site.conf", "usr/share/doc/empowerd/", "644"],
     ["lib/bresser6in1-usb/bresser6in1.rules", "etc/udev/rules.d/", "644"],
     ["lib/sml-client/ttyusb-meter.rules", "etc/udev/rules.d/", "644"],
-    ["gui/build/*", "usr/share/empowerd/www", "644"],
-    ["gui/build/static/css/*", "usr/share/empowerd/www/static/css", "644"],
-    ["gui/build/static/js/*", "usr/share/empowerd/www/static/js", "644"]
 ]
 conf-files = [
     "etc/empowerd/empowerd.conf",
     "etc/logrotate.d/empowerd"
 ]
 changelog = "ChangeLog"
-features = ["npm"]
 maintainer-scripts = "scripts/"
 
 [package.metadata.deb.systemd-units]
@@ -54,9 +50,6 @@ path = "src/lib.rs"
 
 [profile.release]
 lto = "thin"
-
-[features]
-npm = []
 
 [dependencies]
 bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }

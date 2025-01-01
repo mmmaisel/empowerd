@@ -24,7 +24,9 @@ gathered data. For visualization you can use a compatible tool like
 The build process uses cargo as top level build system to build the rust
 components. To build the debian package, the "cargo deb" plugin is required.
 It can be installed with `cargo install cargo-deb`.
-Addtionally, "npm" is required to build the web GUI.
+
+The Grafana UI is built with the script `build-deb.sh` in the `grafana-gui`
+directory. This requires `npm`.
 
 ## Configuration
 
