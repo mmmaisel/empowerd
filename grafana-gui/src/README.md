@@ -2,30 +2,20 @@
 
 Empowerd Grafana GUI
 
-<!-- To help maximize the impact of your README and improve usability for users,
-we propose the following loose structure:
-
 ## Overview / Introduction
-Provide one or more paragraphs as an introduction to your plugin to help users
-understand why they should use it.
 
-Consider including screenshots:
-- in [plugin.json](https://grafana.com/developers/plugin-tools/reference/plugin-json#info)
-  include them as relative links.
-- in the README ensure they are absolute URLs.
+UI for the *empowerd* service that displays live statistics of the monitored
+power sources and sinks as well as controls outputs.
 
 ## Requirements
-List any requirements or dependencies they may need to run the plugin.
+*empowerd* backend service and web server that proxies empowerd API requests.
+Grafana, empowerd and the API reverse proxy must be run on the same server.
 
 ## Getting Started
-Provide a quick start on how to configure and use the plugin.
+* Setup PostgreSQL database for empowerd and add a read-only Grafana user.
+* Setup empowerd, see main documentation linked below.
+* Select the datasource and link the series IDs in the config JSON strings.
 
 ## Documentation
-If your project has dedicated documentation available for users, provide links
-here. For help in following Grafana's style recommendations for technical
-documentation, refer to our [Writer's Toolkit](https://grafana.com/docs/writers-toolkit/).
-
-## Contributing
-Do you want folks to contribute to the plugin or provide feedback through
-specific means? If so, tell them how!
--->
+See main `README.md` file in the
+[empowerd repository](https://github.com/mmmaisel/empowerd).

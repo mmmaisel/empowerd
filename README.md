@@ -57,17 +57,28 @@ CREATE USER grafana WITH PASSWORD 'password';
 ALTER DEFAULT PRIVILEGES FOR USER empowerd IN SCHEMA public GRANT SELECT ON TABLES TO grafana;
 ```
 
-### Web-GUI
+### Grafana Web-UI
 
-To use the web GUI you have to configure the listen address a username and an
-argon2 password hash in the *[graphql]* section of the config file.
-Currently, the controlled GPIOs are configured in this sectrion as well.
+To use the Web-UI, you need a web-server which run Grafana and forwards the
+`/graphql` URL.
 
-To access the web GUI you also need a web-server which servers the
-"usr/share/empowerd/www" directory and forwards the "/graphql" URL to the
-empowerd server. An example nginx configuration can be found at
+An example nginx configuration can be found at
 "data/nginx-site.conf" or "usr/share/doc/empowerd/" after installing the
 Debian package.
+
+The Grafana UI is installed by the `empowerd-grafana` package to the
+`/usr/share/empowerd/grafana` directory and needs to be symlinked into
+your Grafana plugins directory. Then, the unsigned plugin has to be
+whitelisted in the Grafana config.
+
+Finally, the plugin has to be configured in the Grafana plugin admin section.
+There you have to set the PostgreSQL datasource and the series IDs from
+the backend config.
+
+To use the controls section of the GUI you have to configure the listen address,
+a username and an argon2 password hash in the *[graphql]* section of the
+config file. Currently, the controlled GPIOs are configured in this section
+as well.
 
 ## License
 
