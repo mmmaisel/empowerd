@@ -1,0 +1,33 @@
+@import "Common.scss";
+
+.modal-overlay {
+    position: fixed;
+    inset: 0px;
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.modal-dialog {
+    @extend .dialogBorder;
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    overflow: hidden;
+
+    &:focus-visible {
+        outline: none;
+    }
+}
+
+.modalInputWithLabel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    align-items: center;
+    justify-items: center;
+
+    input {
+        width: 50%;
+    }
+}

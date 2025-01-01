@@ -57,17 +57,28 @@ CREATE USER grafana WITH PASSWORD 'password';
 ALTER DEFAULT PRIVILEGES FOR USER empowerd IN SCHEMA public GRANT SELECT ON TABLES TO grafana;
 ```
 
-### Web-GUI
+### Grafana Web-UI
 
-To use the web GUI you have to configure the listen address a username and an
-argon2 password hash in the *[graphql]* section of the config file.
-Currently, the controlled GPIOs are configured in this sectrion as well.
+To use the Web-UI, you need a web-server which run Grafana and forwards the
+`/graphql` URL.
 
-To access the web GUI you also need a web-server which servers the
-"usr/share/empowerd/www" directory and forwards the "/graphql" URL to the
-empowerd server. An example nginx configuration can be found at
+An example nginx configuration can be found at
 "data/nginx-site.conf" or "usr/share/doc/empowerd/" after installing the
 Debian package.
+
+The Grafana UI is installed by the `empowerd-grafana` package to the
+`/usr/share/empowerd/grafana` directory and needs to be symlinked into
+your Grafana plugins directory. Then, the unsigned plugin has to be
+whitelisted in the Grafana config.
+
+Finally, the plugin has to be configured in the Grafana plugin admin section.
+There you have to set the PostgreSQL datasource and the series IDs from
+the backend config.
+
+To use the controls section of the GUI you have to configure the listen address,
+a username and an argon2 password hash in the *[graphql]* section of the
+config file. Currently, the controlled GPIOs are configured in this section
+as well.
 
 ## License
 
@@ -76,8 +87,17 @@ by the Free Software Foundation, either version 3 of the License, or (at your
 option) any later version.
 
 ### Icon License
+
+Grafana plugin logo is based on `battery-charging` icon from
+[Oxygen icon theme](https://github.com/KDE/oxygen-icons), licensed under the
+GNU LGPLv3 or later.
+
 Water switch icons in `gui/public` are licensed under either LGPL-2.0-or-later,
 or CC-BY-SA-4.0.
+
+`config.svg` icon in `grafana-gui/src/img` directory is based on
+`configure` icon from [Oxygen icon theme](https://github.com/KDE/oxygen-icons),
+licensed under the GNU LGPLv3 or later.
 
 Power switch icons in `gui/public` directory are based on `system-shutdown` icon
 from [`Adwaita` icon theme](https://github.com/GNOME/adwaita-icon-theme/blob/3.13.1),
@@ -93,28 +113,4 @@ Commons, 171 Second Street, Suite 300, San Francisco, California 94105, USA.
 
 When attributing the artwork, using "GNOME Project" is enough.
 Please link to http://www.gnome.org where available.
-```
-
-Icons `config.svg`, `logout.svg` and `status.svg` in `gui/public` directory were
-taken from the [`Humanity` icon theme](https://launchpad.net/humanity), licensed
-under the GPL-2.0. Original `AUTHORS` file follows below:
-
-```
-####################
-ABOUT:             #
-####################
-
-Humanity is designed and developed by Daniel Foré <Daniel.p.Fore@gmail.com>, Jonian Guveli <jonian.guveli@gmail.com>, and K.Vishnoo Charan Reddy<foo.mac.v@gmail.com>.
-
-GNOME icons and Humanity icons are all licensed under the GPL.
-
-This package is licensed under GNU General Public License version 2.
-
-Icons based or directly from GNOME and other GNOME projects, licensed GPL.
-	You can visit the GNOME website here:
-		http://www.gnome.org/
-
-Icons based on Tango sources or taken from the Tango project are public domain.
-	You can visit the Tango project website here:
-		http://tango.freedesktop.org/Tango_Desktop_Project
 ```
