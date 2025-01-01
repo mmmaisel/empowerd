@@ -4,7 +4,7 @@ Empowerd is a Linux daemon which empowers the offline smart home.
 
 Currently, it supports monitoring of different power sources and
 controlling appliances via modbus or Raspi GPIO pins.
-GPIOs can be controlled manually via the Web-GUI.
+GPIOs can be controlled manually via the Grafana Web-GUI.
 
 The project focuses on code efficiency and robustness.
 
@@ -94,15 +94,15 @@ Grafana plugin logo is based on `battery-charging` icon from
 [Oxygen icon theme](https://github.com/KDE/oxygen-icons), licensed under the
 GNU LGPLv3 or later.
 
-Water switch icons in `gui/public` are licensed under either LGPL-2.0-or-later,
-or CC-BY-SA-4.0.
+Water switch icons in `grafana-gui/img_src` are licensed under either
+LGPL-2.0-or-later, or CC-BY-SA-4.0.
 
 `config.svg` icon in `grafana-gui/src/img` directory is based on
 `configure` icon from [Oxygen icon theme](https://github.com/KDE/oxygen-icons),
 licensed under the GNU LGPLv3 or later.
 
-Power switch icons in `gui/public` directory are based on `system-shutdown` icon
-from [`Adwaita` icon theme](https://github.com/GNOME/adwaita-icon-theme/blob/3.13.1),
+Power switch icons in `grafana-gui/img_src` directory are based on `system-shutdown`
+icon from [`Adwaita` icon theme](https://github.com/GNOME/adwaita-icon-theme/blob/3.13.1),
 licensed under the LGPL-3.0. Original `COPYING` file follows below:
 
 ```
