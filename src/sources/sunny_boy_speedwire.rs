@@ -63,6 +63,9 @@ impl SunnyBoySpeedwireSource {
         let timing = self.base.sleep_aligned().await?;
         let mut conn = self.base.get_database().await?;
 
+        // Give inverter some time to move latest point into day data archive.
+        time::sleep(Duration::from_secs(10)).await;
+
         let mut last_record =
             match SimpleMeter::last(&mut conn, self.base.series_id).await {
                 Ok(x) => x,
@@ -96,7 +99,7 @@ impl SunnyBoySpeedwireSource {
 
         let mut last_energy = last_record.energy;
         let points_result = time::timeout(
-            time::Duration::from_secs(15),
+            Duration::from_secs(15),
             self.fetch_day_data(
                 &session,
                 &dst_id,
