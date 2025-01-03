@@ -20,8 +20,8 @@ use crate::{
     misc::parse_socketaddr_with_default,
     models::{
         units::{
-            celsius, joule, ratio, second, watt, watt_hour, Energy, Power,
-            Ratio, Temperature, Time,
+            celsius, joule, percent, ratio, second, watt, watt_hour, Energy,
+            Power, Ratio, Temperature, Time,
         },
         Heatpump,
     },
@@ -37,6 +37,9 @@ pub struct LambdaHeatPumpSource {
     client: LambdaClient,
     count: u64,
     energy_interval: Energy,
+    heat_interval: Energy,
+    cold_interval: Energy,
+    defrost_interval: Energy,
     cops: VecDeque<i16>,
 }
 
@@ -51,6 +54,9 @@ impl LambdaHeatPumpSource {
             client,
             count: 0,
             energy_interval: Energy::new::<joule>(0.0),
+            heat_interval: Energy::new::<joule>(0.0),
+            cold_interval: Energy::new::<joule>(0.0),
+            defrost_interval: Energy::new::<joule>(0.0),
             cops,
         })
     }
@@ -63,7 +69,7 @@ impl LambdaHeatPumpSource {
         let timing = self.base.sleep_aligned().await?;
         let mut conn = self.base.get_database().await?;
 
-        let power = match tokio::time::timeout(
+        let (mode, power) = match tokio::time::timeout(
             std::time::Duration::from_secs(3),
             async {
                 let mut context = self.client.open().await.map_err(|e| {
@@ -84,16 +90,23 @@ impl LambdaHeatPumpSource {
                     }
                 }
 
-                context.get_current_power().await.map_err(|e| {
+                let mode = context.get_op_mode().await.map_err(|e| {
                     Error::Temporary(format!(
                         "Query Lambda Heat Pump data failed: {e}",
                     ))
-                })
+                })?;
+                let power = context.get_current_power().await.map_err(|e| {
+                    Error::Temporary(format!(
+                        "Query Lambda Heat Pump data failed: {e}",
+                    ))
+                })?;
+
+                Ok((mode, Power::new::<watt>(power as f64)))
             },
         )
         .await
         {
-            Ok(Ok(x)) => Power::new::<watt>(x as f64),
+            Ok(Ok(x)) => x,
             Ok(Err(e)) => return Err(e),
             Err(e) => {
                 return Err(Error::Temporary(format!(
@@ -103,12 +116,25 @@ impl LambdaHeatPumpSource {
         };
 
         // Calculate energy from oversampled power.
-        self.energy_interval += power
-            * (Time::new::<second>(
-                (self.base.interval.as_secs() / self.base.oversample_factor)
-                    as f64,
-            ));
+        let delta_t = Time::new::<second>(
+            (self.base.interval.as_secs() / self.base.oversample_factor) as f64,
+        );
+        self.energy_interval += power * delta_t;
         self.count += 1;
+
+        let cop_interval =
+            Ratio::new::<percent>(*self.cops.back().unwrap_or(&0) as f64);
+        match mode {
+            LambdaMode::Heating => {
+                self.heat_interval += power * delta_t * cop_interval;
+            }
+            LambdaMode::Cooling => {
+                self.cold_interval += power * delta_t * cop_interval;
+            }
+            LambdaMode::Defrosting => {
+                self.defrost_interval += power * delta_t * cop_interval;
+            }
+        }
 
         if !timing.oversample {
             // Discard incomplete samples.
@@ -135,8 +161,10 @@ impl LambdaHeatPumpSource {
                             ),
                         energy: Energy::new::<watt_hour>(0.0),
                         power: Power::new::<watt>(0.0),
-                        heat: None,
-                        cop: None,
+                        heat: Energy::new::<watt_hour>(0.0),
+                        cold: Energy::new::<watt_hour>(0.0),
+                        defrost: Energy::new::<watt_hour>(0.0),
+                        cop: Ratio::new::<ratio>(0.0),
                         boiler_top: None,
                         boiler_mid: None,
                         boiler_bot: None,
@@ -151,10 +179,13 @@ impl LambdaHeatPumpSource {
 
             // Update accumulated energy.
             let energy_total = self.energy_interval + last_record.energy;
-            let cop = Ratio::new::<ratio>(
+            let heat_total = self.heat_interval + last_record.heat;
+            let cold_total = self.cold_interval + last_record.heat;
+            let defrost_total = self.defrost_interval + last_record.heat;
+
+            let cop = Ratio::new::<percent>(
                 self.cops.iter().map(|x| *x as i32).sum::<i32>() as f64
-                    / self.cops.len() as f64
-                    / 100.0,
+                    / self.cops.len() as f64,
             );
 
             let mut context = self.client.open().await.map_err(|e| {
@@ -167,28 +198,16 @@ impl LambdaHeatPumpSource {
                     "Query Lambda Heat Pump data failed: {e}",
                 ))
             })?;
-            let mode = context.get_op_mode().await.map_err(|e| {
-                Error::Temporary(format!(
-                    "Query Lambda Heat Pump data failed: {e}",
-                ))
-            })?;
-
-            let mut heat =
-                last_record.heat.unwrap_or(Energy::new::<joule>(0.0))
-                    + (energy_total - last_record.energy) * cop;
-            match mode {
-                LambdaMode::Heating => (),
-                LambdaMode::Cooling => heat = -heat,
-                LambdaMode::Defrosting => heat = Energy::new::<joule>(0.0),
-            }
 
             // Commit new sample to database.
             let mut record = Heatpump {
                 time: Time::new::<second>(timing.now as f64),
                 energy: energy_total,
                 power: Power::new::<watt>(0.0),
-                heat: Some(heat),
-                cop: Some(cop),
+                heat: heat_total,
+                cold: cold_total,
+                defrost: defrost_total,
+                cop,
                 boiler_top: Some(Temperature::new::<celsius>(
                     boiler.0 as f64 / 10.0,
                 )),
@@ -212,6 +231,9 @@ impl LambdaHeatPumpSource {
 
     fn reset_sample(&mut self) {
         self.energy_interval = Energy::new::<joule>(0.0);
+        self.heat_interval = Energy::new::<joule>(0.0);
+        self.cold_interval = Energy::new::<joule>(0.0);
+        self.defrost_interval = Energy::new::<joule>(0.0);
         self.count = 0;
     }
 }

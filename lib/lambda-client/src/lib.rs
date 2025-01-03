@@ -74,12 +74,6 @@ impl LambdaContext {
     }
 
     pub async fn get_cop(&mut self) -> Result<i16, String> {
-        let mode = self.get_op_mode().await?;
-
-        if let LambdaMode::Defrosting = mode {
-            return Ok(0);
-        }
-
         let data = self
             .0
             .read_holding_registers(1013, 1)
