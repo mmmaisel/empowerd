@@ -33,13 +33,136 @@ use libempowerd::{
         },
         postgres::{
             run_migrations, Battery as PgBattery, BidirMeter as PgBidirMeter,
-            Generator as PgGenerator, Heatpump as PgHeatpump,
-            SimpleMeter as PgSimpleMeter, Weather as PgWeather,
+            Generator as PgGenerator, SimpleMeter as PgSimpleMeter,
+            Weather as PgWeather,
         },
         units::second,
     },
     settings::{Settings, SourceType},
 };
+
+mod schema_9000 {
+    use chrono::{DateTime, NaiveDateTime};
+    use diesel::prelude::{
+        AsChangeset, Identifiable, Insertable, Queryable, Selectable,
+    };
+    use libempowerd::{
+        error::Error,
+        models::units::{
+            celsius, percent, second, watt, watt_hour, Abbreviation, Energy,
+            Power, Ratio, Temperature, Time,
+        },
+    };
+    use std::convert::TryFrom;
+
+    diesel::table! {
+        heatpumps (series_id, time) {
+            series_id -> Int4,
+            time -> Timestamp,
+            energy_wh -> Int8,
+            power_w -> Int4,
+            heat_wh -> Nullable<Int8>,
+            cop_pct -> Nullable<Int2>,
+            boiler_top_degc_e1 -> Nullable<Int2>,
+            boiler_mid_degc_e1 -> Nullable<Int2>,
+            boiler_bot_degc_e1 -> Nullable<Int2>,
+        }
+    }
+
+    #[derive(AsChangeset, Identifiable, Insertable, Queryable, Selectable)]
+    #[diesel(table_name = heatpumps)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    #[diesel(primary_key(series_id, time))]
+    pub struct RawPgHeatpump {
+        pub series_id: i32,
+        pub time: NaiveDateTime,
+        pub energy_wh: i64,
+        pub power_w: i32,
+        pub heat_wh: Option<i64>,
+        pub cop_pct: Option<i16>,
+        pub boiler_top_degc_e1: Option<i16>,
+        pub boiler_mid_degc_e1: Option<i16>,
+        pub boiler_bot_degc_e1: Option<i16>,
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct PgHeatpump {
+        pub time: Time,
+        pub energy: Energy,
+        pub power: Power,
+        pub heat: Option<Energy>,
+        pub cop: Option<Ratio>,
+        pub boiler_top: Option<Temperature>,
+        pub boiler_mid: Option<Temperature>,
+        pub boiler_bot: Option<Temperature>,
+    }
+
+    impl PgHeatpump {
+        pub async fn insert_bulk(
+            data: Vec<Self>,
+            conn: &mut diesel_async::AsyncPgConnection,
+            series_id: i32,
+        ) -> Result<usize, crate::Error> {
+            use diesel_async::RunQueryDsl;
+            let raw = data
+                .iter()
+                .map(|x| {
+                    let mut y = RawPgHeatpump::try_from(x)?;
+                    y.series_id = series_id;
+                    Ok(y)
+                })
+                .collect::<Result<Vec<RawPgHeatpump>, crate::Error>>()?;
+
+            diesel::insert_into(heatpumps::table)
+                .values(&raw)
+                .on_conflict_do_nothing()
+                .execute(conn)
+                .await
+                .map_err(|e| {
+                    Error::Temporary(format!(
+                        "Inserting record into series {series_id} failed: {e}",
+                    ))
+                })
+        }
+    }
+
+    impl TryFrom<&PgHeatpump> for RawPgHeatpump {
+        type Error = Error;
+        fn try_from(input: &PgHeatpump) -> Result<Self, Self::Error> {
+            Ok(Self {
+                series_id: 0,
+                time: DateTime::from_timestamp(
+                    input.time.get::<second>() as i64,
+                    0,
+                )
+                .ok_or_else(|| {
+                    Error::InvalidInput(format!(
+                        "Invalid timestamp: {:?}",
+                        input.time.into_format_args(second, Abbreviation),
+                    ))
+                })?
+                .naive_utc(),
+                energy_wh: input.energy.get::<watt_hour>().round() as i64,
+                power_w: input.power.get::<watt>().round() as i32,
+                heat_wh: input
+                    .heat
+                    .map(|x| x.get::<watt_hour>().round() as i64),
+                cop_pct: input.cop.map(|x| x.get::<percent>().round() as i16),
+                boiler_top_degc_e1: input
+                    .boiler_top
+                    .map(|x| (x.get::<celsius>() * 10.0).round() as i16),
+                boiler_mid_degc_e1: input
+                    .boiler_mid
+                    .map(|x| (x.get::<celsius>() * 10.0).round() as i16),
+                boiler_bot_degc_e1: input
+                    .boiler_bot
+                    .map(|x| (x.get::<celsius>() * 10.0).round() as i16),
+            })
+        }
+    }
+}
+
+use schema_9000::PgHeatpump;
 
 #[derive(Parser, Debug)]
 #[command(version, long_about = "Empowerd migration to PostgreSQL")]
