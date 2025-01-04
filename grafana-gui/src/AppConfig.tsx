@@ -27,6 +27,7 @@ export const WeatherLabelsDefault = {
     x3: "X3",
 };
 
+// TODO: max battery charge setting
 export type BackendConfig = {
     batteries: number[];
     controls: boolean;

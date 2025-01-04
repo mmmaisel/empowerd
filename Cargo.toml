@@ -15,6 +15,7 @@ assets = [
     ["target/release/sunspec-enum", "bin/", "755"],
     ["target/release/00001_convert_battery_charge", "usr/libexec/empowerd/", "755"],
     ["target/release/00002_migrate_to_postgres", "usr/libexec/empowerd/", "755"],
+    ["target/release/00003_fix_heatpump_heat", "usr/libexec/empowerd/", "755"],
     ["data/empowerd.conf", "etc/empowerd/", "600"],
     ["data/empowerd.logrotate", "etc/logrotate.d/empowerd", "644"],
     ["data/nginx-site.conf", "usr/share/doc/empowerd/", "644"],

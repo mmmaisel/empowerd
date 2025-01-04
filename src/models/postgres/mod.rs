@@ -52,6 +52,33 @@ macro_rules! impl_timeseries {
                     .filter(schema::$schema::series_id.eq(series_id))
                     .order(schema::$schema::time.desc())
             }
+
+            pub fn query_batch(
+                series_id: i32,
+                first_time: chrono::NaiveDateTime,
+                batch_size: i64
+            ) -> diesel::dsl::Limit<
+                diesel::dsl::Order<
+                    diesel::dsl::Filter<
+                        diesel::dsl::Filter<
+                            schema::$schema::table,
+                            diesel::dsl::Eq<schema::$schema::series_id, i32>,
+                        >,
+                        diesel::dsl::GtEq<
+                            schema::$schema::time,
+                            chrono::NaiveDateTime
+                        >,
+                    >,
+                    diesel::dsl::Asc<schema::$schema::time>
+                >
+            > {
+                use diesel::QueryDsl;
+                schema::$schema::table
+                    .filter(schema::$schema::series_id.eq(series_id))
+                    .filter(schema::$schema::time.ge(first_time))
+                    .order(schema::$schema::time.asc())
+                    .limit(batch_size)
+            }
         }
 
         impl $ty {
@@ -64,6 +91,20 @@ macro_rules! impl_timeseries {
                     .first::<$raw_ty>(conn)
                     .await
                     .map(|x| x.into())
+                    .map_err(|e| e.into())
+            }
+
+            pub async fn batch(
+                conn: &mut diesel_async::AsyncPgConnection,
+                series_id: i32,
+                first_time: chrono::NaiveDateTime,
+                batch_size: i64
+            ) -> Result<Vec<$ty>, crate::Error> {
+                use diesel_async::RunQueryDsl;
+                $raw_ty::query_batch(series_id, first_time, batch_size)
+                    .load::<$raw_ty>(conn)
+                    .await
+                    .map(|x| x.into_iter().map(|y| y.into()).collect())
                     .map_err(|e| e.into())
             }
 
@@ -111,6 +152,26 @@ macro_rules! impl_timeseries {
                             "Inserting record into series {series_id} failed: {e}",
                         ))
                     })
+            }
+
+            pub async fn save_changes(
+                &self,
+                conn: &mut diesel_async::AsyncPgConnection,
+                series_id: i32
+            ) -> Result<(), crate::Error> {
+                use diesel_async::SaveChangesDsl;
+                let mut raw = $raw_ty::try_from(self)?;
+                raw.series_id = series_id;
+
+                raw.save_changes::<$raw_ty>(conn).await
+                    .map_err(|e| {
+                        Error::Temporary(format!(
+                            "Updating record {} in series {} failed: {}",
+                            raw.time, series_id, e
+                        ))
+                    })?;
+
+                Ok(())
             }
         }
     };
