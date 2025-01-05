@@ -26,7 +26,7 @@ use crate::{
     Error,
 };
 use kecontact_client::KeContactClient;
-use slog::{trace, Logger};
+use slog::{debug, trace, Logger};
 
 pub struct KeContactSource {
     base: SourceBase,
@@ -91,9 +91,11 @@ impl KeContactSource {
             };
 
         if record.power < Power::new::<watt>(0.0) {
-            return Err(Error::Temporary(
-                "Skipping KeContact record because of negative power.".into(),
-            ));
+            record.power = Power::new::<watt>(0.0);
+            debug!(
+                self.base.logger,
+                "Setting negative KeContect power to zero."
+            );
         }
 
         self.base.notify_processors(&record);
