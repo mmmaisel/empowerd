@@ -10,4 +10,8 @@ server {
   location /grafana {
     proxy_pass http://127.0.0.1:3000;
   }
+
+  location /empowerd/graphql {
+    proxy_pass http://127.0.0.1:3001/graphql;
+  }
 }
