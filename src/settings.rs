@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2023 Max Maisel
+    Copyright (C) 2019 - 2025 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -474,6 +474,8 @@ pub struct LambdaHeatPumpSink {
 pub struct KeContactSink {
     /// Device IP address and port
     pub address: String,
+    /// One or three phases
+    pub phases: u8,
 }
 
 /// Common type for handling different data sinks.

@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2025 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -148,9 +148,16 @@ pub fn make_sinks(
                 );
             }
             SinkType::KeContact(setting) => {
+                if !(setting.phases == 1 || setting.phases == 3) {
+                    return Err(
+                        "KeContactSink must have one or three phases".into()
+                    );
+                }
+
                 let obj = KeContactSink::new(
                     sink.name.clone(),
                     setting.address.clone(),
+                    setting.phases as f64,
                     logger.clone(),
                 )?;
                 sinks.insert(

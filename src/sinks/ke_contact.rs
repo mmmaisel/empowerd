@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2025 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -23,6 +23,7 @@ use slog::{debug, Logger};
 pub struct KeContactSink {
     name: String,
     client: KeContactClient,
+    phases: f64,
     logger: Logger,
 }
 
@@ -30,6 +31,7 @@ impl KeContactSink {
     pub fn new(
         name: String,
         address: String,
+        phases: f64,
         logger: Logger,
     ) -> Result<Self, String> {
         let address = parse_socketaddr_with_default(&address, 7090)?;
@@ -38,6 +40,7 @@ impl KeContactSink {
         Ok(Self {
             name,
             client,
+            phases,
             logger,
         })
     }
@@ -47,9 +50,9 @@ impl KeContactSink {
         charging_power: Power,
         current_power: Power,
     ) -> Result<bool, String> {
-        if charging_power < Power::new::<watt>(6.0 * 230.0)
+        if charging_power < Power::new::<watt>(6.0 * 230.0 * self.phases)
             && current_power < Power::new::<watt>(10.0)
-            || charging_power < Power::new::<watt>(7.0 * 230.0)
+            || charging_power < Power::new::<watt>(7.0 * 230.0 * self.phases)
                 && current_power >= Power::new::<watt>(10.0)
         {
             debug!(self.logger, "Disable charging");
@@ -59,7 +62,8 @@ impl KeContactSink {
             return Ok(false);
         } else {
             let charging_current =
-                (charging_power.get::<watt>() / 230.0 * 1000.0) as u16;
+                (charging_power.get::<watt>() / 230.0 / self.phases * 1000.0)
+                    as u16;
             debug!(self.logger, "Set current to {} mA", charging_current);
             if let Err(e) = self.client.set_max_current(charging_current).await
             {
