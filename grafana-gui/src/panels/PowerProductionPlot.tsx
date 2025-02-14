@@ -18,6 +18,13 @@ export class PowerProductionPlot extends EmpPanelBuilder {
             .setCustomFieldConfig("fillOpacity", 10)
             .setCustomFieldConfig("showPoints", "always" as any)
             .setCustomFieldConfig("spanNulls", false)
+            .setCustomFieldConfig("thresholdsStyle", {
+                mode: "line+area" as any,
+            })
+            .setThresholds({
+                mode: "absolute" as any,
+                steps: [{ color: "transparent", value: null as any }],
+            })
             .setOption("tooltip", { mode: "multi" as any, sort: "none" as any })
             .setOverrides((override: any) => {
                 override
@@ -56,6 +63,20 @@ export class PowerProductionPlot extends EmpPanelBuilder {
                     .overrideColor({
                         fixedColor: Color.grey(0).to_rgb(),
                         mode: "fixed",
+                    })
+                    .overrideThresholds({
+                        mode: "absolute",
+                        steps: [
+                            { value: null, color: "dark-red" },
+                            {
+                                value: this.config.ranges.battery[0],
+                                color: "transparent",
+                            },
+                            {
+                                value: this.config.ranges.battery[1],
+                                color: "dark-green",
+                            },
+                        ],
                     })
                     .overrideCustomFieldConfig("fillOpacity", 0)
                     .overrideDisplayName(t("battery-charge"));
