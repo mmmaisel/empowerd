@@ -61,7 +61,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         });
     }
 
-    mkscene(): EmbeddedScene {
+    private mkscene(): EmbeddedScene {
         let templateRows = "1fr";
         let children: any = [
             new Overview(
@@ -108,7 +108,10 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         });
     }
 
-    mkpower(_routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
+    private mkpower(
+        _routeMatch: SceneRouteMatch<{}>,
+        parent: any
+    ): SceneAppPage {
         let props = this.props;
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Power),
@@ -128,7 +131,10 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         });
     }
 
-    mkheating(_routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
+    private mkheating(
+        _routeMatch: SceneRouteMatch<{}>,
+        parent: any
+    ): SceneAppPage {
         let props = this.props;
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Heating),
@@ -142,7 +148,10 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         });
     }
 
-    mkweather(_routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
+    private mkweather(
+        _routeMatch: SceneRouteMatch<{}>,
+        parent: any
+    ): SceneAppPage {
         let props = this.props;
         return new SceneAppPage({
             url: prefixRoute(ROUTES.Weather),
@@ -156,7 +165,10 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         });
     }
 
-    mkdetails(_routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
+    private mkdetails(
+        _routeMatch: SceneRouteMatch<{}>,
+        parent: any
+    ): SceneAppPage {
         let props = this.props;
         return new SceneAppPage({
             url: prefixRoute(`${ROUTES.Power}/${ROUTES.Details}`),
@@ -170,7 +182,7 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         });
     }
 
-    render(): ReactNode {
+    public render(): ReactNode {
         return (
             <>
                 {!config.featureToggles.topnav && (

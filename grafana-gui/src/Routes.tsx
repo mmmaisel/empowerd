@@ -38,11 +38,11 @@ export class Routes extends Component<RoutesProps, RoutesState> {
         };
     }
 
-    onBack = (): void => {
+    private onBack(): void {
         this.setState({ back: true });
-    };
+    }
 
-    render(): ReactNode {
+    public render(): ReactNode {
         if (this.state.back) {
             this.setState({ back: false });
             return <Redirect to={prefixRoute(ROUTES.Home)} />;
@@ -53,7 +53,10 @@ export class Routes extends Component<RoutesProps, RoutesState> {
                 <Route
                     path={prefixRoute(ROUTES.Home)}
                     render={(props) => (
-                        <HomePage config={this.props} backCb={this.onBack} />
+                        <HomePage
+                            config={this.props}
+                            backCb={this.onBack.bind(this)}
+                        />
                     )}
                 />
                 <Redirect to={prefixRoute(ROUTES.Home)} />
