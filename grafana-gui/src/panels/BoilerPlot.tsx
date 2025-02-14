@@ -10,6 +10,8 @@ export class BoilerPlot extends EmpPanelBuilder {
         return PanelBuilders.timeseries()
             .setHoverHeader(true)
             .setUnit("celsius")
+            .setMin(this.config.ranges.boiler[0])
+            .setMax(this.config.ranges.boiler[1])
             .setCustomFieldConfig("fillOpacity", 0)
             .setCustomFieldConfig("showPoints", "always" as any)
             .setCustomFieldConfig("spanNulls", false)

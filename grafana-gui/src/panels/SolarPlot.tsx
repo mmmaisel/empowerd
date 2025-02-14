@@ -11,7 +11,7 @@ export class SolarPlot extends EmpPanelBuilder {
             .setHoverHeader(true)
             .setUnit("watt")
             .setMin(0)
-            .setMax(10000)
+            .setMax(this.config.ranges.production[1])
             .setCustomFieldConfig("fillOpacity", 10)
             .setCustomFieldConfig("showPoints", "always" as any)
             .setCustomFieldConfig("spanNulls", false)

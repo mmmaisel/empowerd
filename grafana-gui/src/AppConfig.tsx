@@ -27,7 +27,24 @@ export const WeatherLabelsDefault = {
     x3: "X3",
 };
 
-// TODO: max battery charge setting
+export type Ranges = {
+    production: Array<number | null>;
+    consumption: number | null;
+    battery: Array<number | null>;
+    boiler: Array<number | null>;
+    heating: number | null;
+    cop: number | null;
+};
+
+export const RangesDefault = {
+    production: [null, null],
+    consumption: null,
+    battery: [null, null],
+    boiler: [null, null],
+    heating: null,
+    cop: null,
+};
+
 export type BackendConfig = {
     batteries: number[];
     controls: boolean;
@@ -38,6 +55,7 @@ export type BackendConfig = {
     wallboxes: number[];
     weathers: number[];
     labels: WeatherLabels;
+    ranges: Ranges;
 };
 
 export const BackendConfigDefault = {
@@ -50,6 +68,7 @@ export const BackendConfigDefault = {
     wallboxes: [],
     weathers: [],
     labels: WeatherLabelsDefault,
+    ranges: RangesDefault,
 };
 
 export type ConfigJson = {
@@ -91,8 +110,31 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
         idArray: {
             type: "array",
             items: {
-                type: "number",
+                type: "integer",
             },
+        },
+        optNumber: {
+            type: "number",
+            nullable: true,
+        },
+        minMaxArray: {
+            type: "array",
+            items: { type: "number", nullable: true },
+            minItems: 2,
+            maxItems: 2,
+        },
+        ranges: {
+            type: "object",
+            properties: {
+                production: { $ref: "#/definitions/minMaxArray" },
+                consumption: { $ref: "#/definitions/optNumber" },
+                battery: { $ref: "#/definitions/minMaxArray" },
+                boiler: { $ref: "#/definitions/minMaxArray" },
+                heating: { $ref: "#/definitions/optNumber" },
+                cop: { $ref: "#/definitions/optNumber" },
+            },
+            required: ["production", "battery", "boiler"],
+            additionalProperties: false,
         },
         weatherLabels: {
             type: "object",
@@ -121,6 +163,7 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
         wallboxes: { $ref: "#/definitions/idArray" },
         weathers: { $ref: "#/definitions/idArray" },
         labels: { $ref: "#/definitions/weatherLabels" },
+        ranges: { $ref: "#/definitions/ranges" },
     },
     required: [
         "batteries",
@@ -132,6 +175,7 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
         "wallboxes",
         "weathers",
         "labels",
+        "ranges",
     ],
     additionalProperties: false,
 };

@@ -12,6 +12,8 @@ export class PowerConsumptionPlot extends EmpPanelBuilder {
         return PanelBuilders.timeseries()
             .setHoverHeader(true)
             .setUnit("watt")
+            .setMin(0)
+            .setMax(this.config.ranges.consumption)
             .setCustomFieldConfig("fillOpacity", 10)
             .setCustomFieldConfig("showPoints", "always" as any)
             .setCustomFieldConfig("spanNulls", false)

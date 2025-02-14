@@ -14,7 +14,7 @@ export class HeatPlot extends EmpPanelBuilder {
             .setHoverHeader(true)
             .setUnit("watt")
             .setMin(0)
-            .setMax(10000)
+            .setMax(this.config.ranges.heating)
             .setCustomFieldConfig("fillOpacity", 10)
             .setCustomFieldConfig("showPoints", "always" as any)
             .setCustomFieldConfig("spanNulls", false)
@@ -38,7 +38,7 @@ export class HeatPlot extends EmpPanelBuilder {
                 override
                     .matchFieldsWithName("heatpump.cop")
                     .overrideUnit("none")
-                    .overrideMax(10)
+                    .overrideMax(this.config.ranges.cop)
                     .overrideColor({
                         fixedColor: Color.yellow(0).to_rgb(),
                         mode: "fixed",

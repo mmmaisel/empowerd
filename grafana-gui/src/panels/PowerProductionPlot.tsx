@@ -13,6 +13,8 @@ export class PowerProductionPlot extends EmpPanelBuilder {
         return PanelBuilders.timeseries()
             .setHoverHeader(true)
             .setUnit("watt")
+            .setMin(this.config.ranges.production[0])
+            .setMax(this.config.ranges.production[1])
             .setCustomFieldConfig("fillOpacity", 10)
             .setCustomFieldConfig("showPoints", "always" as any)
             .setCustomFieldConfig("spanNulls", false)
@@ -50,6 +52,7 @@ export class PowerProductionPlot extends EmpPanelBuilder {
                     .matchFieldsWithName("battery.charge_wh")
                     .overrideUnit("watth")
                     .overrideMin(0)
+                    .overrideMax(this.config.ranges.battery[1])
                     .overrideColor({
                         fixedColor: Color.grey(0).to_rgb(),
                         mode: "fixed",
