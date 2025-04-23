@@ -24,12 +24,12 @@ use super::{
     },
 };
 use crate::Error;
-use bresser6in1_usb::Data as BresserData;
 use chrono::{DateTime, NaiveDateTime};
 use diesel::prelude::{
     AsChangeset, ExpressionMethods, Identifiable, Insertable, Queryable,
     Selectable,
 };
+use ws6in1_proto::parser::Ws6in1Data;
 
 #[derive(AsChangeset, Identifiable, Insertable, Queryable, Selectable)]
 #[diesel(table_name = schema::weathers)]
@@ -86,40 +86,83 @@ pub struct Weather {
 impl_timeseries!(RawWeather, Weather, weathers);
 
 impl Weather {
-    pub fn new(data: BresserData) -> Self {
+    pub fn new(data: Ws6in1Data) -> Self {
         return Self {
-            time: Time::new::<second>(data.timestamp as f64),
-            temp_in: Temperature::new::<celsius>(data.temperature_in as f64),
-            hum_in: Ratio::new::<percent>(data.humidity_in as f64),
-            temp_out: data
-                .temperature_out
-                .map(|x| Temperature::new::<celsius>(x as f64)),
-            hum_out: data.humidity_out.map(|x| Ratio::new::<percent>(x as f64)),
-            rain_day: Length::new::<millimeter>(data.rain_day as f64),
-            rain_act: Length::new::<millimeter>(data.rain_actual as f64),
-            wind_act: Velocity::new::<meter_per_second>(
-                data.wind_actual as f64,
+            time: Time::new::<second>(data.local_timestamp as f64),
+            temp_in: Temperature::new::<celsius>(
+                data.indoor.temperature as f64,
             ),
-            wind_gust: Velocity::new::<meter_per_second>(data.wind_gust as f64),
-            wind_dir: Angle::new::<degree>(data.wind_dir as f64),
-            baro_sea: Pressure::new::<hectopascal>(data.baro_sea as f64),
-            baro_abs: Pressure::new::<hectopascal>(data.baro_absolute as f64),
-            uv_index: Ratio::new::<ratio>(data.uv_index as f64),
+            hum_in: Ratio::new::<percent>(data.indoor.humidity as f64),
+            temp_out: data
+                .outdoor
+                .as_ref()
+                .map(|x| Temperature::new::<celsius>(x.temperature as f64)),
+            hum_out: data
+                .outdoor
+                .as_ref()
+                .map(|x| Ratio::new::<percent>(x.humidity as f64)),
+            rain_day: Length::new::<millimeter>(
+                data.outdoor
+                    .as_ref()
+                    .map(|x| x.rain_day as f64)
+                    .unwrap_or(0.0),
+            ),
+            rain_act: Length::new::<millimeter>(
+                data.outdoor
+                    .as_ref()
+                    .map(|x| x.rain_actual as f64)
+                    .unwrap_or(0.0),
+            ),
+            wind_act: Velocity::new::<meter_per_second>(
+                data.outdoor
+                    .as_ref()
+                    .map(|x| x.wind_actual as f64)
+                    .unwrap_or(0.0),
+            ),
+            wind_gust: Velocity::new::<meter_per_second>(
+                data.outdoor
+                    .as_ref()
+                    .map(|x| x.wind_gust as f64)
+                    .unwrap_or(0.0),
+            ),
+            wind_dir: Angle::new::<degree>(
+                data.outdoor
+                    .as_ref()
+                    .map(|x| x.wind_dir as f64)
+                    .unwrap_or(0.0),
+            ),
+            baro_sea: Pressure::new::<hectopascal>(data.indoor.baro_sea as f64),
+            baro_abs: Pressure::new::<hectopascal>(
+                data.indoor.baro_absolute as f64,
+            ),
+            uv_index: Ratio::new::<ratio>(
+                data.outdoor
+                    .as_ref()
+                    .map(|x| x.uv_index as f64)
+                    .unwrap_or(0.0),
+            ),
             dew_point: data
-                .dew_point
-                .map(|x| Temperature::new::<celsius>(x as f64)),
-            temp_x1: data
-                .temperature_x1
-                .map(|x| Temperature::new::<celsius>(x as f64)),
-            hum_x1: data.humidity_x1.map(|x| Ratio::new::<percent>(x as f64)),
-            temp_x2: data
-                .temperature_x2
-                .map(|x| Temperature::new::<celsius>(x as f64)),
-            hum_x2: data.humidity_x2.map(|x| Ratio::new::<percent>(x as f64)),
-            temp_x3: data
-                .temperature_x3
-                .map(|x| Temperature::new::<celsius>(x as f64)),
-            hum_x3: data.humidity_x3.map(|x| Ratio::new::<percent>(x as f64)),
+                .outdoor
+                .as_ref()
+                .map(|x| Temperature::new::<celsius>(x.dew_point as f64)),
+            temp_x1: data.ext[0]
+                .as_ref()
+                .map(|x| Temperature::new::<celsius>(x.temperature as f64)),
+            hum_x1: data.ext[0]
+                .as_ref()
+                .map(|x| Ratio::new::<percent>(x.humidity as f64)),
+            temp_x2: data.ext[1]
+                .as_ref()
+                .map(|x| Temperature::new::<celsius>(x.temperature as f64)),
+            hum_x2: data.ext[1]
+                .as_ref()
+                .map(|x| Ratio::new::<percent>(x.humidity as f64)),
+            temp_x3: data.ext[2]
+                .as_ref()
+                .map(|x| Temperature::new::<celsius>(x.temperature as f64)),
+            hum_x3: data.ext[2]
+                .as_ref()
+                .map(|x| Ratio::new::<percent>(x.humidity as f64)),
         };
     }
 }

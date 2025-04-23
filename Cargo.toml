@@ -19,7 +19,7 @@ assets = [
     ["data/empowerd.conf", "etc/empowerd/", "600"],
     ["data/empowerd.logrotate", "etc/logrotate.d/empowerd", "644"],
     ["data/nginx-site.conf", "usr/share/doc/empowerd/", "644"],
-    ["lib/bresser6in1-usb/bresser6in1.rules", "etc/udev/rules.d/", "644"],
+    ["data/ws6in1.rules", "etc/udev/rules.d/", "644"],
     ["lib/sml-client/ttyusb-meter.rules", "etc/udev/rules.d/", "644"],
 ]
 conf-files = [
@@ -33,7 +33,6 @@ maintainer-scripts = "scripts/"
 
 [workspace]
 members = [
-    "lib/bresser6in1-usb",
     "lib/dachs-client",
     "lib/lambda-client",
     "lib/kecontact-client",
@@ -53,7 +52,6 @@ path = "src/lib.rs"
 lto = "thin"
 
 [dependencies]
-bresser6in1-usb = { version = "*", path = "lib/bresser6in1-usb/" }
 dachs-client = { version = "*", path = "lib/dachs-client/" }
 lambda-client = { version = "*", path = "lib/lambda-client/" }
 kecontact-client = { "version" = "*", path = "lib/kecontact-client" }
@@ -62,6 +60,7 @@ sml-client = { version = "*", path = "lib/sml-client/" }
 sunny-storage-client = { version = "*", path = "lib/sunny-storage-client/" }
 sunspec-client = { version = "*", path = "lib/sunspec-client/" }
 usb-reset = { version = "*", path = "lib/usb-reset/" }
+ws6in1-proto = { version = "1.0.0", features = ["client"] }
 
 async-trait = ">=0.1.81"
 futures = ">=0.3.21"

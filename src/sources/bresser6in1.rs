@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2025 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -17,70 +17,91 @@
 \******************************************************************************/
 use super::SourceBase;
 use crate::{models::Weather, task_group::TaskResult, Error};
-use bresser6in1_usb::{Client as BresserClient, PID, VID};
-use slog::{debug, error, warn, Logger};
+use slog::{error, warn, Logger};
 use std::time::Duration;
+use tokio::time::{sleep, timeout};
+use ws6in1_proto::{client::Ws6in1Client, parser::Ws6in1Data};
 
 pub struct Bresser6in1Source {
     base: SourceBase,
-    bresser_client: BresserClient,
 }
 
 impl Bresser6in1Source {
     pub fn new(base: SourceBase) -> Self {
-        let logger = base.logger.clone();
-        Self {
-            base,
-            bresser_client: BresserClient::new(Some(logger)),
-        }
+        Self { base }
     }
 
     pub fn logger(&self) -> &Logger {
         &self.base.logger
     }
 
+    async fn read_data(
+        &mut self,
+        client: &mut Ws6in1Client,
+    ) -> Result<Ws6in1Data, String> {
+        match timeout(Duration::from_secs(20), client.read_weather_data()).await
+        {
+            Ok(Ok(data)) => Ok(data),
+            Ok(Err(e)) => Err(e.to_string()),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    async fn read_data_with_retry(
+        &mut self,
+        client: &mut Ws6in1Client,
+    ) -> Result<Ws6in1Data, Error> {
+        let mut weather_data = self.read_data(client).await;
+
+        for i in 1..4u8 {
+            if let Ok(data) = weather_data {
+                return Ok(data);
+            }
+
+            if i == 2 {
+                match usb_reset::reset_vid_pid(
+                    Ws6in1Client::VENDOR_ID,
+                    Ws6in1Client::PRODUCT_ID,
+                ) {
+                    Ok(()) => {
+                        warn!(
+                            self.base.logger,
+                            "Reset device {:X}:{:X}",
+                            Ws6in1Client::VENDOR_ID,
+                            Ws6in1Client::PRODUCT_ID
+                        );
+                        sleep(Duration::from_secs(5)).await;
+                    }
+                    Err(e) => {
+                        error!(
+                            self.base.logger,
+                            "Reset device {:X}:{:X} failed: {e}",
+                            Ws6in1Client::VENDOR_ID,
+                            Ws6in1Client::PRODUCT_ID
+                        );
+                    }
+                }
+            }
+
+            weather_data = self.read_data(client).await;
+        }
+
+        weather_data.map_err(|e| {
+            Error::Temporary(format!(
+                "Get weather data failed, {e}, giving up!",
+            ))
+        })
+    }
+
     pub async fn run(&mut self) -> TaskResult {
         let timing = self.base.sleep_aligned().await?;
         let mut conn = self.base.get_database().await?;
 
-        let mut weather_data = tokio::task::block_in_place(|| {
-            let mut weather_data = self.bresser_client.read_data();
-            for i in 1..4u8 {
-                if let Err(e) = weather_data {
-                    if i == 2 {
-                        match usb_reset::reset_vid_pid(VID, PID) {
-                            Ok(()) => {
-                                warn!(
-                                    self.base.logger,
-                                    "Reset device {VID:X}:{PID:X}",
-                                );
-                                std::thread::sleep(Duration::from_secs(5));
-                            }
-                            Err(e) => {
-                                error!(
-                                    self.base.logger,
-                                    "Reset device {VID:X}:{PID:X} failed: {e}",
-                                );
-                            }
-                        }
-                    }
-                    debug!(
-                        self.base.logger,
-                        "Get weather data failed, {e}, retrying...",
-                    );
-                    weather_data = self.bresser_client.read_data();
-                } else {
-                    break;
-                }
-            }
-            return weather_data;
-        })
-        .map_err(|e| {
-            Error::Temporary(format!(
-                "Get weather data failed, {e}, giving up!",
-            ))
+        let mut client = Ws6in1Client::new().await.map_err(|e| {
+            Error::Temporary(format!("Open Ws6in1 client failed: {e}"))
         })?;
-        weather_data.timestamp = timing.now as u32;
+        let mut weather_data = self.read_data_with_retry(&mut client).await?;
+        weather_data.local_timestamp = timing.now as i64;
 
         let record = Weather::new(weather_data);
         self.base.notify_processors(&record);
