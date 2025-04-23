@@ -1,0 +1,15 @@
+ALTER TABLE weathers
+    ALTER COLUMN rain_day_um DROP NOT NULL,
+    ALTER COLUMN rain_act_um DROP NOT NULL,
+    ALTER COLUMN wind_act_mms DROP NOT NULL,
+    ALTER COLUMN wind_gust_mms DROP NOT NULL,
+    ALTER COLUMN wind_dir_deg_e1 DROP NOT NULL,
+    ALTER COLUMN uv_index_e1 DROP NOT NULL,
+    ADD COLUMN temp_x4_degc_e1 SMALLINT,
+    ADD COLUMN hum_x4_e3 SMALLINT,
+    ADD COLUMN temp_x5_degc_e1 SMALLINT,
+    ADD COLUMN hum_x5_e3 SMALLINT,
+    ADD COLUMN temp_x6_degc_e1 SMALLINT,
+    ADD COLUMN hum_x6_e3 SMALLINT,
+    ADD COLUMN temp_x7_degc_e1 SMALLINT,
+    ADD COLUMN hum_x7_e3 SMALLINT;
