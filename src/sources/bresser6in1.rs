@@ -18,17 +18,18 @@
 use super::SourceBase;
 use crate::{models::Weather, task_group::TaskResult, Error};
 use slog::{error, warn, Logger};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time::{sleep, timeout};
 use ws6in1_proto::{client::Ws6in1Client, parser::Ws6in1Data};
 
 pub struct Bresser6in1Source {
     base: SourceBase,
+    last_sync: u64,
 }
 
 impl Bresser6in1Source {
     pub fn new(base: SourceBase) -> Self {
-        Self { base }
+        Self { base, last_sync: 0 }
     }
 
     pub fn logger(&self) -> &Logger {
@@ -93,6 +94,21 @@ impl Bresser6in1Source {
         })
     }
 
+    async fn sync_datetime(&mut self, client: &mut Ws6in1Client) -> TaskResult {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| {
+                Error::Temporary(format!("Getting system time failed: {e}"))
+            })?
+            .as_secs();
+        client.write_datetime(now as i64).await.map_err(|e| {
+            Error::Temporary(format!("Synchronizing Ws6in1 time failed: {e}"))
+        })?;
+
+        self.last_sync = now;
+        Ok(())
+    }
+
     pub async fn run(&mut self) -> TaskResult {
         let timing = self.base.sleep_aligned().await?;
         let mut conn = self.base.get_database().await?;
@@ -106,6 +122,10 @@ impl Bresser6in1Source {
         let record = Weather::new(weather_data);
         self.base.notify_processors(&record);
         record.insert(&mut conn, self.base.series_id).await?;
+
+        if timing.now > self.last_sync + 3600 {
+            self.sync_datetime(&mut client).await?;
+        }
 
         Ok(())
     }
