@@ -21,7 +21,7 @@ use async_trait::async_trait;
 use slog::{trace, Logger};
 use std::net::SocketAddr;
 use tokio_modbus::{
-    client::tcp::connect_slave, prelude::Reader, Error, Exception,
+    client::tcp::connect_slave, prelude::Reader, Error, ExceptionCode,
 };
 
 macro_rules! impl_client {
@@ -84,7 +84,7 @@ pub trait SunnyStorageClient: Send + Sync {
 
 fn validate_result(
     which: &str,
-    res: Result<Result<Vec<u16>, Exception>, Error>,
+    res: Result<Result<Vec<u16>, ExceptionCode>, Error>,
     logger: &Option<Logger>,
 ) -> Result<u64, String> {
     match res {
