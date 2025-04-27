@@ -519,6 +519,14 @@ async fn migrate_weather(
                     hum_x2: record.humidity_x2,
                     temp_x3: record.temperature_x3,
                     hum_x3: record.humidity_x3,
+                    temp_x4: None,
+                    hum_x4: None,
+                    temp_x5: None,
+                    hum_x5: None,
+                    temp_x6: None,
+                    hum_x6: None,
+                    temp_x7: None,
+                    hum_x7: None,
                 }
             })
             .collect::<Vec<PgWeather>>();
