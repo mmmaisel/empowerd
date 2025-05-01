@@ -50,6 +50,34 @@ export class HumidityPlot extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName(this.config.labels.x3);
+                override
+                    .matchFieldsWithName(`hum_x4_pct`)
+                    .overrideColor({
+                        fixedColor: Color.cyan(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName(this.config.labels.x4);
+                override
+                    .matchFieldsWithName(`hum_x5_pct`)
+                    .overrideColor({
+                        fixedColor: Color.grey(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName(this.config.labels.x5);
+                override
+                    .matchFieldsWithName(`hum_x6_pct`)
+                    .overrideColor({
+                        fixedColor: Color.green(4).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName(this.config.labels.x6);
+                override
+                    .matchFieldsWithName(`hum_x7_pct`)
+                    .overrideColor({
+                        fixedColor: Color.red(4).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName(this.config.labels.x7);
             })
             .build();
     }

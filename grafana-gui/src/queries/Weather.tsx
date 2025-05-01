@@ -15,6 +15,14 @@ export class WeatherSeries extends Timeseries {
     static hum_x2 = new Field("hum_x2_e3/10.0", "hum_x2_pct");
     static temp_x3 = new Field("temp_x3_degc_e1/10.0", "temp_x3_degc");
     static hum_x3 = new Field("hum_x3_e3/10.0", "hum_x3_pct");
+    static temp_x4 = new Field("temp_x4_degc_e1/10.0", "temp_x4_degc");
+    static hum_x4 = new Field("hum_x4_e3/10.0", "hum_x4_pct");
+    static temp_x5 = new Field("temp_x5_degc_e1/10.0", "temp_x5_degc");
+    static hum_x5 = new Field("hum_x5_e3/10.0", "hum_x5_pct");
+    static temp_x6 = new Field("temp_x6_degc_e1/10.0", "temp_x6_degc");
+    static hum_x6 = new Field("hum_x6_e3/10.0", "hum_x6_pct");
+    static temp_x7 = new Field("temp_x7_degc_e1/10.0", "temp_x7_degc");
+    static hum_x7 = new Field("hum_x7_e3/10.0", "hum_x7_pct");
     static rain_act = new Field("rain_act_um/1000.0", "rain_act_mm");
     static rain_day = new Field("rain_day_um/1000.0", "rain_day_mm");
     static baro_abs = new Field("baro_abs_pa/100.0", "baro_abs_hpa");
@@ -90,6 +98,46 @@ export class WeatherSeries extends Timeseries {
         return this;
     }
 
+    public temp_x4(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.temp_x4.with_alias(alias));
+        return this;
+    }
+
+    public hum_x4(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.hum_x4.with_alias(alias));
+        return this;
+    }
+
+    public temp_x5(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.temp_x5.with_alias(alias));
+        return this;
+    }
+
+    public hum_x5(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.hum_x5.with_alias(alias));
+        return this;
+    }
+
+    public temp_x6(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.temp_x6.with_alias(alias));
+        return this;
+    }
+
+    public hum_x6(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.hum_x6.with_alias(alias));
+        return this;
+    }
+
+    public temp_x7(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.temp_x7.with_alias(alias));
+        return this;
+    }
+
+    public hum_x7(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.hum_x7.with_alias(alias));
+        return this;
+    }
+
     public rain_act(alias: string | null = null): this {
         this.fields_.push(WeatherSeries.rain_act.with_alias(alias));
         return this;
@@ -147,6 +195,10 @@ export class Weather {
             .temp_x1()
             .temp_x2()
             .temp_x3()
+            .temp_x4()
+            .temp_x5()
+            .temp_x6()
+            .temp_x7()
             .time_filter()
             .ordered();
     }
@@ -159,6 +211,10 @@ export class Weather {
             .hum_x1()
             .hum_x2()
             .hum_x3()
+            .hum_x4()
+            .hum_x5()
+            .hum_x6()
+            .hum_x7()
             .time_filter()
             .ordered();
     }
@@ -195,6 +251,7 @@ export class Weather {
         let id = ids[0];
         let rain_query = new this.series(id).time().rain_day();
 
+        // TODO: samples are buggy because rain reset is in local time
         return new Query()
             .subqueries([
                 new Samples("DAY", "1 DAY", "23:00", false),

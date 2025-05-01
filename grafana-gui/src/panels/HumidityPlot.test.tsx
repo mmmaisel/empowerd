@@ -16,7 +16,11 @@ test("Query for single weather source", () => {
             "hum_out_e3/10.0 AS hum_out_pct, " +
             "hum_x1_e3/10.0 AS hum_x1_pct, " +
             "hum_x2_e3/10.0 AS hum_x2_pct, " +
-            "hum_x3_e3/10.0 AS hum_x3_pct " +
+            "hum_x3_e3/10.0 AS hum_x3_pct, " +
+            "hum_x4_e3/10.0 AS hum_x4_pct, " +
+            "hum_x5_e3/10.0 AS hum_x5_pct, " +
+            "hum_x6_e3/10.0 AS hum_x6_pct, " +
+            "hum_x7_e3/10.0 AS hum_x7_pct " +
             "FROM weathers " +
             "WHERE series_id = 1 AND $__timeFilter(time) " +
             "ORDER BY time";

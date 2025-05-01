@@ -19,12 +19,20 @@ export type WeatherLabels = {
     x1: string;
     x2: string;
     x3: string;
+    x4: string;
+    x5: string;
+    x6: string;
+    x7: string;
 };
 
 export const WeatherLabelsDefault = {
     x1: "X1",
     x2: "X2",
     x3: "X3",
+    x4: "X4",
+    x5: "X5",
+    x6: "X6",
+    x7: "X7",
 };
 
 export type Ranges = {
@@ -148,8 +156,20 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
                 x3: {
                     type: "string",
                 },
+                x4: {
+                    type: "string",
+                },
+                x5: {
+                    type: "string",
+                },
+                x6: {
+                    type: "string",
+                },
+                x7: {
+                    type: "string",
+                },
             },
-            required: ["x1", "x2", "x3"],
+            required: ["x1", "x2", "x3", "x4", "x5", "x6", "x7"],
             additionalProperties: false,
         },
     },
@@ -279,7 +299,8 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
             const cfg = JSON.parse(this.state.backend_str);
             if (!this.backend_cfg_validator(cfg)) {
                 console.log(
-                    `Validation failed: ${this.backend_cfg_validator.errors}`
+                    `Validation failed: ` +
+                        JSON.stringify(this.backend_cfg_validator.errors)
                 );
                 return false;
             }

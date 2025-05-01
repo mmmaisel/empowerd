@@ -57,6 +57,34 @@ export class TemperaturePlot extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName(this.config.labels.x3);
+                override
+                    .matchFieldsWithName(`temp_x4_degc`)
+                    .overrideColor({
+                        fixedColor: Color.cyan(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName(this.config.labels.x4);
+                override
+                    .matchFieldsWithName(`temp_x5_degc`)
+                    .overrideColor({
+                        fixedColor: Color.grey(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName(this.config.labels.x5);
+                override
+                    .matchFieldsWithName(`temp_x6_degc`)
+                    .overrideColor({
+                        fixedColor: Color.green(4).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName(this.config.labels.x6);
+                override
+                    .matchFieldsWithName(`temp_x7_degc`)
+                    .overrideColor({
+                        fixedColor: Color.red(4).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName(this.config.labels.x7);
             })
             .build();
     }
