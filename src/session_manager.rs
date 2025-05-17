@@ -85,7 +85,6 @@ pub struct SessionManager {
     rand: SystemRandom,
     lifetime: u64,
     // TODO: trace content of sessions
-    // TODO: this should be a tokio::mutex
     sessions: Mutex<HashMap<String, Session>>,
     key: Hmac<Sha256>,
 }

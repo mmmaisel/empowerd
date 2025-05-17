@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2024 Max Maisel
+    Copyright (C) 2019 - 2025 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -18,15 +18,16 @@
 use slog::{error, trace};
 use tokio::sync::oneshot;
 
-use super::appliance::Appliance;
-use super::available_power::AvailablePower;
-use super::load_control::LoadControl;
-use super::poweroff_timer::PoweroffTimer;
-use super::switch::Switch;
-use crate::processors::{
-    ApplianceCmd, AvailablePowerCmd, LoadControlCmd, PoweroffTimerCmd,
+use super::{
+    appliance::Appliance, available_power::AvailablePower,
+    load_control::LoadControl, poweroff_timer::PoweroffTimer, switch::Switch,
 };
-use crate::Context;
+use crate::{
+    processors::{
+        ApplianceCmd, AvailablePowerCmd, LoadControlCmd, PoweroffTimerCmd,
+    },
+    Context,
+};
 
 pub struct Query;
 
@@ -234,5 +235,17 @@ impl Query {
                 })
                 .collect()
         };
+    }
+
+    /// Get backend config string for UI.
+    pub async fn backend_config<S: juniper::ScalarValue>(
+        ctx: &Context,
+        _executor: &juniper::Executor<'_, '_, Context, S>,
+    ) -> juniper::FieldResult<String> {
+        if let Err(e) = ctx.globals.session_manager.verify(&ctx.token) {
+            return Err(e.to_string(&ctx.globals.logger).into());
+        }
+
+        Ok(serde_json::to_string(&ctx.globals.uiconfig)?)
     }
 }

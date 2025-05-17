@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2024 Max Maisel
+    Copyright (C) 2019 - 2025 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -34,6 +34,7 @@ pub mod sources;
 pub mod switch_mux;
 pub mod task_group;
 pub mod tri_state;
+pub mod uiconfig;
 
 use error::Error;
 use processors::ProcessorCommands;
@@ -41,6 +42,7 @@ use session_manager::SessionManager;
 use slog::Logger;
 use std::sync::Arc;
 use switch_mux::{SwitchGroup, SwitchMux};
+use uiconfig::UiConfig;
 
 #[derive(Debug)]
 pub struct Globals {
@@ -50,6 +52,7 @@ pub struct Globals {
     pub session_manager: SessionManager,
     pub switch_mux: Arc<SwitchMux>,
     pub processor_cmds: ProcessorCommands,
+    pub uiconfig: UiConfig,
 }
 
 #[derive(Debug)]

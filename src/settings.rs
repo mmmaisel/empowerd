@@ -23,7 +23,7 @@ use std::{
 };
 
 use getopts::Options;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// Defines the database location and credentials.
 #[derive(Clone, Deserialize)]
@@ -111,6 +111,13 @@ pub struct DebugSource {
     pub poll_interval: u64,
 }
 
+/// Physical model of a battery storage.
+#[derive(Clone, Debug, Deserialize)]
+pub struct BatteryModel {
+    pub capacity: f64,
+    pub threshold: f64,
+}
+
 /// SMA SunnyBoyStorage inverter Modbus data source parameters.
 #[derive(Clone, Debug, Deserialize)]
 pub struct SunnyBoyStorage {
@@ -118,6 +125,8 @@ pub struct SunnyBoyStorage {
     pub address: String,
     /// Data acquisition poll interval
     pub poll_interval: u64,
+    /// Used physical model
+    pub model: Option<BatteryModel>,
 }
 
 /// SMA SunnyIsland inverter Modbus data source parameters.
@@ -127,6 +136,14 @@ pub struct SunnyIsland {
     pub address: String,
     /// Data acquisition poll interval
     pub poll_interval: u64,
+    /// Used physical model
+    pub model: Option<BatteryModel>,
+}
+
+/// Physical model of a solar power source.
+#[derive(Clone, Debug, Deserialize)]
+pub struct SolarModel {
+    pub peak_power: f64,
 }
 
 /// Generic Sunspec Modbus compatible inverter data source parameters.
@@ -138,6 +155,8 @@ pub struct SunspecSolar {
     pub modbus_id: Option<u8>,
     /// Data acquisition poll interval
     pub poll_interval: u64,
+    /// Used physical model
+    pub model: Option<SolarModel>,
 }
 
 /// Senertec Dachs MSR-S generator REST-API data source parameters.
@@ -170,6 +189,13 @@ pub struct KeContact {
     pub poll_interval: u64,
 }
 
+/// Physical model of a heatpump.
+#[derive(Clone, Debug, Deserialize)]
+pub struct HeatpumpModel {
+    pub peak_cop: f64,
+    pub peak_heat: f64,
+}
+
 /// Lambda heat pump Modbus data source parameters.
 #[derive(Clone, Debug, Deserialize)]
 pub struct LambdaHeatPump {
@@ -181,6 +207,14 @@ pub struct LambdaHeatPump {
     /// Data is sampled every (poll_interval / oversample_factor) seconds,
     /// averaged and processed every poll_interval seconds.
     pub oversample_factor: u64,
+    /// Used physical model
+    pub model: Option<HeatpumpModel>,
+}
+
+/// Power consumption model.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ConsumptionModel {
+    pub peak_power: f64,
 }
 
 /// SMA energy meter Speedwire data source parameters.
@@ -194,6 +228,8 @@ pub struct SmaMeter {
     pub serial: u32,
     /// Data acquisition poll interval
     pub poll_interval: u64,
+    /// Power consumption model.
+    pub model: Option<ConsumptionModel>,
 }
 
 /// Generic SML (smart meter language) compatible energy meter data
@@ -206,6 +242,8 @@ pub struct SmlMeter {
     pub baud: u32,
     /// Data acquisition poll interval
     pub poll_interval: u64,
+    /// Power consumption model.
+    pub model: Option<ConsumptionModel>,
 }
 
 /// SMA SonnyBoy inverter Speedwire data source parameters.
@@ -217,6 +255,8 @@ pub struct SunnyBoySpeedwire {
     pub password: String,
     /// Data acquisition poll interval
     pub poll_interval: u64,
+    /// Used physical model
+    pub model: Option<SolarModel>,
 }
 
 impl Debug for SunnyBoySpeedwire {
@@ -229,11 +269,26 @@ impl Debug for SunnyBoySpeedwire {
     }
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default)]
+pub struct WeatherLabels {
+    x1: String,
+    x2: String,
+    x3: String,
+    x4: String,
+    x5: String,
+    x6: String,
+    x7: String,
+}
+
 /// Bresser 6 in 1 USB weather station data source.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Bresser6in1 {
     /// Data acquisition poll interval
     pub poll_interval: u64,
+    /// Sensor names.
+    #[serde(default)]
+    pub labels: WeatherLabels,
 }
 
 /// Common type for handling different data sources.
