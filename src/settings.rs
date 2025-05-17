@@ -15,12 +15,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
+use std::{
+    collections::BTreeSet,
+    env,
+    fmt::{self, Debug},
+    net::{Ipv4Addr, SocketAddrV4},
+};
+
 use getopts::Options;
 use serde::Deserialize;
-use std::collections::BTreeSet;
-use std::env;
-use std::fmt::{self, Debug};
-use std::net::{Ipv4Addr, SocketAddrV4};
 
 /// Defines the database location and credentials.
 #[derive(Clone, Deserialize)]
@@ -257,6 +260,9 @@ pub struct Source {
     pub name: String,
     /// Database ID of the timeseries
     pub series_id: i32,
+    /// If true, this source is only used for displaying data in the UI.
+    #[serde(default)]
+    pub archived: bool,
     /// The individual data source parameters.
     #[serde(flatten)]
     pub variant: SourceType,

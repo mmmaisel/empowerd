@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2022 Max Maisel
+    Copyright (C) 2019 - 2025 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -205,6 +205,10 @@ pub fn polling_tasks(
     })?;
 
     for source in &settings.sources {
+        if source.archived {
+            continue;
+        }
+
         let base_builder = SourceBaseBuilder::new(
             database.clone(),
             tasks.cancel_rx(),
