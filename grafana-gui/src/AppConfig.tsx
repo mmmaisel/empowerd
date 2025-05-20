@@ -1,5 +1,15 @@
 import React, { Component, ChangeEvent, ReactNode, MouseEvent } from "react";
-import { AsyncSelect, Button, Field, Input, FieldSet } from "@grafana/ui";
+import {
+    AsyncSelect,
+    SecretInput,
+    Stack,
+    Button,
+    Field,
+    Modal,
+    Input,
+    FieldSet,
+    Alert,
+} from "@grafana/ui";
 import {
     AppPluginMeta,
     PluginConfigPageProps,
@@ -13,6 +23,7 @@ import { css } from "@emotion/css";
 import { lastValueFrom } from "rxjs";
 
 import { init_i18n, t } from "./i18n";
+import { EmpowerdApi, GraphQlError } from "./control/EmpowerdApi";
 init_i18n();
 
 export type WeatherLabels = {
@@ -110,6 +121,11 @@ type AppConfigState = {
     datasource: SelectableValue<PsqlDatasource>;
     backend: BackendConfig;
     backend_str: string;
+    showModal: boolean;
+    apiBusy: boolean;
+    apiError: string;
+    apiUsername: string;
+    apiPassword: string;
 };
 
 const BackendSchema: JSONSchemaType<BackendConfig> = {
@@ -200,10 +216,10 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
     additionalProperties: false,
 };
 
-// TODO: auto-config API call
 export class AppConfig extends Component<AppConfigProps, AppConfigState> {
     private styles: AppConfigStyles;
     private backend_cfg_validator;
+    private api: EmpowerdApi;
 
     constructor(props: AppConfigProps) {
         super(props);
@@ -213,6 +229,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
         this.backend_cfg_validator = new Ajv({ allErrors: true }).compile(
             BackendSchema
         );
+        this.api = new EmpowerdApi(jsonData?.apiLocation || "");
         this.state = {
             apiLocation: jsonData?.apiLocation || "",
             datasource: {
@@ -223,6 +240,11 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
             backend_str: JSON.stringify(
                 jsonData?.backend || BackendConfigDefault
             ),
+            showModal: false,
+            apiBusy: false,
+            apiError: "",
+            apiUsername: "",
+            apiPassword: "",
         };
     }
 
@@ -243,6 +265,7 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
     }
 
     public onChangeApiLocation(event: ChangeEvent<HTMLInputElement>) {
+        this.api = new EmpowerdApi(event.target.value.trim());
         this.setState({
             ...this.state,
             apiLocation: event.target.value.trim(),
@@ -292,6 +315,101 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                 backend: JSON.parse(this.state.backend_str),
             },
         });
+    }
+
+    public onShowLoadSettings(_event: MouseEvent<HTMLButtonElement>) {
+        this.setState({
+            ...this.state,
+            showModal: true,
+        });
+    }
+
+    public onCloseModal() {
+        this.setState({
+            ...this.state,
+            showModal: false,
+        });
+    }
+
+    public onChangeApiUsername(event: ChangeEvent<HTMLInputElement>) {
+        this.setState({
+            ...this.state,
+            apiUsername: event.target.value,
+        });
+    }
+
+    public onChangeApiPassword(event: ChangeEvent<HTMLInputElement>) {
+        this.setState({
+            ...this.state,
+            apiPassword: event.target.value,
+        });
+    }
+
+    public onResetApiPassword() {
+        this.setState({
+            ...this.state,
+            apiPassword: "",
+        });
+    }
+
+    public onLoadSettings(_event: MouseEvent<HTMLButtonElement>) {
+        if (this.state.apiBusy) {
+            return;
+        }
+        this.setState({
+            ...this.state,
+            apiBusy: true,
+        });
+
+        this.api.login(
+            this.state.apiUsername,
+            this.state.apiPassword,
+            () => {
+                this.api.backendConfig(
+                    (config) => {
+                        this.setState({
+                            ...this.state,
+                            apiBusy: false,
+                            apiError: "",
+                            backend_str: config,
+                            showModal: false,
+                        });
+                        this.api.logout(
+                            () => {},
+                            () => {}
+                        );
+                    },
+                    (errors: GraphQlError[]) => {
+                        let error = errors
+                            .map((x): string => {
+                                return x.message;
+                            })
+                            .toString();
+                        this.setState({
+                            ...this.state,
+                            apiBusy: false,
+                            apiError: error,
+                        });
+                        this.api.logout(
+                            () => {},
+                            () => {}
+                        );
+                    }
+                );
+            },
+            (errors: GraphQlError[]) => {
+                let error = errors
+                    .map((x): string => {
+                        return x.message;
+                    })
+                    .toString();
+                this.setState({
+                    ...this.state,
+                    apiBusy: false,
+                    apiError: error,
+                });
+            }
+        );
     }
 
     private backendCfgValid(): Boolean {
@@ -397,6 +515,21 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
         return <FieldSet label={t("enable-disable")}>{inner}</FieldSet>;
     }
 
+    private renderApiError(): ReactNode {
+        if (this.state.apiError) {
+            return (
+                <Alert
+                    title={t("auto-detect-settings-failed")}
+                    severity="error"
+                >
+                    {this.state.apiError}
+                </Alert>
+            );
+        } else {
+            return <></>;
+        }
+    }
+
     public render(): ReactNode {
         const cfg_valid = this.backendCfgValid();
 
@@ -437,14 +570,23 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                         description={t("config-json-desc")}
                         className={this.styles.marginTop}
                     >
-                        <Input
-                            width={60}
-                            label={t("config-json")}
-                            value={this.state?.backend_str}
-                            required
-                            invalid={!cfg_valid}
-                            onChange={this.onChangeConfig.bind(this)}
-                        />
+                        <Stack>
+                            <Input
+                                width={60}
+                                label={t("config-json")}
+                                value={this.state?.backend_str}
+                                required
+                                invalid={!cfg_valid}
+                                onChange={this.onChangeConfig.bind(this)}
+                            />
+                            <Button
+                                variant="secondary"
+                                onClick={this.onShowLoadSettings.bind(this)}
+                                disabled={!this.state.apiLocation}
+                            >
+                                {t("auto-detect-settings")}
+                            </Button>
+                        </Stack>
                     </Field>
                     <div className={this.styles.marginTop}>
                         <Button
@@ -458,6 +600,60 @@ export class AppConfig extends Component<AppConfigProps, AppConfigState> {
                         </Button>
                     </div>
                 </FieldSet>
+                <Modal
+                    title={t("auto-detect-settings-modal")}
+                    isOpen={this.state.showModal}
+                    onDismiss={this.onCloseModal.bind(this)}
+                    onClickBackdrop={() => {}}
+                >
+                    {this.renderApiError()}
+                    <div>{t("auto-detect-settings-div")}</div>
+                    <Field
+                        label={t("username")}
+                        description={t("api-username-desc")}
+                        className={this.styles.marginTop}
+                    >
+                        <Input
+                            width={60}
+                            label={t("username")}
+                            value={this.state?.apiUsername}
+                            onChange={this.onChangeApiUsername.bind(this)}
+                        />
+                    </Field>
+                    <Field
+                        label={t("password")}
+                        description={t("api-password-desc")}
+                        className={this.styles.marginTop}
+                    >
+                        <SecretInput
+                            width={60}
+                            label={t("password")}
+                            value={this.state?.apiPassword}
+                            isConfigured={false}
+                            onChange={this.onChangeApiPassword.bind(this)}
+                            onReset={() => {}}
+                        />
+                    </Field>
+                    <Modal.ButtonRow>
+                        <Button
+                            variant="secondary"
+                            onClick={this.onCloseModal.bind(this)}
+                        >
+                            {t("cancel")}
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={this.onLoadSettings.bind(this)}
+                            disabled={
+                                !this.state.apiUsername ||
+                                !this.state.apiPassword ||
+                                this.state.apiBusy
+                            }
+                        >
+                            {t("ok")}
+                        </Button>
+                    </Modal.ButtonRow>
+                </Modal>
             </div>
         );
     }

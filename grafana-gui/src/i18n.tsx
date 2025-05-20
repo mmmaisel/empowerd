@@ -21,6 +21,17 @@ const resources = {
             "config-json-desc": "Empowerd UI Konfigurations-String.",
             "save-settings": "Einstellungen speichern",
 
+            "auto-detect-settings": "Automatisch erkennen",
+            "auto-detect-settings-modal": "Einstellungen automatisch erkennen",
+            "auto-detect-settings-div":
+                "Zum automatischen erkennen der Einstellungen ist ein Login " +
+                "erforderlich.",
+            "auto-detect-settings-failed":
+                "Automatisches erkennen fehlgeschlagen:",
+            "api-username-desc": "Benutzername für die empowerd Backend API",
+            "api-password-desc": "Passwort für die empowerd Backend API",
+            "ok": "Ok",
+
             "overview": "Übersicht",
             "pwr-prod-and-cons": "Energie Erzeugung and Verbrauch",
             "heating": "Heizung",
@@ -132,6 +143,15 @@ const resources = {
             "config-json": "Config JSON",
             "config-json-desc": "Empowerd UI configuration string.",
             "save-settings": "Save settings",
+
+            "auto-detect-settings": "Auto-Detect",
+            "auto-detect-settings-modal": "Auto-Detect Settings",
+            "auto-detect-settings-div":
+                "Login is required to auto-detect settings.",
+            "auto-detect-settings-failed": "Auto-detecting settings failed:",
+            "api-username-desc": "Username for the empowerd Backend API",
+            "api-password-desc": "Password for the empowerd Backend API",
+            "ok": "Ok",
 
             "overview": "Overview",
             "pwr-prod-and-cons": "Power Production and Consumption",

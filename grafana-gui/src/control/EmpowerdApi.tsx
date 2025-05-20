@@ -90,9 +90,8 @@ export class EmpowerdApi {
                     on_error(response.errors);
                 }
             })
-            .catch((error) => {
-                // TODO: unify errors
-                on_error(error);
+            .catch((error: string) => {
+                on_error([{ message: error, locations: [], path: [] }]);
             });
     }
 
@@ -264,6 +263,19 @@ export class EmpowerdApi {
             on_error
         );
     }
+
+    public backendConfig(
+        on_success: (config: string) => void,
+        on_error: (errors: GraphQlError[]) => void
+    ): void {
+        this.query(
+            "backendConfig",
+            (data: Record<string, GraphQlData>) => {
+                on_success((data as { backendConfig: string }).backendConfig);
+            },
+            on_error
+        );
+    }
 }
 
 /*export class EmpowerdApi {
@@ -387,5 +399,23 @@ export class EmpowerdApi {
         on_error: (errors: GraphQlError[]) => void
     ): void {
         on_success({ id, open } as Switch);
+    }
+
+    public backendConfig(
+        on_success: (config: string) => void,
+        on_error: (errors: GraphQlError[]) => void
+    ): void {
+        // prettier-ignore
+        on_success(
+            '{"batteries":[4],"controls":true,"generators":[2],"heatpumps":[7],' +
+            '"labels":{' +
+                '"x1":"Foo","x2":"Bar","x3":"X3","x4":"X4",' +
+                '"x5":"X5","x6":"X6","x7":"X7"},' +
+            '"meters":[3],"ranges":{' +
+                '"battery":[5000,20000],"boiler":[null,null],' +
+                '"consumption":8000,"cop":null,"heating":15000,' +
+                '"production":[-8000,8000]}' +
+            ',"solars":[1],"wallboxes":[6],"weathers":[5]}'
+        );
     }
 }*/
