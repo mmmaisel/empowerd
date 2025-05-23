@@ -27,23 +27,23 @@ import { EmpowerdApi, GraphQlError } from "./control/EmpowerdApi";
 init_i18n();
 
 export type WeatherLabels = {
-    x1: string;
-    x2: string;
-    x3: string;
-    x4: string;
-    x5: string;
-    x6: string;
-    x7: string;
+    x1: string | null;
+    x2: string | null;
+    x3: string | null;
+    x4: string | null;
+    x5: string | null;
+    x6: string | null;
+    x7: string | null;
 };
 
 export const WeatherLabelsDefault = {
-    x1: "X1",
-    x2: "X2",
-    x3: "X3",
-    x4: "X4",
-    x5: "X5",
-    x6: "X6",
-    x7: "X7",
+    x1: null,
+    x2: null,
+    x3: null,
+    x4: null,
+    x5: null,
+    x6: null,
+    x7: null,
 };
 
 export type Ranges = {
@@ -141,6 +141,10 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
             type: "number",
             nullable: true,
         },
+        optString: {
+            type: "string",
+            nullable: true,
+        },
         minMaxArray: {
             type: "array",
             items: { type: "number", nullable: true },
@@ -163,27 +167,13 @@ const BackendSchema: JSONSchemaType<BackendConfig> = {
         weatherLabels: {
             type: "object",
             properties: {
-                x1: {
-                    type: "string",
-                },
-                x2: {
-                    type: "string",
-                },
-                x3: {
-                    type: "string",
-                },
-                x4: {
-                    type: "string",
-                },
-                x5: {
-                    type: "string",
-                },
-                x6: {
-                    type: "string",
-                },
-                x7: {
-                    type: "string",
-                },
+                x1: { $ref: "#/definitions/optString" },
+                x2: { $ref: "#/definitions/optString" },
+                x3: { $ref: "#/definitions/optString" },
+                x4: { $ref: "#/definitions/optString" },
+                x5: { $ref: "#/definitions/optString" },
+                x6: { $ref: "#/definitions/optString" },
+                x7: { $ref: "#/definitions/optString" },
             },
             required: ["x1", "x2", "x3", "x4", "x5", "x6", "x7"],
             additionalProperties: false,

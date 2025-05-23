@@ -86,7 +86,10 @@ export class HumidityPlot extends EmpPanelBuilder {
         return [
             {
                 refId: "A",
-                rawSql: Weather.query_hums(this.config.weathers).sql(),
+                rawSql: Weather.query_hums(
+                    this.config.weathers,
+                    this.config.labels
+                ).sql(),
                 format: "table",
             },
         ];

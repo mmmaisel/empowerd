@@ -272,13 +272,13 @@ impl Debug for SunnyBoySpeedwire {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct WeatherLabels {
-    x1: String,
-    x2: String,
-    x3: String,
-    x4: String,
-    x5: String,
-    x6: String,
-    x7: String,
+    x1: Option<String>,
+    x2: Option<String>,
+    x3: Option<String>,
+    x4: Option<String>,
+    x5: Option<String>,
+    x6: Option<String>,
+    x7: Option<String>,
 }
 
 /// Bresser 6 in 1 USB weather station data source.

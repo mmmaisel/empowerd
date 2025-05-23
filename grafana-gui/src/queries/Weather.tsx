@@ -1,3 +1,4 @@
+import { WeatherLabels } from "../AppConfig";
 import { Field, Fragment, Join, Query, Timeseries } from "./Query";
 import { Samples } from "./Samples";
 
@@ -186,37 +187,36 @@ export class Weather {
             .ordered();
     }
 
-    static query_temps(ids: number[]): Query {
-        return new this.series(ids[0])
+    static query_temps(ids: number[], labels: WeatherLabels): Query {
+        let query = new this.series(ids[0])
             .time()
             .temp_in()
             .temp_out()
-            .dew_point()
-            .temp_x1()
-            .temp_x2()
-            .temp_x3()
-            .temp_x4()
-            .temp_x5()
-            .temp_x6()
-            .temp_x7()
-            .time_filter()
-            .ordered();
+            .dew_point();
+
+        if (labels.x1 !== null) query.temp_x1();
+        if (labels.x2 !== null) query.temp_x2();
+        if (labels.x3 !== null) query.temp_x3();
+        if (labels.x4 !== null) query.temp_x4();
+        if (labels.x5 !== null) query.temp_x5();
+        if (labels.x6 !== null) query.temp_x6();
+        if (labels.x7 !== null) query.temp_x7();
+
+        return query.time_filter().ordered();
     }
 
-    static query_hums(ids: number[]): Query {
-        return new this.series(ids[0])
-            .time()
-            .hum_in()
-            .hum_out()
-            .hum_x1()
-            .hum_x2()
-            .hum_x3()
-            .hum_x4()
-            .hum_x5()
-            .hum_x6()
-            .hum_x7()
-            .time_filter()
-            .ordered();
+    static query_hums(ids: number[], labels: WeatherLabels): Query {
+        let query = new this.series(ids[0]).time().hum_in().hum_out();
+
+        if (labels.x1 !== null) query.hum_x1();
+        if (labels.x2 !== null) query.hum_x2();
+        if (labels.x3 !== null) query.hum_x3();
+        if (labels.x4 !== null) query.hum_x4();
+        if (labels.x5 !== null) query.hum_x5();
+        if (labels.x6 !== null) query.hum_x6();
+        if (labels.x7 !== null) query.hum_x7();
+
+        return query.time_filter().ordered();
     }
 
     static query_rain(ids: number[]): Query {

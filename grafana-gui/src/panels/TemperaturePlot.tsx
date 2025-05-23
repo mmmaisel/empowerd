@@ -93,7 +93,10 @@ export class TemperaturePlot extends EmpPanelBuilder {
         return [
             {
                 refId: "A",
-                rawSql: Weather.query_temps(this.config.weathers).sql(),
+                rawSql: Weather.query_temps(
+                    this.config.weathers,
+                    this.config.labels
+                ).sql(),
                 format: "table",
             },
         ];
