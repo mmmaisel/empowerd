@@ -17,6 +17,8 @@
 \******************************************************************************/
 #![forbid(unsafe_code)]
 
+use std::path::PathBuf;
+
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use diesel_async::{
@@ -36,7 +38,7 @@ use libempowerd::{
 struct Args {
     /// empowerd config file location
     #[arg(short, long, default_value("/etc/empowerd/empowerd.conf"))]
-    config: String,
+    config: PathBuf,
     /// Timestamp of the first record to be fixed
     #[arg(short, long)]
     start_timestamp: i64,

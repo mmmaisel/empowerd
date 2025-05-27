@@ -76,8 +76,8 @@ diesel-async = { version=">=0.5.0", features = ["deadpool", "postgres"] }
 diesel_migrations = { version = ">=2.2.0" }
 influxdb = { version = ">=0.7.2", features = ["derive", "reqwest-client", "use-serde"], default-features = false }
 
+clap = { version = "4.3.24", features = ["derive"] }
 daemonize = ">=0.4.1"
-getopts = ">=0.2.21"
 serde = { version = ">=1.0", features = ["derive"] }
 serde_json = ">=1.0"
 toml = ">=0.5.8"

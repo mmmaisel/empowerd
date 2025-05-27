@@ -17,6 +17,8 @@
 \******************************************************************************/
 #![forbid(unsafe_code)]
 
+use std::path::PathBuf;
+
 use clap::{Arg, Command};
 use libempowerd::{
     models::{
@@ -122,7 +124,7 @@ async fn main() {
     let capacity = *matches.get_one::<f64>("capacity").unwrap();
     let measurement = matches.get_one::<String>("measurement").unwrap();
 
-    let config_filename = matches.get_one::<String>("config").unwrap();
+    let config_filename = matches.get_one::<PathBuf>("config").unwrap();
     let settings = match Settings::load_from_file(config_filename) {
         Ok(x) => x,
         Err(e) => panic!("Could not read config file: {}", e),

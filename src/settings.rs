@@ -17,13 +17,28 @@
 \******************************************************************************/
 use std::{
     collections::BTreeSet,
-    env,
     fmt::{self, Debug},
     net::{Ipv4Addr, SocketAddrV4},
+    path::{Path, PathBuf},
 };
 
-use getopts::Options;
+use clap::Parser;
 use serde::{Deserialize, Serialize};
+
+/// Defines the command line arguments.
+#[derive(Debug, Parser)]
+#[command(version, about)]
+struct Cli {
+    /// Config filename
+    #[clap(short, default_value("/etc/empowerd/empowerd.conf"))]
+    config_path: PathBuf,
+    /// Do not daemonize
+    #[clap(short = 'd')]
+    nodaemonize: bool,
+    /// Test config and exit
+    #[clap(short)]
+    test: bool,
+}
 
 /// Defines the database location and credentials.
 #[derive(Clone, Deserialize)]
@@ -620,12 +635,17 @@ impl Settings {
     }
 
     /// Loads settings from config file.
-    pub fn load_from_file(filename: &str) -> Result<Settings, String> {
+    pub fn load_from_file(filename: &Path) -> Result<Settings, String> {
         let toml = std::fs::read_to_string(filename).map_err(|e| {
-            format!("Could not read config file '{}': {}", &filename, e)
+            format!(
+                "Could not read config file '{}': {}",
+                &filename.display(),
+                e
+            )
         })?;
-        return toml::from_str(&toml)
-            .map_err(|e| format!("Could not parse config: {}", e));
+
+        toml::from_str(&toml)
+            .map_err(|e| format!("Could not parse config: {}", e))
     }
 
     /// Validates a node name.
@@ -677,30 +697,18 @@ impl Settings {
 
     /// Loads settings from command line arguments and config file.
     pub fn load() -> Result<Settings, String> {
-        let mut options = Options::new();
-        options
-            .optopt("c", "", "config filename", "NAME")
-            .optflag("d", "", "nodaemonize")
-            .optflag("t", "", "test config and exit");
+        let options = Cli::parse();
+        let mut settings = Settings::load_from_file(&options.config_path)?;
 
-        let matches = options.parse(env::args()).map_err(|e| e.to_string())?;
-
-        let cfg_path = match matches.opt_str("c") {
-            Some(x) => x,
-            None => "/etc/empowerd/empowerd.conf".into(),
-        };
-
-        let mut settings = Settings::load_from_file(&cfg_path)?;
-
-        if matches.opt_present("d") {
+        if options.nodaemonize {
             settings.daemonize = false;
         }
-        if matches.opt_present("t") {
+        if options.test {
             settings.daemonize = false;
             settings.test_cfg = true;
         }
 
         settings.validate()?;
-        return Ok(settings);
+        Ok(settings)
     }
 }

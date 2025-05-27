@@ -17,6 +17,8 @@
 \******************************************************************************/
 #![forbid(unsafe_code)]
 
+use std::path::PathBuf;
+
 use clap::Parser;
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
@@ -169,7 +171,7 @@ use schema_9000::PgHeatpump;
 struct Args {
     /// empowerd config file location
     #[arg(short, long, default_value("/etc/empowerd/empowerd.conf"))]
-    config: String,
+    config: PathBuf,
     /// Continue on error
     #[arg(short, long)]
     ignore_errors: bool,
