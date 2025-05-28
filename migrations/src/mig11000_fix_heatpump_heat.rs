@@ -15,12 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-#![forbid(unsafe_code)]
-
-use std::path::PathBuf;
-
 use chrono::{DateTime, Utc};
-use clap::Parser;
+use clap::Args;
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     AsyncPgConnection,
@@ -33,23 +29,17 @@ use libempowerd::{
     settings::{Settings, SourceType},
 };
 
-#[derive(Parser, Debug)]
-#[command(version, long_about = "Empowerd migration to PostgreSQL")]
-struct Args {
-    /// empowerd config file location
-    #[arg(short, long, default_value("/etc/empowerd/empowerd.conf"))]
-    config: PathBuf,
+#[derive(Args, Clone, Debug)]
+pub struct Mig11000Args {
     /// Timestamp of the first record to be fixed
     #[arg(short, long)]
     start_timestamp: i64,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), String> {
-    let args = Args::parse();
-    let settings = Settings::load_from_file(&args.config)
-        .map_err(|e| format!("Could not read config file: {}", e))?;
-
+pub async fn mig11000_fix_heatpump_heat(
+    settings: Settings,
+    args: Mig11000Args,
+) -> Result<(), String> {
     let pg_url = format!(
         "postgres://{}:{}@{}/{}",
         settings.database.user,

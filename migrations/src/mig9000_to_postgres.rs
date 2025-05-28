@@ -1,6 +1,6 @@
 /******************************************************************************\
     empowerd - empowers the offline smart home
-    Copyright (C) 2019 - 2021 Max Maisel
+    Copyright (C) 2019 - 2025 Max Maisel
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,11 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-#![forbid(unsafe_code)]
-
-use std::path::PathBuf;
-
-use clap::Parser;
+use clap::Args;
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     AsyncPgConnection,
@@ -104,7 +100,7 @@ mod schema_9000 {
             data: Vec<Self>,
             conn: &mut diesel_async::AsyncPgConnection,
             series_id: i32,
-        ) -> Result<usize, crate::Error> {
+        ) -> Result<usize, super::Error> {
             use diesel_async::RunQueryDsl;
             let raw = data
                 .iter()
@@ -113,7 +109,7 @@ mod schema_9000 {
                     y.series_id = series_id;
                     Ok(y)
                 })
-                .collect::<Result<Vec<RawPgHeatpump>, crate::Error>>()?;
+                .collect::<Result<Vec<RawPgHeatpump>, super::Error>>()?;
 
             diesel::insert_into(heatpumps::table)
                 .values(&raw)
@@ -166,23 +162,17 @@ mod schema_9000 {
 
 use schema_9000::PgHeatpump;
 
-#[derive(Parser, Debug)]
-#[command(version, long_about = "Empowerd migration to PostgreSQL")]
-struct Args {
-    /// empowerd config file location
-    #[arg(short, long, default_value("/etc/empowerd/empowerd.conf"))]
-    config: PathBuf,
+#[derive(Args, Clone, Debug)]
+pub struct Mig9000Args {
     /// Continue on error
-    #[arg(short, long)]
+    #[clap(short, long)]
     ignore_errors: bool,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), String> {
-    let args = Args::parse();
-    let settings = Settings::load_from_file(&args.config)
-        .map_err(|e| format!("Could not read config file: {}", e))?;
-
+pub async fn mig9000_to_postgres(
+    settings: Settings,
+    args: Mig9000Args,
+) -> Result<(), String> {
     let influx = match settings.influx {
         Some(influx_settings) => influxdb::Client::new(
             format!("http://{}", &influx_settings.url),
