@@ -1,18 +1,20 @@
 [package]
 name = "empowerd-migrations"
-version = "0.9.0"
-license = "AGPL-3.0-or-later"
-authors = ["Max Maisel <max.maisel@posteo.de>"]
-edition = "2018"
+
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-empowerd = { version = "*", path = "../" }
+empowerd.path = "../"
 
-chrono = ">=0.4.19"
-clap = { version = ">=4.4.12", features = ["derive"] }
-diesel = { version = ">=2.1.0", features = ["chrono", "postgres"] }
-diesel-async = { version=">=0.4.1", features = ["deadpool", "postgres"] }
-diesel_migrations = { version = ">=2.1.0" }
-influxdb = { version = ">=0.6.0", features = ["derive", "reqwest-client", "use-serde"], default-features = false }
-serde = { version = ">=1.0", features = ["derive"] }
-tokio = { version=">=1.0", features=["full"] }
+chrono.workspace = true
+clap.workspace = true
+diesel.workspace = true
+diesel-async.workspace = true
+diesel_migrations.workspace = true
+influxdb.workspace = true
+serde.workspace = true
+tokio.workspace = true
