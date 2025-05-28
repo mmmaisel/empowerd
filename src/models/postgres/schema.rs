@@ -66,6 +66,7 @@ diesel::table! {
         hum_out_e3 -> Nullable<Int2>,
         rain_day_um -> Nullable<Int4>,
         rain_act_um -> Nullable<Int4>,
+        rain_acc_um -> Int8,
         wind_act_mms -> Nullable<Int4>,
         wind_gust_mms -> Nullable<Int4>,
         wind_dir_deg_e1 -> Nullable<Int2>,

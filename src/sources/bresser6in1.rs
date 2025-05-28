@@ -15,12 +15,20 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 \******************************************************************************/
-use super::SourceBase;
-use crate::{models::Weather, task_group::TaskResult, Error};
 use slog::{error, warn, Logger};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time::{sleep, timeout};
 use ws6in1_proto::{client::Ws6in1Client, parser::Ws6in1Data};
+
+use super::SourceBase;
+use crate::{
+    models::{
+        units::{millimeter, Length},
+        Weather,
+    },
+    task_group::TaskResult,
+    Error,
+};
 
 pub struct Bresser6in1Source {
     base: SourceBase,
@@ -119,7 +127,43 @@ impl Bresser6in1Source {
         let mut weather_data = self.read_data_with_retry(&mut client).await?;
         weather_data.local_timestamp = timing.now as i64;
 
-        let record = Weather::new(weather_data);
+        let (last_rain_day, last_rain_acc) =
+            match Weather::last(&mut conn, self.base.series_id).await {
+                Ok(last_record) => (
+                    last_record
+                        .rain_day
+                        .unwrap_or(Length::new::<millimeter>(0.0)),
+                    last_record.rain_acc,
+                ),
+                Err(Error::NotFound) => (
+                    Length::new::<millimeter>(0.0),
+                    Length::new::<millimeter>(0.0),
+                ),
+                Err(e) => {
+                    return Err(Error::Temporary(format!(
+                        "Query {} database failed: {}",
+                        &self.base.name, e,
+                    )))
+                }
+            };
+
+        let current_rain_day = Length::new::<millimeter>(
+            weather_data
+                .outdoor
+                .as_ref()
+                .map_or(0.0, |x| x.rain_day as f64),
+        );
+        let delta_rain_day = current_rain_day - last_rain_day;
+        let rain_acc = if delta_rain_day.abs() < Length::new::<millimeter>(0.15)
+        {
+            last_rain_acc
+        } else if delta_rain_day < Length::new::<millimeter>(0.0) {
+            last_rain_acc + current_rain_day
+        } else {
+            last_rain_acc + delta_rain_day
+        };
+
+        let record = Weather::new(weather_data, rain_acc);
         self.base.notify_processors(&record);
         record.insert(&mut conn, self.base.series_id).await?;
 

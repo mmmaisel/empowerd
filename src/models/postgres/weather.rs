@@ -44,6 +44,7 @@ pub struct RawWeather {
     pub hum_out_e3: Option<i16>,
     pub rain_day_um: Option<i32>,
     pub rain_act_um: Option<i32>,
+    pub rain_acc_um: i64,
     pub wind_act_mms: Option<i32>,
     pub wind_gust_mms: Option<i32>,
     pub wind_dir_deg_e1: Option<i16>,
@@ -76,6 +77,7 @@ pub struct Weather {
     pub hum_out: Option<Ratio>,
     pub rain_day: Option<Length>,
     pub rain_act: Option<Length>,
+    pub rain_acc: Length,
     pub wind_act: Option<Velocity>,
     pub wind_gust: Option<Velocity>,
     pub wind_dir: Option<Angle>,
@@ -102,7 +104,7 @@ pub struct Weather {
 impl_timeseries!(RawWeather, Weather, weathers);
 
 impl Weather {
-    pub fn new(data: Ws6in1Data) -> Self {
+    pub fn new(data: Ws6in1Data, rain_acc: Length) -> Self {
         Self {
             time: Time::new::<second>(data.local_timestamp as f64),
             temp_in: Temperature::new::<celsius>(
@@ -125,6 +127,7 @@ impl Weather {
                 .outdoor
                 .as_ref()
                 .map(|x| Length::new::<millimeter>(x.rain_actual as f64)),
+            rain_acc,
             wind_act: data.outdoor.as_ref().map(|x| {
                 Velocity::new::<meter_per_second>(x.wind_actual as f64)
             }),
@@ -214,6 +217,7 @@ impl From<RawWeather> for Weather {
             rain_act: input
                 .rain_act_um
                 .map(|x| Length::new::<micrometer>(x as f64)),
+            rain_acc: Length::new::<micrometer>(input.rain_acc_um as f64),
             wind_act: input
                 .wind_act_mms
                 .map(|x| Velocity::new::<millimeter_per_second>(x as f64)),
@@ -308,6 +312,7 @@ impl TryFrom<&Weather> for RawWeather {
             rain_act_um: input
                 .rain_act
                 .map(|x| x.get::<micrometer>().round() as i32),
+            rain_acc_um: input.rain_acc.get::<micrometer>().round() as i64,
             wind_act_mms: input
                 .wind_act
                 .map(|x| x.get::<millimeter_per_second>().round() as i32),

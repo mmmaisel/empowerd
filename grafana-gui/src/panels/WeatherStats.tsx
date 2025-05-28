@@ -29,7 +29,7 @@ export class WeatherStats extends EmpPanelBuilder {
         return [
             {
                 refId: `rain_int`,
-                rawSql: Weather.query_rain_int(this.config.weathers).sql(),
+                rawSql: Weather.query_drain(this.config.weathers).sql(),
                 format: "table",
             },
         ];

@@ -23,10 +23,12 @@ use clap::{Parser, Subcommand};
 use libempowerd::settings::Settings;
 
 mod mig11000_fix_heatpump_heat;
+mod mig12001_calc_rain_acc;
 mod mig4000_convert_battery_charge;
 mod mig9000_to_postgres;
 
 use mig11000_fix_heatpump_heat::{mig11000_fix_heatpump_heat, Mig11000Args};
+use mig12001_calc_rain_acc::{mig12001_calc_rain_acc, Mig12001Args};
 use mig4000_convert_battery_charge::{
     mig4000_convert_battery_charge, Mig4000Args,
 };
@@ -55,6 +57,9 @@ enum Migration {
     /// Fixup heatpump heat data
     #[clap(name = "11000_fix_heatpump_heat")]
     Mig11000(Mig11000Args),
+    /// Calculate accumulated rain
+    #[clap(name = "12001_calc_rain_acc")]
+    Mig12001(Mig12001Args),
 }
 
 #[tokio::main]
@@ -69,6 +74,9 @@ async fn main() -> Result<(), String> {
         Migration::Mig9000(args) => mig9000_to_postgres(settings, args).await?,
         Migration::Mig11000(args) => {
             mig11000_fix_heatpump_heat(settings, args).await?
+        }
+        Migration::Mig12001(args) => {
+            mig12001_calc_rain_acc(settings, args).await?
         }
     }
 

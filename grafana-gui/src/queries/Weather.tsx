@@ -1,6 +1,5 @@
 import { WeatherLabels } from "../AppConfig";
-import { Field, Fragment, Join, Query, Timeseries } from "./Query";
-import { Samples } from "./Samples";
+import { Field, Fragment, Query, Timeseries } from "./Query";
 
 export class WeatherSeries extends Timeseries {
     static basename = "weather";
@@ -26,11 +25,17 @@ export class WeatherSeries extends Timeseries {
     static hum_x7 = new Field("hum_x7_e3/10.0", "hum_x7_pct");
     static rain_act = new Field("rain_act_um/1000.0", "rain_act_mm");
     static rain_day = new Field("rain_day_um/1000.0", "rain_day_mm");
+    static rain_acc = new Field("rain_acc_um/1000.0", "rain_acc_mm");
     static baro_abs = new Field("baro_abs_pa/100.0", "baro_abs_hpa");
     static baro_sea = new Field("baro_sea_pa/100.0", "baro_sea_hpa");
     static wind_act = new Field("wind_act_mms/1000.0", "wind_act_ms");
     static wind_gust = new Field("wind_gust_mms/1000.0", "wind_gust_ms");
     static wind_dir = new Field("wind_dir_deg_e1/10.0", "wind_dir_deg");
+
+    static d_rain = new Field(
+        "(MAX(rain_acc_um)-MIN(rain_acc_um))/1000.0",
+        "d_rain_acc_mm"
+    );
 
     constructor(id: number) {
         super();
@@ -149,6 +154,11 @@ export class WeatherSeries extends Timeseries {
         return this;
     }
 
+    public rain_acc(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.rain_acc.with_alias(alias));
+        return this;
+    }
+
     public baro_abs(alias: string | null = null): this {
         this.fields_.push(WeatherSeries.baro_abs.with_alias(alias));
         return this;
@@ -171,6 +181,11 @@ export class WeatherSeries extends Timeseries {
 
     public wind_dir(alias: string | null = null): this {
         this.fields_.push(WeatherSeries.wind_dir.with_alias(alias));
+        return this;
+    }
+
+    public d_rain(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.d_rain.with_alias(alias));
         return this;
     }
 }
@@ -247,24 +262,9 @@ export class Weather {
             .ordered();
     }
 
-    static query_rain_int(ids: number[]): Query {
-        let id = ids[0];
-        let rain_query = new this.series(id).time().rain_day();
-
-        // TODO: samples are buggy because rain reset is in local time
-        return new Query()
-            .subqueries([
-                new Samples("DAY", "1 DAY", "23:00", false),
-                rain_query.name("weather"),
-            ])
-            .fields([new Field("SUM(weather.rain_day_mm)", "rain_int_mm")])
-            .from(new Fragment("samples"))
-            .joins([
-                new Join(
-                    "LEFT OUTER",
-                    "weather",
-                    "weather.time = samples.start"
-                ),
-            ]);
+    static query_drain(ids: number[]): Query {
+        return new this.series(ids[0])
+            .d_rain(`\"${this.series.basename}${ids[0]}.rain_acc_mm\"`)
+            .time_filter();
     }
 }
