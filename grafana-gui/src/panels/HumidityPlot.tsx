@@ -7,7 +7,7 @@ import { Weather } from "../queries/Weather";
 
 export class HumidityPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.timeseries()
+        let builder = PanelBuilders.timeseries()
             .setTitle(t("humidity"))
             .setUnit("humidity")
             .setCustomFieldConfig("fillOpacity", 0)
@@ -78,8 +78,10 @@ export class HumidityPlot extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName(this.config.labels.x7);
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

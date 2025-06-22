@@ -3,6 +3,7 @@ import {
     EmbeddedScene,
     SceneAppPage,
     SceneCSSGridLayout,
+    SceneObject,
     SceneRouteMatch,
     SceneTimeRange,
 } from "@grafana/scenes";
@@ -45,6 +46,16 @@ export class HeatingScene {
         };
     }
 
+    private mkscene(body: SceneObject): EmbeddedScene {
+        return new EmbeddedScene({
+            $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
+            body,
+            controls: DrilldownControls(() => {
+                this.backCb();
+            }),
+        });
+    }
+
     private heating_scene(): EmbeddedScene {
         let templateRows = "3fr 1fr";
         let children: any = [
@@ -65,16 +76,12 @@ export class HeatingScene {
             );
         }
 
-        return new EmbeddedScene({
-            $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
-            body: new SceneCSSGridLayout({
+        return this.mkscene(
+            new SceneCSSGridLayout({
                 templateColumns: "minmax(1fr, 1fr)",
                 templateRows,
                 children,
-            }),
-            controls: DrilldownControls(() => {
-                this.backCb();
-            }),
-        });
+            })
+        );
     }
 }

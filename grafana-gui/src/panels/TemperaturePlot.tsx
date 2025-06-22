@@ -7,13 +7,16 @@ import { Weather } from "../queries/Weather";
 
 export class TemperaturePlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.timeseries()
+        let builder = PanelBuilders.timeseries()
             .setTitle(t("temperature"))
             .setUnit("celsius")
             .setCustomFieldConfig("fillOpacity", 0)
             .setCustomFieldConfig("showPoints", "always" as any)
             .setCustomFieldConfig("spanNulls", false)
-            .setOption("tooltip", { mode: "multi" as any, sort: "none" as any })
+            .setOption("tooltip", {
+                mode: "multi" as any,
+                sort: "none" as any,
+            })
             .setOverrides((override: any) => {
                 override
                     .matchFieldsWithName(`temp_in_degc`)
@@ -85,8 +88,10 @@ export class TemperaturePlot extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName(this.config.labels.x7);
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

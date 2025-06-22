@@ -15,7 +15,7 @@ import { t } from "../i18n";
 
 export class HeatSumStats extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.stat()
+        let builder = PanelBuilders.stat()
             .setHoverHeader(true)
             .setUnit("watth")
             .setNoValue(t("no-data"))
@@ -44,8 +44,10 @@ export class HeatSumStats extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName(t("generator-heat"));
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

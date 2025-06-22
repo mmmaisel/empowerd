@@ -7,7 +7,7 @@ import { Weather } from "../queries/Weather";
 
 export class WeatherStats extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.stat()
+        let builder = PanelBuilders.stat()
             .setHoverHeader(true)
             .setUnit("lengthmm")
             .setNoValue(t("no-data"))
@@ -21,8 +21,10 @@ export class WeatherStats extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName(t("rain-interval"));
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

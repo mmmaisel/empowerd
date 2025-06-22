@@ -15,6 +15,7 @@ test("Query for single sources", () => {
             heatpumps: [6],
         },
         undefined,
+        [],
         undefined as any
     ).queries();
 
@@ -124,6 +125,7 @@ test("Query for dual sources", () => {
             heatpumps: [11, 12],
         },
         undefined,
+        [],
         undefined as any
     ).queries();
 

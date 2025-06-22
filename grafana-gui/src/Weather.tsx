@@ -3,6 +3,7 @@ import {
     EmbeddedScene,
     SceneAppPage,
     SceneCSSGridLayout,
+    SceneObject,
     SceneRouteMatch,
     SceneTimeRange,
 } from "@grafana/scenes";
@@ -48,54 +49,62 @@ export class WeatherScene {
         };
     }
 
-    private weather_scene(): EmbeddedScene {
+    private mkscene(body: SceneObject): EmbeddedScene {
         return new EmbeddedScene({
             $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
-            body: new SceneCSSGridLayout({
-                templateColumns: "1fr 1fr",
-                templateRows: "1fr",
-                children: [
-                    new SceneCSSGridLayout({
-                        templateColumns: "1fr",
-                        templateRows: "1fr 1fr",
-                        children: [
-                            new TemperaturePlot(
-                                this.config.backend,
-                                this.config.datasource
-                            ).build(),
-                            new HumidityPlot(
-                                this.config.backend,
-                                this.config.datasource
-                            ).build(),
-                        ],
-                    }),
-                    new SceneCSSGridLayout({
-                        templateColumns: "1fr",
-                        templateRows: "3fr 3fr 3fr 1fr",
-                        children: [
-                            new RainPlot(
-                                this.config.backend,
-                                this.config.datasource
-                            ).build(),
-                            new BaroPlot(
-                                this.config.backend,
-                                this.config.datasource
-                            ).build(),
-                            new WindPlot(
-                                this.config.backend,
-                                this.config.datasource
-                            ).build(),
-                            new WeatherStats(
-                                this.config.backend,
-                                this.config.datasource
-                            ).build(),
-                        ],
-                    }),
-                ],
-            }),
+            body,
             controls: DrilldownControls(() => {
                 this.backCb();
             }),
         });
+    }
+
+    private weather_scene(): EmbeddedScene {
+        let children = [
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "1fr 1fr",
+                children: [
+                    new TemperaturePlot(
+                        this.config.backend,
+                        this.config.datasource,
+                    ).build(),
+                    new HumidityPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                ],
+            }),
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "3fr 3fr 3fr 1fr",
+                children: [
+                    new RainPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                    new BaroPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                    new WindPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                    new WeatherStats(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                ],
+            }),
+        ];
+
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr 1fr",
+                templateRows: "1fr",
+                children,
+            })
+        );
     }
 }

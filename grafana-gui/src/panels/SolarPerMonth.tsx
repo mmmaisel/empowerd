@@ -14,10 +14,12 @@ import { Solar } from "../queries/Solar";
 
 export class SolarPerMonth extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.barchart()
+        let builder = PanelBuilders.barchart()
             .setHoverHeader(true)
-            .setOption("xTickLabelRotation", -90)
-            .build();
+            .setOption("xTickLabelRotation", -90);
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

@@ -9,7 +9,7 @@ import { Wallbox } from "../queries/Wallbox";
 
 export class PowerConsumptionPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.timeseries()
+        let builder = PanelBuilders.timeseries()
             .setHoverHeader(true)
             .setUnit("watt")
             .setMin(0)
@@ -40,8 +40,10 @@ export class PowerConsumptionPlot extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName(t("other-cons"));
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

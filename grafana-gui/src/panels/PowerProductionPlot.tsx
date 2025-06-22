@@ -10,7 +10,7 @@ import { t } from "../i18n";
 
 export class PowerProductionPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.timeseries()
+        let builder = PanelBuilders.timeseries()
             .setHoverHeader(true)
             .setUnit("watt")
             .setMin(this.config.ranges.production[0])
@@ -80,8 +80,10 @@ export class PowerProductionPlot extends EmpPanelBuilder {
                     })
                     .overrideCustomFieldConfig("fillOpacity", 0)
                     .overrideDisplayName(t("battery-charge"));
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

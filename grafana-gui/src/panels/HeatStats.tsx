@@ -8,7 +8,7 @@ import { t } from "../i18n";
 
 export class HeatStats extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.stat()
+        let builder = PanelBuilders.stat()
             .setHoverHeader(true)
             .setUnit("watth")
             .setOption("graphMode", "none" as any)
@@ -51,8 +51,10 @@ export class HeatStats extends EmpPanelBuilder {
                         );
                     i += 1;
                 }
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

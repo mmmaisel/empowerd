@@ -7,7 +7,7 @@ import { Weather } from "../queries/Weather";
 
 export class WindPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.timeseries()
+        let builder = PanelBuilders.timeseries()
             .setTitle(t("wind"))
             .setMin(0.1)
             .setUnit("velocityms")
@@ -47,8 +47,10 @@ export class WindPlot extends EmpPanelBuilder {
                         type: "linear" as any,
                     })
                     .overrideDisplayName(t("wind-dir"));
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

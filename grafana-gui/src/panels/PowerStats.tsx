@@ -1,4 +1,4 @@
-import { DataLink } from "@grafana/data";
+import { DataLink, PanelMenuItem } from "@grafana/data";
 import { PanelBuilders, SceneObject, SceneObjectState } from "@grafana/scenes";
 
 import { BackendConfig } from "../AppConfig";
@@ -23,14 +23,15 @@ export class PowerStats extends EmpPanelBuilder {
     constructor(
         config: BackendConfig | undefined,
         datasource: any,
+        menu_items: PanelMenuItem[] = [],
         dds: DrilldownConfig
     ) {
-        super(config, datasource);
+        super(config, datasource, menu_items);
         this.dds = dds;
     }
 
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.stat()
+        let builder = PanelBuilders.stat()
             .setHoverHeader(true)
             .setUnit("watth")
             .setNoValue(t("no-data"))
@@ -101,8 +102,10 @@ export class PowerStats extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName(t("other-cons"));
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

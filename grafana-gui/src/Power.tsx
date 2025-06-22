@@ -3,6 +3,7 @@ import {
     EmbeddedScene,
     SceneAppPage,
     SceneCSSGridLayout,
+    SceneObject,
     SceneRouteMatch,
     SceneTimeRange,
 } from "@grafana/scenes";
@@ -55,10 +56,19 @@ export class PowerScene {
         };
     }
 
-    private power_scene(): EmbeddedScene {
+    private mkscene(body: SceneObject): EmbeddedScene {
         return new EmbeddedScene({
             $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
-            body: new SceneCSSGridLayout({
+            body,
+            controls: DrilldownControls(() => {
+                this.backCb();
+            }),
+        });
+    }
+
+    private power_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
                 templateColumns: "minmax(1fr, 1fr)",
                 templateRows: "5fr 5fr 2fr",
                 children: [
@@ -73,6 +83,7 @@ export class PowerScene {
                     new PowerStats(
                         this.config.backend,
                         this.config.datasource,
+                        [],
                         {
                             solar: [
                                 {
@@ -83,10 +94,7 @@ export class PowerScene {
                         }
                     ).build(),
                 ],
-            }),
-            controls: DrilldownControls(() => {
-                this.backCb();
-            }),
-        });
+            })
+        );
     }
 }

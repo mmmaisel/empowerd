@@ -7,7 +7,7 @@ import { t } from "../i18n";
 
 export class BoilerPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.timeseries()
+        let builder = PanelBuilders.timeseries()
             .setHoverHeader(true)
             .setUnit("celsius")
             .setMin(this.config.ranges.boiler[0])
@@ -42,8 +42,10 @@ export class BoilerPlot extends EmpPanelBuilder {
                         .overrideDisplayName(t("boiler-n-bot", { id: i + 1 }));
                     i += 1;
                 }
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {

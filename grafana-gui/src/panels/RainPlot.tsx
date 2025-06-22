@@ -7,7 +7,7 @@ import { Weather } from "../queries/Weather";
 
 export class RainPlot extends EmpPanelBuilder {
     public scene(): SceneObject<SceneObjectState> {
-        return PanelBuilders.timeseries()
+        let builder = PanelBuilders.timeseries()
             .setTitle(t("rain"))
             .setMin(0.1)
             .setUnit("lengthmm")
@@ -34,8 +34,10 @@ export class RainPlot extends EmpPanelBuilder {
                         mode: "fixed",
                     })
                     .overrideDisplayName(t("rain-day"));
-            })
-            .build();
+            });
+
+        this.build_menu(builder);
+        return builder.build();
     }
 
     public queries(): any[] {
