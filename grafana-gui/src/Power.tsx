@@ -1,6 +1,9 @@
+import React from "react";
 import {
     EmbeddedScene,
+    SceneAppPage,
     SceneCSSGridLayout,
+    SceneRouteMatch,
     SceneTimeRange,
 } from "@grafana/scenes";
 
@@ -9,39 +12,81 @@ import { DrilldownControls } from "./SceneControls";
 import { PowerConsumptionPlot } from "./panels/PowerConsumptionPlot";
 import { PowerProductionPlot } from "./panels/PowerProductionPlot";
 import { PowerStats } from "./panels/PowerStats";
-import { ROUTES } from "./Routes";
+import { ROUTES, prefixRoute } from "./Routes";
+import { SceneInfo } from "./Home";
+import { SolarDetailsScene } from "./SolarDetails";
 import { t } from "./i18n";
 
-export const PowerScene = (
-    config: ConfigJson,
-    backCb: () => void
-): EmbeddedScene => {
-    return new EmbeddedScene({
-        $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
-        body: new SceneCSSGridLayout({
-            templateColumns: "minmax(1fr, 1fr)",
-            templateRows: "5fr 5fr 2fr",
-            children: [
-                new PowerProductionPlot(
-                    config.backend,
-                    config.datasource
-                ).build(),
-                new PowerConsumptionPlot(
-                    config.backend,
-                    config.datasource
-                ).build(),
-                new PowerStats(config.backend, config.datasource, {
-                    solar: [
-                        {
-                            title: t("solar-per-mon"),
-                            url: `\${__url.path}/${ROUTES.Details}`,
-                        },
-                    ],
-                }).build(),
+export class PowerScene {
+    config: ConfigJson;
+    backCb: () => void;
+    details: SolarDetailsScene;
+
+    constructor(config: ConfigJson, backCb: () => void) {
+        this.config = config;
+        this.backCb = backCb;
+        this.details = new SolarDetailsScene(config, backCb);
+    }
+
+    public getPage(routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
+        let { title, getScene } = this.route(routeMatch);
+
+        return new SceneAppPage({
+            url: routeMatch.url,
+            title,
+            renderTitle: () => {
+                return <></>;
+            },
+            getParentPage: () => parent,
+            getScene,
+            drilldowns: [
+                {
+                    routePath: prefixRoute(`${ROUTES.Power}/${ROUTES.Details}`),
+                    getPage: this.details.getPage.bind(this.details),
+                },
             ],
-        }),
-        controls: DrilldownControls(() => {
-            backCb();
-        }),
-    });
-};
+        });
+    }
+
+    private route(routeMatch: SceneRouteMatch<{}>): SceneInfo {
+        return {
+            title: t("pwr-prod-and-cons"),
+            getScene: this.power_scene.bind(this),
+        };
+    }
+
+    private power_scene(): EmbeddedScene {
+        return new EmbeddedScene({
+            $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
+            body: new SceneCSSGridLayout({
+                templateColumns: "minmax(1fr, 1fr)",
+                templateRows: "5fr 5fr 2fr",
+                children: [
+                    new PowerProductionPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                    new PowerConsumptionPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                    new PowerStats(
+                        this.config.backend,
+                        this.config.datasource,
+                        {
+                            solar: [
+                                {
+                                    title: t("solar-per-mon"),
+                                    url: `\${__url.path}/${ROUTES.Details}`,
+                                },
+                            ],
+                        }
+                    ).build(),
+                ],
+            }),
+            controls: DrilldownControls(() => {
+                this.backCb();
+            }),
+        });
+    }
+}

@@ -44,6 +44,7 @@ export class Routes extends Component<RoutesProps, RoutesState> {
 
     public render(): ReactNode {
         if (this.state.back) {
+            // TODO: only go one layer up
             this.setState({ back: false });
             return <Redirect to={prefixRoute(ROUTES.Home)} />;
         }

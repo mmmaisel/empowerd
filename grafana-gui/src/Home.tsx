@@ -6,7 +6,6 @@ import {
     SceneAppPage,
     EmbeddedScene,
     SceneCSSGridLayout,
-    SceneRouteMatch,
     SceneTimeRange,
 } from "@grafana/scenes";
 
@@ -16,10 +15,14 @@ import { ROUTES, prefixRoute } from "./Routes";
 import { Overview } from "./panels/Overview";
 import { PowerScene } from "./Power";
 import { HeatingScene } from "./Heating";
-import { SolarDetailsScene } from "./SolarDetails";
 import { t } from "./i18n";
 import { MainControls } from "./SceneControls";
 import { WeatherScene } from "./Weather";
+
+export type SceneInfo = {
+    title: string;
+    getScene: () => EmbeddedScene;
+};
 
 type HomePageProps = {
     config: ConfigJson;
@@ -28,10 +31,17 @@ type HomePageProps = {
 type HomePageState = {};
 
 export class HomePage extends Component<HomePageProps, HomePageState> {
+    power: PowerScene;
+    heating: HeatingScene;
+    weather: WeatherScene;
     scene: SceneApp;
 
     constructor(props: HomePageProps) {
         super(props);
+
+        this.power = new PowerScene(props.config, props.backCb);
+        this.heating = new HeatingScene(props.config, props.backCb);
+        this.weather = new WeatherScene(props.config, props.backCb);
 
         this.scene = new SceneApp({
             pages: [
@@ -45,15 +55,15 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                     drilldowns: [
                         {
                             routePath: prefixRoute(ROUTES.Power),
-                            getPage: this.mkpower.bind(this),
+                            getPage: this.power.getPage.bind(this.power),
                         },
                         {
                             routePath: prefixRoute(ROUTES.Heating),
-                            getPage: this.mkheating.bind(this),
+                            getPage: this.heating.getPage.bind(this.heating),
                         },
                         {
                             routePath: prefixRoute(ROUTES.Weather),
-                            getPage: this.mkweather.bind(this),
+                            getPage: this.weather.getPage.bind(this.weather),
                         },
                     ],
                 }),
@@ -105,80 +115,6 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
                 children,
             }),
             controls: MainControls(),
-        });
-    }
-
-    private mkpower(
-        _routeMatch: SceneRouteMatch<{}>,
-        parent: any
-    ): SceneAppPage {
-        let props = this.props;
-        return new SceneAppPage({
-            url: prefixRoute(ROUTES.Power),
-            title: t("pwr-prod-and-cons"),
-            renderTitle: () => {
-                return <></>;
-            },
-            getParentPage: () => parent,
-            getScene: (_routeMatch: SceneRouteMatch<{}>) =>
-                PowerScene(props.config, props.backCb),
-            drilldowns: [
-                {
-                    routePath: prefixRoute(`${ROUTES.Power}/${ROUTES.Details}`),
-                    getPage: this.mkdetails.bind(this),
-                },
-            ],
-        });
-    }
-
-    private mkheating(
-        _routeMatch: SceneRouteMatch<{}>,
-        parent: any
-    ): SceneAppPage {
-        let props = this.props;
-        return new SceneAppPage({
-            url: prefixRoute(ROUTES.Heating),
-            title: t("heating"),
-            renderTitle: () => {
-                return <></>;
-            },
-            getParentPage: () => parent,
-            getScene: (_routeMatch: SceneRouteMatch<{}>) =>
-                HeatingScene(props.config, props.backCb),
-        });
-    }
-
-    private mkweather(
-        _routeMatch: SceneRouteMatch<{}>,
-        parent: any
-    ): SceneAppPage {
-        let props = this.props;
-        return new SceneAppPage({
-            url: prefixRoute(ROUTES.Weather),
-            title: t("weather"),
-            renderTitle: () => {
-                return <></>;
-            },
-            getParentPage: () => parent,
-            getScene: (_routeMatch: SceneRouteMatch<{}>) =>
-                WeatherScene(props.config, props.backCb),
-        });
-    }
-
-    private mkdetails(
-        _routeMatch: SceneRouteMatch<{}>,
-        parent: any
-    ): SceneAppPage {
-        let props = this.props;
-        return new SceneAppPage({
-            url: prefixRoute(`${ROUTES.Power}/${ROUTES.Details}`),
-            title: t("solar-details"),
-            renderTitle: () => {
-                return <></>;
-            },
-            getParentPage: () => parent,
-            getScene: (_routeMatch: SceneRouteMatch<{}>) =>
-                SolarDetailsScene(props.config, props.backCb),
         });
     }
 
