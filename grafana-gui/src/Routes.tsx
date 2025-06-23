@@ -11,6 +11,12 @@ export enum ROUTES {
     Power = "power",
     Heating = "heating",
     Weather = "weather",
+
+    Temperature = "temperature",
+    Humidity = "humidity",
+    Rain = "rain",
+    Barometer = "barometer",
+    Wind = "wind",
 }
 
 const PLUGIN_BASE_URL = `/a/${pluginJson.id}`;

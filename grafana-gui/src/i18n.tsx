@@ -38,6 +38,7 @@ const resources = {
             "weather": "Wetter",
             "solar-details": "Solar Details",
             "solar-per-mon": "Solar pro Monat",
+            "zoom": "Vergrössern",
 
             "jan": "Januar",
             "feb": "Februar",
@@ -159,6 +160,7 @@ const resources = {
             "weather": "Weather",
             "solar-details": "Solar Details",
             "solar-per-mon": "Solar per Month",
+            "zoom": "Zoom",
 
             "jan": "January",
             "feb": "February",
