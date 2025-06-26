@@ -14,7 +14,7 @@ import { PowerConsumptionPlot } from "./panels/PowerConsumptionPlot";
 import { PowerProductionPlot } from "./panels/PowerProductionPlot";
 import { PowerStats } from "./panels/PowerStats";
 import { ROUTES, prefixRoute } from "./Routes";
-import { SceneInfo } from "./Home";
+import { SceneInfo } from "./EmpScene";
 import { SolarDetailsScene } from "./SolarDetails";
 import { t } from "./i18n";
 

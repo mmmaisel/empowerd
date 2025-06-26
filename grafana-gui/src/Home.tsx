@@ -19,11 +19,6 @@ import { t } from "./i18n";
 import { MainControls } from "./SceneControls";
 import { WeatherScene } from "./Weather";
 
-export type SceneInfo = {
-    title: string;
-    getScene: () => EmbeddedScene;
-};
-
 type HomePageProps = {
     config: ConfigJson;
     backCb: () => void;
@@ -41,7 +36,11 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
 
         this.power = new PowerScene(props.config, props.backCb);
         this.heating = new HeatingScene(props.config, props.backCb);
-        this.weather = new WeatherScene(props.config, props.backCb);
+        this.weather = new WeatherScene(
+            props.config,
+            props.backCb,
+            ROUTES.Weather
+        );
 
         this.scene = new SceneApp({
             pages: [

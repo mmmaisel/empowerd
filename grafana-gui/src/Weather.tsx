@@ -1,65 +1,37 @@
-import React from "react";
-import { PanelMenuItem } from "@grafana/data";
 import {
     EmbeddedScene,
-    SceneAppPage,
     SceneAppDrilldownView,
     SceneCSSGridLayout,
-    SceneObject,
     SceneRouteMatch,
-    SceneTimeRange,
 } from "@grafana/scenes";
 
 import { BaroPlot } from "./panels/BaroPlot";
 import { ConfigJson } from "./AppConfig";
-import { DrilldownControls } from "./SceneControls";
+import { EmpScene, SceneInfo } from "./EmpScene";
 import { HumidityPlot } from "./panels/HumidityPlot";
 import { RainPlot } from "./panels/RainPlot";
-import { ROUTES, prefixRoute } from "./Routes";
-import { SceneInfo } from "./Home";
+import { ROUTES } from "./Routes";
 import { t } from "./i18n";
 import { TemperaturePlot } from "./panels/TemperaturePlot";
 import { WindPlot } from "./panels/WindPlot";
 import { WeatherStats } from "./panels/WeatherStats";
 
-export class WeatherScene {
-    config: ConfigJson;
-    backCb: () => void;
-
-    constructor(config: ConfigJson, backCb: () => void) {
-        this.config = config;
-        this.backCb = backCb;
+export class WeatherScene extends EmpScene {
+    constructor(config: ConfigJson, backCb: () => void, route: string) {
+        super(config, backCb, route);
     }
 
-    private drilldown(route: ROUTES): SceneAppDrilldownView {
-        return {
-            routePath: prefixRoute(`${ROUTES.Weather}/${route}`),
-            getPage: this.getPage.bind(this),
-        };
+    protected drilldowns(): SceneAppDrilldownView[] {
+        return [
+            this.zoomDrilldown(ROUTES.Temperature),
+            this.zoomDrilldown(ROUTES.Humidity),
+            this.zoomDrilldown(ROUTES.Rain),
+            this.zoomDrilldown(ROUTES.Barometer),
+            this.zoomDrilldown(ROUTES.Wind),
+        ];
     }
 
-    public getPage(routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
-        let { title, getScene } = this.route(routeMatch);
-
-        return new SceneAppPage({
-            url: routeMatch.url,
-            title,
-            renderTitle: () => {
-                return <></>;
-            },
-            getParentPage: () => parent,
-            getScene,
-            drilldowns: [
-                this.drilldown(ROUTES.Temperature),
-                this.drilldown(ROUTES.Humidity),
-                this.drilldown(ROUTES.Rain),
-                this.drilldown(ROUTES.Barometer),
-                this.drilldown(ROUTES.Wind),
-            ],
-        });
-    }
-
-    private route(routeMatch: SceneRouteMatch<{}>): SceneInfo {
+    protected route(routeMatch: SceneRouteMatch<{}>): SceneInfo {
         if (routeMatch.url.endsWith(ROUTES.Temperature)) {
             return {
                 title: t("temperature"),
@@ -91,26 +63,6 @@ export class WeatherScene {
                 getScene: this.weather_scene.bind(this),
             };
         }
-    }
-
-    private zoom_menu(route: string): PanelMenuItem[] {
-        return [
-            {
-                text: t("zoom"),
-                href: prefixRoute(route),
-                iconClassName: "eye",
-            },
-        ];
-    }
-
-    private mkscene(body: SceneObject): EmbeddedScene {
-        return new EmbeddedScene({
-            $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
-            body,
-            controls: DrilldownControls(() => {
-                this.backCb();
-            }),
-        });
     }
 
     private temperature_scene(): EmbeddedScene {
@@ -201,14 +153,12 @@ export class WeatherScene {
                     new TemperaturePlot(
                         this.config.backend,
                         this.config.datasource,
-                        this.zoom_menu(
-                            `${ROUTES.Weather}/${ROUTES.Temperature}`
-                        )
+                        this.zoomMenu(ROUTES.Temperature)
                     ).build(),
                     new HumidityPlot(
                         this.config.backend,
                         this.config.datasource,
-                        this.zoom_menu(`${ROUTES.Weather}/${ROUTES.Humidity}`)
+                        this.zoomMenu(ROUTES.Humidity)
                     ).build(),
                 ],
             }),
@@ -219,17 +169,17 @@ export class WeatherScene {
                     new RainPlot(
                         this.config.backend,
                         this.config.datasource,
-                        this.zoom_menu(`${ROUTES.Weather}/${ROUTES.Rain}`)
+                        this.zoomMenu(ROUTES.Rain)
                     ).build(),
                     new BaroPlot(
                         this.config.backend,
                         this.config.datasource,
-                        this.zoom_menu(`${ROUTES.Weather}/${ROUTES.Barometer}`)
+                        this.zoomMenu(ROUTES.Barometer)
                     ).build(),
                     new WindPlot(
                         this.config.backend,
                         this.config.datasource,
-                        this.zoom_menu(`${ROUTES.Weather}/${ROUTES.Wind}`)
+                        this.zoomMenu(ROUTES.Wind)
                     ).build(),
                     new WeatherStats(
                         this.config.backend,

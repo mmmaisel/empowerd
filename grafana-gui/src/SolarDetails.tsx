@@ -10,7 +10,7 @@ import {
 
 import { ConfigJson } from "./AppConfig";
 import { DrilldownControls } from "./SceneControls";
-import { SceneInfo } from "./Home";
+import { SceneInfo } from "./EmpScene";
 import { SolarPlot } from "./panels/SolarPlot";
 import { SolarStats } from "./panels/SolarStats";
 import { SolarPerMonth } from "./panels/SolarPerMonth";

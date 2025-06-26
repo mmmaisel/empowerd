@@ -13,7 +13,7 @@ import { DrilldownControls } from "./SceneControls";
 import { BoilerPlot } from "./panels/BoilerPlot";
 import { HeatSumStats } from "./panels/HeatSumStats";
 import { HeatPlot } from "./panels/HeatPlot";
-import { SceneInfo } from "./Home";
+import { SceneInfo } from "./EmpScene";
 import { t } from "./i18n";
 
 export class HeatingScene {
