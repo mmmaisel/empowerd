@@ -12,6 +12,8 @@ export enum ROUTES {
     Heating = "heating",
     Weather = "weather",
 
+    Boiler = "boiler",
+    Heat = "heat",
     Temperature = "temperature",
     Humidity = "humidity",
     Rain = "rain",

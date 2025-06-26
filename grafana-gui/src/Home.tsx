@@ -35,7 +35,11 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
         super(props);
 
         this.power = new PowerScene(props.config, props.backCb);
-        this.heating = new HeatingScene(props.config, props.backCb);
+        this.heating = new HeatingScene(
+            props.config,
+            props.backCb,
+            ROUTES.Heating
+        );
         this.weather = new WeatherScene(
             props.config,
             props.backCb,

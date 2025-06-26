@@ -1,65 +1,91 @@
-import React from "react";
 import {
     EmbeddedScene,
-    SceneAppPage,
+    SceneAppDrilldownView,
     SceneCSSGridLayout,
-    SceneObject,
     SceneRouteMatch,
-    SceneTimeRange,
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
-import { DrilldownControls } from "./SceneControls";
+import { EmpScene, SceneInfo } from "./EmpScene";
 import { BoilerPlot } from "./panels/BoilerPlot";
 import { HeatSumStats } from "./panels/HeatSumStats";
 import { HeatPlot } from "./panels/HeatPlot";
-import { SceneInfo } from "./EmpScene";
+import { ROUTES } from "./Routes";
 import { t } from "./i18n";
 
-export class HeatingScene {
-    config: ConfigJson;
-    backCb: () => void;
-
-    constructor(config: ConfigJson, backCb: () => void) {
-        this.config = config;
-        this.backCb = backCb;
+export class HeatingScene extends EmpScene {
+    constructor(config: ConfigJson, backCb: () => void, route: string) {
+        super(config, backCb, route);
     }
 
-    public getPage(routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
-        let { title, getScene } = this.route(routeMatch);
-
-        return new SceneAppPage({
-            url: routeMatch.url,
-            title,
-            renderTitle: () => {
-                return <></>;
-            },
-            getParentPage: () => parent,
-            getScene,
-        });
+    protected drilldowns(): SceneAppDrilldownView[] {
+        return [
+            this.zoomDrilldown(ROUTES.Boiler),
+            this.zoomDrilldown(ROUTES.Heat),
+        ];
     }
 
-    private route(routeMatch: SceneRouteMatch<{}>): SceneInfo {
-        return {
-            title: t("heating"),
-            getScene: this.heating_scene.bind(this),
-        };
+    protected route(routeMatch: SceneRouteMatch<{}>): SceneInfo {
+        if (routeMatch.url.endsWith(ROUTES.Boiler)) {
+            return {
+                title: t("boiler"),
+                getScene: this.boiler_scene.bind(this),
+            };
+        } else if (routeMatch.url.endsWith(ROUTES.Heat)) {
+            return {
+                title: t("heat"),
+                getScene: this.heat_scene.bind(this),
+            };
+        } else {
+            return {
+                title: t("heating"),
+                getScene: this.heating_scene.bind(this),
+            };
+        }
     }
 
-    private mkscene(body: SceneObject): EmbeddedScene {
-        return new EmbeddedScene({
-            $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
-            body,
-            controls: DrilldownControls(() => {
-                this.backCb();
-            }),
-        });
+    private boiler_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "1fr",
+                children: [
+                    new BoilerPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                ],
+            })
+        );
+    }
+
+    private heat_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "3fr 1fr",
+                children: [
+                    new HeatPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                    new HeatSumStats(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                ],
+            })
+        );
     }
 
     private heating_scene(): EmbeddedScene {
         let templateRows = "3fr 1fr";
         let children: any = [
-            new HeatPlot(this.config.backend, this.config.datasource).build(),
+            new HeatPlot(
+                this.config.backend,
+                this.config.datasource,
+                this.zoomMenu(ROUTES.Heat)
+            ).build(),
             new HeatSumStats(
                 this.config.backend,
                 this.config.datasource
@@ -71,7 +97,8 @@ export class HeatingScene {
             children.unshift(
                 new BoilerPlot(
                     this.config.backend,
-                    this.config.datasource
+                    this.config.datasource,
+                    this.zoomMenu(ROUTES.Boiler)
                 ).build()
             );
         }
