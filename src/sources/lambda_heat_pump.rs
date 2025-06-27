@@ -180,8 +180,8 @@ impl LambdaHeatPumpSource {
             // Update accumulated energy.
             let energy_total = self.energy_interval + last_record.energy;
             let heat_total = self.heat_interval + last_record.heat;
-            let cold_total = self.cold_interval + last_record.heat;
-            let defrost_total = self.defrost_interval + last_record.heat;
+            let cold_total = self.cold_interval + last_record.cold;
+            let defrost_total = self.defrost_interval + last_record.defrost;
 
             let cop = Ratio::new::<percent>(
                 self.cops.iter().map(|x| *x as i32).sum::<i32>() as f64
