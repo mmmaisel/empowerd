@@ -25,12 +25,14 @@ use crate::{
         },
         Heatpump,
     },
-    task_group::TaskResult,
+    task_group::{TaskResult, TaskTiming},
     Error,
 };
-use lambda_client::{LambdaClient, LambdaMode};
-use slog::{trace, Logger};
-use std::collections::VecDeque;
+use diesel_async::{pooled_connection::deadpool::Object, AsyncPgConnection};
+use lambda_client::{LambdaClient, LambdaContext, LambdaMode};
+use slog::{debug, trace, Logger};
+use std::{collections::VecDeque, time::Duration};
+use tokio::time::{error::Elapsed, timeout};
 
 pub struct LambdaHeatPumpSource {
     base: SourceBase,
@@ -41,6 +43,8 @@ pub struct LambdaHeatPumpSource {
     cold_interval: Energy,
     defrost_interval: Energy,
     cops: VecDeque<i16>,
+    acc_support: Option<bool>,
+    last_energy_acc: Energy,
 }
 
 impl LambdaHeatPumpSource {
@@ -58,6 +62,8 @@ impl LambdaHeatPumpSource {
             cold_interval: Energy::new::<joule>(0.0),
             defrost_interval: Energy::new::<joule>(0.0),
             cops,
+            acc_support: None,
+            last_energy_acc: Energy::new::<watt_hour>(0.0),
         })
     }
 
@@ -67,55 +73,126 @@ impl LambdaHeatPumpSource {
 
     pub async fn run(&mut self) -> TaskResult {
         let timing = self.base.sleep_aligned().await?;
-        let mut conn = self.base.get_database().await?;
+        let conn = self.base.get_database().await?;
 
-        let (mode, power) = match tokio::time::timeout(
-            std::time::Duration::from_secs(3),
-            async {
-                let mut context = self.client.open().await.map_err(|e| {
-                    Error::Temporary(format!(
-                        "Could not connect to Lambda Heat Pump: {e}",
-                    ))
-                })?;
+        let mut context =
+            timeout(Duration::from_secs(1), self.connect_and_introspect())
+                .await
+                .map_err(Self::timeout_err)??;
 
-                match context.get_cop().await {
-                    Ok(x) => {
-                        self.cops.pop_front();
-                        self.cops.push_back(x);
-                    }
-                    Err(e) => {
-                        return Err(Error::Temporary(format!(
-                            "Query Lambda Heat Pump data failed: {e}",
-                        )))
-                    }
-                }
-
-                let mode = context.get_op_mode().await.map_err(|e| {
-                    Error::Temporary(format!(
-                        "Query Lambda Heat Pump data failed: {e}",
-                    ))
-                })?;
-                let power = context.get_current_power().await.map_err(|e| {
-                    Error::Temporary(format!(
-                        "Query Lambda Heat Pump data failed: {e}",
-                    ))
-                })?;
-
-                Ok((mode, Power::new::<watt>(power as f64)))
-            },
+        let mode = timeout(
+            Duration::from_secs(1),
+            Self::get_cop_and_mode(&mut context, &mut self.cops),
         )
         .await
-        {
-            Ok(Ok(x)) => x,
-            Ok(Err(e)) => return Err(e),
-            Err(e) => {
-                return Err(Error::Temporary(format!(
-                    "Query Lambda Heat Pump data timed out: {e}",
-                )))
+        .map_err(Self::timeout_err)??;
+
+        let power = timeout(Duration::from_secs(1), async {
+            match self.acc_support {
+                Some(true) => self.get_power_acc(&mut context).await,
+                Some(false) => self.get_power_direct(&mut context).await,
+                None => unreachable!(),
             }
+        })
+        .await
+        .map_err(Self::timeout_err)??;
+
+        self.update_energies(power, mode);
+
+        if !timing.oversample {
+            // Discard incomplete samples.
+            if self.count != self.base.oversample_factor {
+                debug!(
+                    self.base.logger,
+                    "Lambda: Discarding incomplete sample"
+                );
+                self.reset_sample();
+                return Ok(());
+            }
+            self.fetch_boiler_and_save(context, timing, conn).await?;
+            self.reset_sample();
+        }
+
+        Ok(())
+    }
+
+    fn timeout_err(_e: Elapsed) -> Error {
+        Error::Temporary("Query Lambda Heat Pump data timed out".into())
+    }
+
+    fn query_err(e: String) -> Error {
+        Error::Temporary(format!("Query Lambda Heat Pump data failed: {e}",))
+    }
+
+    async fn connect_and_introspect(&mut self) -> Result<LambdaContext, Error> {
+        let mut context = self.client.open().await.map_err(|e| {
+            Error::Temporary(format!(
+                "Could not connect to Lambda Heat Pump: {e}"
+            ))
+        })?;
+
+        if self.acc_support.is_none() {
+            let acc_support = Self::check_acc_support(&mut context).await;
+            debug!(self.base.logger, "Using energy accumulator: {acc_support}");
+            self.acc_support = Some(acc_support);
+        }
+
+        Ok(context)
+    }
+
+    async fn check_acc_support(context: &mut LambdaContext) -> bool {
+        context.get_total_energy().await.is_ok()
+    }
+
+    async fn get_cop_and_mode(
+        context: &mut LambdaContext,
+        cops: &mut VecDeque<i16>,
+    ) -> Result<LambdaMode, Error> {
+        let cop = context.get_cop().await.map_err(Self::query_err)?;
+        cops.pop_front();
+        cops.push_back(cop);
+
+        let mode = context.get_op_mode().await.map_err(Self::query_err)?;
+
+        Ok(mode)
+    }
+
+    async fn get_power_direct(
+        &mut self,
+        context: &mut LambdaContext,
+    ) -> Result<Power, Error> {
+        let power =
+            context.get_current_power().await.map_err(Self::query_err)?;
+
+        Ok(Power::new::<watt>(power as f64))
+    }
+
+    async fn get_power_acc(
+        &mut self,
+        context: &mut LambdaContext,
+    ) -> Result<Power, Error> {
+        let energy = Energy::new::<watt_hour>(
+            context.get_total_energy().await.map_err(Self::query_err)? as f64,
+        );
+
+        let power = if self.last_energy_acc < Energy::new::<watt_hour>(1.0) {
+            Power::new::<watt>(0.0)
+        } else {
+            let delta_t = Time::new::<second>(
+                (self.base.interval.as_secs() / self.base.oversample_factor)
+                    as f64,
+            );
+
+            (energy - self.last_energy_acc) / delta_t
         };
 
+        self.last_energy_acc = energy;
+        Ok(power)
+    }
+
+    fn update_energies(&mut self, power: Power, mode: LambdaMode) {
         // Calculate energy from oversampled power.
+        // TODO: split off state struct for calcs only that can be tested
         let delta_t = Time::new::<second>(
             (self.base.interval.as_secs() / self.base.oversample_factor) as f64,
         );
@@ -135,96 +212,94 @@ impl LambdaHeatPumpSource {
                 self.defrost_interval += power * delta_t * cop_interval;
             }
         }
+    }
 
-        if !timing.oversample {
-            // Discard incomplete samples.
-            if self.count != self.base.oversample_factor {
-                self.reset_sample();
-                return Ok(());
+    async fn get_boiler_temps(
+        context: &mut LambdaContext,
+    ) -> Result<(i16, i16, i16), Error> {
+        context.get_boiler_temps().await.map_err(Self::query_err)
+    }
+
+    async fn fetch_boiler_and_save(
+        &mut self,
+        mut context: LambdaContext,
+        timing: TaskTiming,
+        mut conn: Object<AsyncPgConnection>,
+    ) -> TaskResult {
+        // Get accumulated energy from database.
+        let last_record = match Heatpump::last(&mut conn, self.base.series_id)
+            .await
+        {
+            Ok(last_record) => {
+                trace!(
+                    self.base.logger,
+                    "Read {:?} from database",
+                    last_record
+                );
+                last_record
             }
-
-            // Get accumulated energy from database.
-            let last_record =
-                match Heatpump::last(&mut conn, self.base.series_id).await {
-                    Ok(last_record) => {
-                        trace!(
-                            self.base.logger,
-                            "Read {:?} from database",
-                            last_record
-                        );
-                        last_record
-                    }
-                    Err(Error::NotFound) => Heatpump {
-                        time: Time::new::<second>(timing.now as f64)
-                            - Time::new::<second>(
-                                self.base.interval.as_secs() as f64
-                            ),
-                        energy: Energy::new::<watt_hour>(0.0),
-                        power: Power::new::<watt>(0.0),
-                        heat: Energy::new::<watt_hour>(0.0),
-                        cold: Energy::new::<watt_hour>(0.0),
-                        defrost: Energy::new::<watt_hour>(0.0),
-                        cop: Ratio::new::<ratio>(0.0),
-                        boiler_top: None,
-                        boiler_mid: None,
-                        boiler_bot: None,
-                    },
-                    Err(e) => {
-                        return Err(Error::Temporary(format!(
-                            "Query {} database failed: {}",
-                            &self.base.name, e,
-                        )))
-                    }
-                };
-
-            // Update accumulated energy.
-            let energy_total = self.energy_interval + last_record.energy;
-            let heat_total = self.heat_interval + last_record.heat;
-            let cold_total = self.cold_interval + last_record.cold;
-            let defrost_total = self.defrost_interval + last_record.defrost;
-
-            let cop = Ratio::new::<percent>(
-                self.cops.iter().map(|x| *x as i32).sum::<i32>() as f64
-                    / self.cops.len() as f64,
-            );
-
-            let mut context = self.client.open().await.map_err(|e| {
-                Error::Temporary(format!(
-                    "Could not connect to Lambda Heat Pump: {e}",
-                ))
-            })?;
-            let boiler = context.get_boiler_temps().await.map_err(|e| {
-                Error::Temporary(format!(
-                    "Query Lambda Heat Pump data failed: {e}",
-                ))
-            })?;
-
-            // Commit new sample to database.
-            let mut record = Heatpump {
-                time: Time::new::<second>(timing.now as f64),
-                energy: energy_total,
+            Err(Error::NotFound) => Heatpump {
+                time: Time::new::<second>(timing.now as f64)
+                    - Time::new::<second>(self.base.interval.as_secs() as f64),
+                energy: Energy::new::<watt_hour>(0.0),
                 power: Power::new::<watt>(0.0),
-                heat: heat_total,
-                cold: cold_total,
-                defrost: defrost_total,
-                cop,
-                boiler_top: Some(Temperature::new::<celsius>(
-                    boiler.0 as f64 / 10.0,
-                )),
-                boiler_mid: Some(Temperature::new::<celsius>(
-                    boiler.1 as f64 / 10.0,
-                )),
-                boiler_bot: Some(Temperature::new::<celsius>(
-                    boiler.2 as f64 / 10.0,
-                )),
-            };
-            record.power = record.calc_power(&last_record);
+                heat: Energy::new::<watt_hour>(0.0),
+                cold: Energy::new::<watt_hour>(0.0),
+                defrost: Energy::new::<watt_hour>(0.0),
+                cop: Ratio::new::<ratio>(0.0),
+                boiler_top: None,
+                boiler_mid: None,
+                boiler_bot: None,
+            },
+            Err(e) => {
+                return Err(Error::Temporary(format!(
+                    "Query {} database failed: {}",
+                    &self.base.name, e,
+                )))
+            }
+        };
 
-            self.base.notify_processors(&record);
-            record.insert(&mut conn, self.base.series_id).await?;
+        // Update accumulated energy.
+        let energy_total = self.energy_interval + last_record.energy;
+        let heat_total = self.heat_interval + last_record.heat;
+        let cold_total = self.cold_interval + last_record.cold;
+        let defrost_total = self.defrost_interval + last_record.defrost;
 
-            self.reset_sample();
-        }
+        let cop = Ratio::new::<percent>(
+            self.cops.iter().map(|x| *x as i32).sum::<i32>() as f64
+                / self.cops.len() as f64,
+        );
+
+        let boiler = timeout(
+            Duration::from_secs(1),
+            Self::get_boiler_temps(&mut context),
+        )
+        .await
+        .map_err(Self::timeout_err)??;
+
+        // Commit new sample to database.
+        let mut record = Heatpump {
+            time: Time::new::<second>(timing.now as f64),
+            energy: energy_total,
+            power: Power::new::<watt>(0.0),
+            heat: heat_total,
+            cold: cold_total,
+            defrost: defrost_total,
+            cop,
+            boiler_top: Some(Temperature::new::<celsius>(
+                boiler.0 as f64 / 10.0,
+            )),
+            boiler_mid: Some(Temperature::new::<celsius>(
+                boiler.1 as f64 / 10.0,
+            )),
+            boiler_bot: Some(Temperature::new::<celsius>(
+                boiler.2 as f64 / 10.0,
+            )),
+        };
+        record.power = record.calc_power(&last_record);
+
+        self.base.notify_processors(&record);
+        record.insert(&mut conn, self.base.series_id).await?;
 
         Ok(())
     }

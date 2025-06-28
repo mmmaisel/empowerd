@@ -37,6 +37,7 @@ where
     format!("Could not write register {reg}: {e}")
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum LambdaMode {
     Heating,
     Cooling,
@@ -71,6 +72,17 @@ impl LambdaContext {
             .map_err(|e| read_err_msg(103, e))?;
 
         Ok(data[0] as i16)
+    }
+
+    pub async fn get_total_energy(&mut self) -> Result<u32, String> {
+        let data = self
+            .0
+            .read_holding_registers(1020, 2)
+            .await
+            .map_err(|e| read_err_msg(1020, e))?
+            .map_err(|e| read_err_msg(1020, e))?;
+
+        Ok((data[0] as u32) << 16 | (data[1] as u32))
     }
 
     pub async fn get_cop(&mut self) -> Result<i16, String> {
