@@ -22,6 +22,7 @@ export class HeatingScene extends EmpScene {
         return [
             this.zoomDrilldown(ROUTES.Boiler),
             this.zoomDrilldown(ROUTES.Heat),
+            this.zoomDrilldown(ROUTES.Stats),
         ];
     }
 
@@ -35,6 +36,11 @@ export class HeatingScene extends EmpScene {
             return {
                 title: t("heat"),
                 getScene: this.heat_scene.bind(this),
+            };
+        } else if (routeMatch.url.endsWith(ROUTES.Stats)) {
+            return {
+                title: t("stats"),
+                getScene: this.stats_scene.bind(this),
             };
         } else {
             return {
@@ -63,12 +69,23 @@ export class HeatingScene extends EmpScene {
         return this.mkscene(
             new SceneCSSGridLayout({
                 templateColumns: "1fr",
-                templateRows: "3fr 1fr",
+                templateRows: "1fr 1fr",
                 children: [
                     new HeatPlot(
                         this.config.backend,
                         this.config.datasource
                     ).build(),
+                ],
+            })
+        );
+    }
+
+    private stats_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "1fr 1fr",
+                children: [
                     new HeatSumStats(
                         this.config.backend,
                         this.config.datasource
@@ -88,7 +105,8 @@ export class HeatingScene extends EmpScene {
             ).build(),
             new HeatSumStats(
                 this.config.backend,
-                this.config.datasource
+                this.config.datasource,
+                this.zoomMenu(ROUTES.Stats)
             ).build(),
         ];
 

@@ -1,69 +1,114 @@
-import React from "react";
 import {
     EmbeddedScene,
-    SceneAppPage,
+    SceneAppDrilldownView,
     SceneCSSGridLayout,
-    SceneObject,
     SceneRouteMatch,
-    SceneTimeRange,
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
-import { DrilldownControls } from "./SceneControls";
+import { EmpScene, SceneInfo } from "./EmpScene";
 import { PowerConsumptionPlot } from "./panels/PowerConsumptionPlot";
 import { PowerProductionPlot } from "./panels/PowerProductionPlot";
 import { PowerStats } from "./panels/PowerStats";
 import { ROUTES, prefixRoute } from "./Routes";
-import { SceneInfo } from "./EmpScene";
 import { SolarDetailsScene } from "./SolarDetails";
 import { t } from "./i18n";
 
-export class PowerScene {
-    config: ConfigJson;
-    backCb: () => void;
-    details: SolarDetailsScene;
+export class PowerScene extends EmpScene {
+    private details: SolarDetailsScene;
 
-    constructor(config: ConfigJson, backCb: () => void) {
-        this.config = config;
-        this.backCb = backCb;
-        this.details = new SolarDetailsScene(config, backCb);
+    constructor(config: ConfigJson, backCb: () => void, route: string) {
+        super(config, backCb, route);
+        this.details = new SolarDetailsScene(
+            config,
+            backCb,
+            `${this.baseRoute}/${ROUTES.Details}`
+        );
     }
 
-    public getPage(routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
-        let { title, getScene } = this.route(routeMatch);
-
-        return new SceneAppPage({
-            url: routeMatch.url,
-            title,
-            renderTitle: () => {
-                return <></>;
+    protected drilldowns(): SceneAppDrilldownView[] {
+        return [
+            this.zoomDrilldown(ROUTES.Production),
+            this.zoomDrilldown(ROUTES.Consumption),
+            this.zoomDrilldown(ROUTES.Stats),
+            {
+                routePath: prefixRoute(`${this.baseRoute}/${ROUTES.Details}`),
+                getPage: this.details.getPage.bind(this.details),
             },
-            getParentPage: () => parent,
-            getScene,
-            drilldowns: [
-                {
-                    routePath: prefixRoute(`${ROUTES.Power}/${ROUTES.Details}`),
-                    getPage: this.details.getPage.bind(this.details),
-                },
-            ],
-        });
+        ];
     }
 
-    private route(routeMatch: SceneRouteMatch<{}>): SceneInfo {
-        return {
-            title: t("pwr-prod-and-cons"),
-            getScene: this.power_scene.bind(this),
-        };
+    protected route(routeMatch: SceneRouteMatch<{}>): SceneInfo {
+        if (routeMatch.url.endsWith(ROUTES.Production)) {
+            return {
+                title: t("pwr-prod"),
+                getScene: this.production_scene.bind(this),
+            };
+        } else if (routeMatch.url.endsWith(ROUTES.Consumption)) {
+            return {
+                title: t("pwr-cons"),
+                getScene: this.consumption_scene.bind(this),
+            };
+        } else if (routeMatch.url.endsWith(ROUTES.Stats)) {
+            return {
+                title: t("stats"),
+                getScene: this.stats_scene.bind(this),
+            };
+        } else {
+            return {
+                title: t("pwr-prod-and-cons"),
+                getScene: this.power_scene.bind(this),
+            };
+        }
     }
 
-    private mkscene(body: SceneObject): EmbeddedScene {
-        return new EmbeddedScene({
-            $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
-            body,
-            controls: DrilldownControls(() => {
-                this.backCb();
-            }),
-        });
+    private production_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "1fr",
+                children: [
+                    new PowerProductionPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                ],
+            })
+        );
+    }
+
+    private consumption_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "1fr",
+                children: [
+                    new PowerConsumptionPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                ],
+            })
+        );
+    }
+
+    private stats_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "1fr",
+                children: [
+                    new PowerStats(
+                        this.config.backend,
+                        this.config.datasource,
+                        [],
+                        {
+                            solar: [],
+                        }
+                    ).build(),
+                ],
+            })
+        );
     }
 
     private power_scene(): EmbeddedScene {
@@ -74,16 +119,27 @@ export class PowerScene {
                 children: [
                     new PowerProductionPlot(
                         this.config.backend,
-                        this.config.datasource
+                        this.config.datasource,
+                        this.zoomMenu(ROUTES.Production)
                     ).build(),
                     new PowerConsumptionPlot(
                         this.config.backend,
-                        this.config.datasource
+                        this.config.datasource,
+                        this.zoomMenu(ROUTES.Consumption)
                     ).build(),
                     new PowerStats(
                         this.config.backend,
                         this.config.datasource,
-                        [],
+                        [
+                            ...this.zoomMenu(ROUTES.Stats),
+                            {
+                                text: t("details"),
+                                href: prefixRoute(
+                                    `${this.baseRoute}/${ROUTES.Details}`
+                                ),
+                                iconClassName: "bolt",
+                            },
+                        ],
                         {
                             solar: [
                                 {

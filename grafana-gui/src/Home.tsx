@@ -26,15 +26,15 @@ type HomePageProps = {
 type HomePageState = {};
 
 export class HomePage extends Component<HomePageProps, HomePageState> {
-    power: PowerScene;
-    heating: HeatingScene;
-    weather: WeatherScene;
-    scene: SceneApp;
+    private power: PowerScene;
+    private heating: HeatingScene;
+    private weather: WeatherScene;
+    private scene: SceneApp;
 
     constructor(props: HomePageProps) {
         super(props);
 
-        this.power = new PowerScene(props.config, props.backCb);
+        this.power = new PowerScene(props.config, props.backCb, ROUTES.Power);
         this.heating = new HeatingScene(
             props.config,
             props.backCb,

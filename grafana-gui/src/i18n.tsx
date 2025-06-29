@@ -40,6 +40,8 @@ const resources = {
             "weather": "Wetter",
             "solar-details": "Solar Details",
             "solar-per-mon": "Solar pro Monat",
+            "stats": "Statistiken",
+            "details": "Details",
             "zoom": "Vergrössern",
 
             "jan": "Januar",
@@ -164,6 +166,8 @@ const resources = {
             "weather": "Weather",
             "solar-details": "Solar Details",
             "solar-per-mon": "Solar per Month",
+            "stats": "Statistics",
+            "details": "Details",
             "zoom": "Zoom",
 
             "jan": "January",

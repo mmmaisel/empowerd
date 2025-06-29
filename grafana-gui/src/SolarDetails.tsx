@@ -1,59 +1,98 @@
-import React from "react";
 import {
     EmbeddedScene,
-    SceneAppPage,
+    SceneAppDrilldownView,
     SceneCSSGridLayout,
-    SceneObject,
     SceneRouteMatch,
-    SceneTimeRange,
 } from "@grafana/scenes";
 
 import { ConfigJson } from "./AppConfig";
-import { DrilldownControls } from "./SceneControls";
-import { SceneInfo } from "./EmpScene";
+import { EmpScene, SceneInfo } from "./EmpScene";
+import { ROUTES } from "./Routes";
 import { SolarPlot } from "./panels/SolarPlot";
 import { SolarStats } from "./panels/SolarStats";
 import { SolarPerMonth } from "./panels/SolarPerMonth";
 import { t } from "./i18n";
 
-export class SolarDetailsScene {
-    config: ConfigJson;
-    backCb: () => void;
-
-    constructor(config: ConfigJson, backCb: () => void) {
-        this.config = config;
-        this.backCb = backCb;
+export class SolarDetailsScene extends EmpScene {
+    constructor(config: ConfigJson, backCb: () => void, route: string) {
+        super(config, backCb, route);
     }
 
-    public getPage(routeMatch: SceneRouteMatch<{}>, parent: any): SceneAppPage {
-        let { title, getScene } = this.route(routeMatch);
-
-        return new SceneAppPage({
-            url: routeMatch.url,
-            title,
-            renderTitle: () => {
-                return <></>;
-            },
-            getParentPage: () => parent,
-            getScene,
-        });
+    protected drilldowns(): SceneAppDrilldownView[] {
+        return [
+            this.zoomDrilldown(ROUTES.Solar),
+            this.zoomDrilldown(ROUTES.Stats),
+            this.zoomDrilldown(ROUTES.Histogram),
+        ];
     }
 
-    private route(routeMatch: SceneRouteMatch<{}>): SceneInfo {
-        return {
-            title: t("solar-details"),
-            getScene: this.details_scene.bind(this),
-        };
+    protected route(routeMatch: SceneRouteMatch<{}>): SceneInfo {
+        if (routeMatch.url.endsWith(ROUTES.Solar)) {
+            return {
+                title: t("solar"),
+                getScene: this.solar_scene.bind(this),
+            };
+        } else if (routeMatch.url.endsWith(ROUTES.Stats)) {
+            return {
+                title: t("stats"),
+                getScene: this.stats_scene.bind(this),
+            };
+        } else if (routeMatch.url.endsWith(ROUTES.Histogram)) {
+            return {
+                title: t("solar-per-mon"),
+                getScene: this.histogram_scene.bind(this),
+            };
+        } else {
+            return {
+                title: t("solar-details"),
+                getScene: this.details_scene.bind(this),
+            };
+        }
     }
 
-    private mkscene(body: SceneObject): EmbeddedScene {
-        return new EmbeddedScene({
-            $timeRange: new SceneTimeRange({ from: "now-2d", to: "now" }),
-            body,
-            controls: DrilldownControls(() => {
-                this.backCb();
-            }),
-        });
+    private solar_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "1fr",
+                children: [
+                    new SolarPlot(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                ],
+            })
+        );
+    }
+
+    private stats_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "1fr",
+                children: [
+                    new SolarStats(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                ],
+            })
+        );
+    }
+
+    private histogram_scene(): EmbeddedScene {
+        return this.mkscene(
+            new SceneCSSGridLayout({
+                templateColumns: "1fr",
+                templateRows: "1fr",
+                children: [
+                    new SolarPerMonth(
+                        this.config.backend,
+                        this.config.datasource
+                    ).build(),
+                ],
+            })
+        );
     }
 
     private details_scene(): EmbeddedScene {
@@ -64,15 +103,18 @@ export class SolarDetailsScene {
                 children: [
                     new SolarPlot(
                         this.config.backend,
-                        this.config.datasource
+                        this.config.datasource,
+                        this.zoomMenu(ROUTES.Solar)
                     ).build(),
                     new SolarStats(
                         this.config.backend,
-                        this.config.datasource
+                        this.config.datasource,
+                        this.zoomMenu(ROUTES.Stats)
                     ).build(),
                     new SolarPerMonth(
                         this.config.backend,
-                        this.config.datasource
+                        this.config.datasource,
+                        this.zoomMenu(ROUTES.Histogram)
                     ).build(),
                 ],
             })
