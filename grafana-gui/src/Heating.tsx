@@ -69,7 +69,7 @@ export class HeatingScene extends EmpScene {
         return this.mkscene(
             new SceneCSSGridLayout({
                 templateColumns: "1fr",
-                templateRows: "1fr 1fr",
+                templateRows: "1fr",
                 children: [
                     new HeatPlot(
                         this.config.backend,
@@ -84,7 +84,7 @@ export class HeatingScene extends EmpScene {
         return this.mkscene(
             new SceneCSSGridLayout({
                 templateColumns: "1fr",
-                templateRows: "1fr 1fr",
+                templateRows: "1fr",
                 children: [
                     new HeatSumStats(
                         this.config.backend,
