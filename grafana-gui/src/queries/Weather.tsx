@@ -23,6 +23,11 @@ export class WeatherSeries extends Timeseries {
     static hum_x6 = new Field("hum_x6_e3/10.0", "hum_x6_pct");
     static temp_x7 = new Field("temp_x7_degc_e1/10.0", "temp_x7_degc");
     static hum_x7 = new Field("hum_x7_e3/10.0", "hum_x7_pct");
+    static temp_room_var = new Field(
+        "temp_${room}_degc_e1/10.0",
+        "temp_${room}_degc"
+    );
+    static hum_room_var = new Field("hum_${room}_e3/10.0", "hum_${room}_pct");
     static rain_act = new Field("rain_act_um/1000.0", "rain_act_mm");
     static rain_day = new Field("rain_day_um/1000.0", "rain_day_mm");
     static rain_acc = new Field("rain_acc_um/1000.0", "rain_acc_mm");
@@ -144,6 +149,16 @@ export class WeatherSeries extends Timeseries {
         return this;
     }
 
+    public temp_room_var(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.temp_room_var.with_alias(alias));
+        return this;
+    }
+
+    public hum_room_var(alias: string | null = null): this {
+        this.fields_.push(WeatherSeries.hum_room_var.with_alias(alias));
+        return this;
+    }
+
     public rain_act(alias: string | null = null): this {
         this.fields_.push(WeatherSeries.rain_act.with_alias(alias));
         return this;
@@ -232,6 +247,15 @@ export class Weather {
         if (labels.x7 !== null) query.hum_x7();
 
         return query.time_filter().ordered();
+    }
+
+    static query_room_var(ids: number[]): Query {
+        return new this.series(ids[0])
+            .time()
+            .temp_room_var()
+            .hum_room_var()
+            .time_filter()
+            .ordered();
     }
 
     static query_rain(ids: number[]): Query {

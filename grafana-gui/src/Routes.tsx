@@ -24,6 +24,7 @@ export enum ROUTES {
     Rain = "rain",
     Barometer = "barometer",
     Wind = "wind",
+    Room = "room",
 }
 
 const PLUGIN_BASE_URL = `/a/${pluginJson.id}`;

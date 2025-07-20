@@ -10,15 +10,23 @@ import { ConfigJson } from "./AppConfig";
 import { EmpScene, SceneInfo } from "./EmpScene";
 import { HumidityPlot } from "./panels/HumidityPlot";
 import { RainPlot } from "./panels/RainPlot";
-import { ROUTES } from "./Routes";
+import { prefixRoute, ROUTES } from "./Routes";
+import { RoomDetailsScene } from "./RoomDetails";
 import { t } from "./i18n";
 import { TemperaturePlot } from "./panels/TemperaturePlot";
 import { WindPlot } from "./panels/WindPlot";
 import { WeatherStats } from "./panels/WeatherStats";
 
 export class WeatherScene extends EmpScene {
+    private room: RoomDetailsScene;
+
     constructor(config: ConfigJson, backCb: () => void, route: string) {
         super(config, backCb, route);
+        this.room = new RoomDetailsScene(
+            config,
+            backCb,
+            `${this.baseRoute}/${ROUTES.Room}`
+        );
     }
 
     protected drilldowns(): SceneAppDrilldownView[] {
@@ -28,6 +36,10 @@ export class WeatherScene extends EmpScene {
             this.zoomDrilldown(ROUTES.Rain),
             this.zoomDrilldown(ROUTES.Barometer),
             this.zoomDrilldown(ROUTES.Wind),
+            {
+                routePath: prefixRoute(`${this.baseRoute}/${ROUTES.Room}`),
+                getPage: this.room.getPage.bind(this.room),
+            },
         ];
     }
 
@@ -153,7 +165,16 @@ export class WeatherScene extends EmpScene {
                     new TemperaturePlot(
                         this.config.backend,
                         this.config.datasource,
-                        this.zoomMenu(ROUTES.Temperature)
+                        [
+                            ...this.zoomMenu(ROUTES.Temperature),
+                            {
+                                text: t("rooms"),
+                                href: prefixRoute(
+                                    `${this.baseRoute}/${ROUTES.Room}`
+                                ),
+                                iconClassName: "building",
+                            },
+                        ]
                     ).build(),
                     new HumidityPlot(
                         this.config.backend,
