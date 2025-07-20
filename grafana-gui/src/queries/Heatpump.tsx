@@ -11,8 +11,10 @@ export class HeatpumpSeries extends SimpleMeterSeries {
     static basename = "heatpump";
     static heat = new Field("power_w * cop_pct / 100.0", "heat_w");
     static heat_wh = new Field("heat_wh");
+    static cold_wh = new Field("cold_wh");
     static cop = new Field("cop_pct / 100.0", "cop");
     static d_heat_wh = new Field("MAX(heat_wh)-MIN(heat_wh)", "d_heat_wh");
+    static d_cold_wh = new Field("MAX(cold_wh)-MIN(cold_wh)", "d_cold_wh");
     static a_cop = new Field("AVG(cop_pct) / 100.0", "cop");
 
     static pa_cop(ids: number[]): Field {
@@ -51,6 +53,15 @@ export class HeatpumpSeries extends SimpleMeterSeries {
         );
     }
 
+    static pds_cold_wh(ids: number[]): Field {
+        return new DeltaSumProxyField(
+            this.cold_wh.alias,
+            "ds_cold_wh",
+            this.basename,
+            ids
+        );
+    }
+
     constructor(id: number) {
         super(id);
         this.name_ = `${HeatpumpSeries.basename}${id}`;
@@ -69,6 +80,16 @@ export class HeatpumpSeries extends SimpleMeterSeries {
 
     public d_heat_wh(alias: string | null = null): this {
         this.fields_.push(HeatpumpSeries.d_heat_wh.with_alias(alias));
+        return this;
+    }
+
+    public cold_wh(alias: string | null = null): this {
+        this.fields_.push(HeatpumpSeries.cold_wh.with_alias(alias));
+        return this;
+    }
+
+    public d_cold_wh(alias: string | null = null): this {
+        this.fields_.push(HeatpumpSeries.d_cold_wh.with_alias(alias));
         return this;
     }
 
@@ -179,6 +200,31 @@ export class Heatpump extends SimpleMeter {
                     this.series
                         .pds_heat_wh(ids)
                         .with_alias(`\"${this.series.basename}.heat_wh\"`),
+                ])
+                .from(new Fragment(`${this.series.basename}${ids[0]}`))
+                .joins(
+                    this.series.time_join(
+                        `${this.series.basename}${ids[0]}`,
+                        ids.slice(1)
+                    )
+                );
+        }
+    }
+
+    static query_dcold_wh_sum(ids: number[]): Query {
+        if (ids.length === 1) {
+            return new this.series(ids[0]).d_cold_wh().time_filter();
+        } else {
+            return new Timeseries()
+                .subqueries(
+                    ids.map((id) =>
+                        new this.series(id).time().cold_wh().time_filter()
+                    )
+                )
+                .fields([
+                    this.series
+                        .pds_cold_wh(ids)
+                        .with_alias(`\"${this.series.basename}.cold_wh\"`),
                 ])
                 .from(new Fragment(`${this.series.basename}${ids[0]}`))
                 .joins(

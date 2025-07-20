@@ -11,8 +11,14 @@ test("Query for heatpump and generator source", () => {
     }).queries();
 
     // prettier-ignore
-    const hp_query =
+    const hp_heat_query =
         "SELECT MAX(heat_wh)-MIN(heat_wh) AS \"heatpump1.heat_wh\" " +
+        "FROM heatpumps " +
+        "WHERE series_id = 1 AND $__timeFilter(time)";
+
+    // prettier-ignore
+    const hp_cold_query =
+        "SELECT MAX(cold_wh)-MIN(cold_wh) AS \"heatpump1.cold_wh\" " +
         "FROM heatpumps " +
         "WHERE series_id = 1 AND $__timeFilter(time)";
 
@@ -29,7 +35,8 @@ test("Query for heatpump and generator source", () => {
         "FROM generators " +
         "WHERE series_id = 2 AND $__timeFilter(time)";
 
-    expect(queries[0].rawSql).toBe(hp_query);
-    expect(queries[1].rawSql).toBe(cop_query);
-    expect(queries[2].rawSql).toBe(gen_query);
+    expect(queries[0].rawSql).toBe(hp_heat_query);
+    expect(queries[1].rawSql).toBe(hp_cold_query);
+    expect(queries[2].rawSql).toBe(cop_query);
+    expect(queries[3].rawSql).toBe(gen_query);
 });

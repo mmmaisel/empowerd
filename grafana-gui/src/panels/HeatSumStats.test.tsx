@@ -11,8 +11,14 @@ test("Query for single heatpump and generator source", () => {
     }).queries();
 
     // prettier-ignore
-    const hp_query =
+    const hp_heat_query =
         "SELECT MAX(heat_wh)-MIN(heat_wh) AS d_heat_wh " +
+        "FROM heatpumps " +
+        "WHERE series_id = 1 AND $__timeFilter(time)";
+
+    // prettier-ignore
+    const hp_cold_query =
+        "SELECT MAX(cold_wh)-MIN(cold_wh) AS d_cold_wh " +
         "FROM heatpumps " +
         "WHERE series_id = 1 AND $__timeFilter(time)";
 
@@ -29,9 +35,10 @@ test("Query for single heatpump and generator source", () => {
         "FROM generators " +
         "WHERE series_id = 2 AND $__timeFilter(time)";
 
-    expect(queries[0].rawSql).toBe(hp_query);
-    expect(queries[1].rawSql).toBe(cop_query);
-    expect(queries[2].rawSql).toBe(gen_query);
+    expect(queries[0].rawSql).toBe(hp_heat_query);
+    expect(queries[1].rawSql).toBe(hp_cold_query);
+    expect(queries[2].rawSql).toBe(cop_query);
+    expect(queries[3].rawSql).toBe(gen_query);
 });
 
 test("Query for dual heatpump and generator source", () => {
@@ -42,7 +49,7 @@ test("Query for dual heatpump and generator source", () => {
     }).queries();
 
     // prettier-ignore
-    const hp_query =
+    const hp_heat_query =
         "WITH heatpump1 AS (" +
             "SELECT time, heat_wh FROM heatpumps " +
             "WHERE series_id = 1 AND $__timeFilter(time)" +
@@ -53,6 +60,21 @@ test("Query for dual heatpump and generator source", () => {
         "SELECT COALESCE(MAX(heatpump1.heat_wh)-MIN(heatpump1.heat_wh), 0)+" +
             "COALESCE(MAX(heatpump2.heat_wh)-MIN(heatpump2.heat_wh), 0) " +
             "AS \"heatpump.heat_wh\" " +
+        "FROM heatpump1 " +
+        "FULL OUTER JOIN heatpump2 ON heatpump1.time = heatpump2.time";
+
+    // prettier-ignore
+    const hp_cold_query =
+        "WITH heatpump1 AS (" +
+            "SELECT time, cold_wh FROM heatpumps " +
+            "WHERE series_id = 1 AND $__timeFilter(time)" +
+        "), heatpump2 AS (" +
+            "SELECT time, cold_wh FROM heatpumps " +
+            "WHERE series_id = 2 AND $__timeFilter(time)" +
+        ") " +
+        "SELECT COALESCE(MAX(heatpump1.cold_wh)-MIN(heatpump1.cold_wh), 0)+" +
+            "COALESCE(MAX(heatpump2.cold_wh)-MIN(heatpump2.cold_wh), 0) " +
+            "AS \"heatpump.cold_wh\" " +
         "FROM heatpump1 " +
         "FULL OUTER JOIN heatpump2 ON heatpump1.time = heatpump2.time";
 
@@ -89,7 +111,8 @@ test("Query for dual heatpump and generator source", () => {
         "FROM generator3 " +
         "FULL OUTER JOIN generator4 ON generator3.time = generator4.time";
 
-    expect(queries[0].rawSql).toBe(hp_query);
-    expect(queries[1].rawSql).toBe(cop_query);
-    expect(queries[2].rawSql).toBe(gen_query);
+    expect(queries[0].rawSql).toBe(hp_heat_query);
+    expect(queries[1].rawSql).toBe(hp_cold_query);
+    expect(queries[2].rawSql).toBe(cop_query);
+    expect(queries[3].rawSql).toBe(gen_query);
 });

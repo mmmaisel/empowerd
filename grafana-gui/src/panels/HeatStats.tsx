@@ -26,6 +26,15 @@ export class HeatStats extends EmpPanelBuilder {
                             t("heatpump-n-heat", { id: i + 1 })
                         );
                     override
+                        .matchFieldsWithName(`heatpump${id}.cold_wh`)
+                        .overrideColor({
+                            fixedColor: Color.green(i).to_rgb(),
+                            mode: "fixed",
+                        })
+                        .overrideDisplayName(
+                            t("heatpump-n-cold", { id: i + 1 })
+                        );
+                    override
                         .matchFieldsWithName(`heatpump${id}.cop`)
                         .overrideColor({
                             fixedColor: Color.yellow(i).to_rgb(),
@@ -65,6 +74,14 @@ export class HeatStats extends EmpPanelBuilder {
                 refId: `heatpump${id}.heat`,
                 rawSql: new HeatpumpSeries(id)
                     .d_heat_wh(`\"heatpump${id}.heat_wh\"`)
+                    .time_filter()
+                    .sql(),
+                format: "table",
+            });
+            queries.push({
+                refId: `heatpump${id}.cold`,
+                rawSql: new HeatpumpSeries(id)
+                    .d_cold_wh(`\"heatpump${id}.cold_wh\"`)
                     .time_filter()
                     .sql(),
                 format: "table",

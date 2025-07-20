@@ -30,6 +30,13 @@ export class HeatSumStats extends EmpPanelBuilder {
                     })
                     .overrideDisplayName(t("heatpump-heat"));
                 override
+                    .matchFieldsByQuery(`heatpump.cold`)
+                    .overrideColor({
+                        fixedColor: Color.green(0).to_rgb(),
+                        mode: "fixed",
+                    })
+                    .overrideDisplayName(t("heatpump-cold"));
+                override
                     .matchFieldsByQuery(`heatpump.cop`)
                     .overrideColor({
                         fixedColor: Color.yellow(0).to_rgb(),
@@ -57,6 +64,13 @@ export class HeatSumStats extends EmpPanelBuilder {
             queries.push({
                 refId: `heatpump.heat`,
                 rawSql: Heatpump.query_dheat_wh_sum(
+                    this.config.heatpumps
+                ).sql(),
+                format: "table",
+            });
+            queries.push({
+                refId: `heatpump.cold`,
+                rawSql: Heatpump.query_dcold_wh_sum(
                     this.config.heatpumps
                 ).sql(),
                 format: "table",
