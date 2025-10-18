@@ -30,9 +30,7 @@ use tokio::net::TcpListener;
 
 async fn handle_connection(
     req: Request<Incoming>,
-    root_node: Arc<
-        RootNode<'static, Query, Mutation, EmptySubscription<Context>>,
-    >,
+    root_node: Arc<RootNode<Query, Mutation, EmptySubscription<Context>>>,
     globals: Arc<Globals>,
 ) -> Result<Response<String>, Infallible> {
     Ok::<_, Infallible>(match (req.method(), req.uri().path()) {
