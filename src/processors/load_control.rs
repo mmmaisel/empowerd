@@ -248,7 +248,7 @@ impl LoadControlProcessor {
         };
 
         let new_grid_power = controller.process(charge + seasonal_correction);
-        (new_grid_power + charge_power, seasonal_correction)
+        (new_grid_power - charge_power, seasonal_correction)
     }
 
     fn handle_command(&mut self, command: Command) -> Result<(), Error> {

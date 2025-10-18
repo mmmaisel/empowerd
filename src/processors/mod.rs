@@ -379,7 +379,7 @@ pub fn processor_tasks(
                     battery_source,
                     controller,
                     seasonal,
-                    Power::new::<watt>(-setting.charge_power),
+                    Power::new::<watt>(setting.charge_power),
                 ) {
                     Ok(x) => x,
                     Err(e) => {
