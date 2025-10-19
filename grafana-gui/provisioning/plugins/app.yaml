@@ -5,7 +5,31 @@ apps:
     org_id: 1
     disabled: false
     jsonData:
-      apiUrl: http://default-url.com
-      isApiKeySet: true
-    secureJsonData:
-      apiKey: secret-key
+      apiLocation: "/empowerd"
+      datasource:
+        name: empowerd-grafana
+        uid: ec8ba937-1340-4b6b-a4c0-81f0517a5ee3
+      backend:
+        batteries: [4]
+        controls: true
+        generators: [2]
+        heatpumps: [7]
+        meters: [3]
+        solars: [1]
+        wallboxes: [6]
+        weathers: [5]
+        labels:
+          x1: null
+          x2: null
+          x3: null
+          x4: null
+          x5: null
+          x6: null
+          x7: null
+        ranges:
+          production: [null,null]
+          consumption: null
+          battery: [null,null]
+          boiler: [null,null]
+          heating: null
+          cop: null
