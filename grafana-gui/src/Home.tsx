@@ -1,6 +1,4 @@
 import React, { Component, ReactNode } from "react";
-import { config } from "@grafana/runtime";
-import { Alert } from "@grafana/ui";
 import {
     SceneApp,
     SceneAppPage,
@@ -122,17 +120,6 @@ export class HomePage extends Component<HomePageProps, HomePageState> {
     }
 
     public render(): ReactNode {
-        return (
-            <>
-                {!config.featureToggles.topnav && (
-                    <Alert title="Missing topnav feature toggle">
-                        Scenes are designed to work with the new navigation
-                        wrapper that will be standard in Grafana 10
-                    </Alert>
-                )}
-
-                <this.scene.Component model={this.scene} />
-            </>
-        );
+        return <this.scene.Component model={this.scene} />;
     }
 }

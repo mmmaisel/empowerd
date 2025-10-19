@@ -12,10 +12,9 @@
   },
   "overrides": [
     {
-      "plugins": ["deprecation"],
       "files": ["src/**/*.{ts,tsx}"],
       "rules": {
-        "deprecation/deprecation": "warn"
+        "@typescript-eslint/no-deprecation": "warn"
       },
       "parserOptions": {
         "project": "./tsconfig.json"
