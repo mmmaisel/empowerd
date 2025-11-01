@@ -19,6 +19,10 @@ const month_names = [
     "dec",
 ];
 
+const array_rotate = (a: Array<any>, i: number) => {
+    a.push(...a.splice(0, i));
+};
+
 export const GroupByMonthTrafo =
     (name: string, unit: string, palette: any, ...args: any[]) =>
     (source: Observable<DataFrame[]>): Observable<DataFrame[]> => {
@@ -68,7 +72,12 @@ export const GroupByMonthTrafo =
                     ] = data[0].fields[1].values[i];
                 }
 
-                // TODO: always move Jan to front
+                // Move January to front
+                let mon_shift = (12 - first_month) % 12;
+                array_rotate(months.values, mon_shift);
+                for (let year of years) {
+                    array_rotate(year.values, mon_shift);
+                }
 
                 return [
                     {
