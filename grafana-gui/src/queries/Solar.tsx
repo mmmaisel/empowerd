@@ -73,6 +73,7 @@ export class Solar extends SimpleMeter {
                         "solar_start.time = samples.start"
                     ),
                 ])
+                .suffix(["ORDER BY samples.start"])
         );
     }
 }

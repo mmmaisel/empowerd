@@ -61,6 +61,7 @@ export class Query extends Fragment {
     protected from_: Fragment = new Fragment("");
     protected joins_: Join[] = [];
     protected wheres_: string[] = [];
+    protected suffix_: string[] = [];
 
     constructor() {
         super("");
@@ -100,6 +101,11 @@ export class Query extends Fragment {
         return this;
     }
 
+    public suffix(suffix: string[]): this {
+        this.suffix_ = suffix;
+        return this;
+    }
+
     public sql(): string {
         let sql = "";
 
@@ -122,6 +128,10 @@ export class Query extends Fragment {
             sql += ` WHERE ${this.wheres_.join(" ")}`;
         }
 
+        if (this.suffix_.length !== 0) {
+            sql += ` ${this.suffix_.join(" ")}`;
+        }
+
         return sql;
     }
 }
@@ -130,12 +140,12 @@ export class Timeseries extends Query {
     static basename = "";
 
     public time_filter(): this {
-        this.wheres_ = [...this.wheres_, "AND", "$__timeFilter(time)"];
+        this.suffix_ = [...this.suffix_, "AND", "$__timeFilter(time)"];
         return this;
     }
 
     public ordered(): this {
-        this.wheres_ = [...this.wheres_, "ORDER BY time"];
+        this.suffix_ = [...this.suffix_, "ORDER BY time"];
         return this;
     }
 

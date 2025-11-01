@@ -31,7 +31,8 @@ test("Query for single solar source", () => {
         "solar_next.energy_wh - solar_start.energy_wh AS energy_wh " +
         "FROM samples " +
         "LEFT OUTER JOIN solar AS solar_next ON solar_next.time = samples.next " +
-        "LEFT OUTER JOIN solar AS solar_start ON solar_start.time = samples.start";
+        "LEFT OUTER JOIN solar AS solar_start ON solar_start.time = samples.start " +
+        "ORDER BY samples.start";
 
     expect(queries[0].rawSql).toBe(expected_sql);
 });
@@ -74,7 +75,8 @@ test("Query for dual solar source", () => {
         "solar_next.energy_wh - solar_start.energy_wh AS energy_wh " +
         "FROM samples " +
         "LEFT OUTER JOIN solar AS solar_next ON solar_next.time = samples.next " +
-        "LEFT OUTER JOIN solar AS solar_start ON solar_start.time = samples.start";
+        "LEFT OUTER JOIN solar AS solar_start ON solar_start.time = samples.start " +
+        "ORDER BY samples.start";
 
     expect(queries[0].rawSql).toBe(expected_sql);
 });
