@@ -1,5 +1,7 @@
 # empowerd
 
+This repo was migrated to [Codeberg](https://codeberg.org/mmmaisel/empowerd).
+
 Empowerd is a Linux daemon which empowers the offline smart home.
 
 Currently, it supports monitoring of different power sources and
